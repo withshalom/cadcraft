@@ -38,12 +38,12 @@
 #![forbid(unsafe_code)]
 
 mod blackcad;
-mod native;
+mod blk;
 
 #[cfg(not(target_arch = "wasm32"))]
 mod acadrust_bridge;
 
-pub use native::{EXTENSION as CAD_EXTENSION, cad_to_dxf, dxf_to_cad, is_cad};
+pub use blk::{EXTENSION as BLK_EXTENSION, blk_to_dxf, dxf_to_blk, is_blk};
 
 /// DWG version codes we can write.
 pub const VERSIONS: &[(&str, &str)] =
