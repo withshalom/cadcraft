@@ -547,16 +547,16 @@ checksum = "fc652a48c352aef3ea3aed32080501cf3ef6ed5da78602a020c991775b0aff04"
 
 [[package]]
 name = "cad-dwg"
-version = "0.11.1"
-source = "git+https://github.com/withshalom/CAD?rev=f8c637a4307e5ea9d284fddeb22e36caaef7301e#f8c637a4307e5ea9d284fddeb22e36caaef7301e"
+version = "0.12.0"
+source = "git+https://github.com/withshalom/CAD?rev=0679fa886221b5c9034b651f51751112e36ab528#0679fa886221b5c9034b651f51751112e36ab528"
 dependencies = [
  "cad-model",
 ]
 
 [[package]]
 name = "cad-dxf"
-version = "0.11.1"
-source = "git+https://github.com/withshalom/CAD?rev=f8c637a4307e5ea9d284fddeb22e36caaef7301e#f8c637a4307e5ea9d284fddeb22e36caaef7301e"
+version = "0.12.0"
+source = "git+https://github.com/withshalom/CAD?rev=0679fa886221b5c9034b651f51751112e36ab528#0679fa886221b5c9034b651f51751112e36ab528"
 dependencies = [
  "cad-dwg",
  "cad-model",
@@ -564,13 +564,13 @@ dependencies = [
 
 [[package]]
 name = "cad-model"
-version = "0.11.1"
-source = "git+https://github.com/withshalom/CAD?rev=f8c637a4307e5ea9d284fddeb22e36caaef7301e#f8c637a4307e5ea9d284fddeb22e36caaef7301e"
+version = "0.12.0"
+source = "git+https://github.com/withshalom/CAD?rev=0679fa886221b5c9034b651f51751112e36ab528#0679fa886221b5c9034b651f51751112e36ab528"
 
 [[package]]
 name = "cad-native"
-version = "0.11.1"
-source = "git+https://github.com/withshalom/CAD?rev=f8c637a4307e5ea9d284fddeb22e36caaef7301e#f8c637a4307e5ea9d284fddeb22e36caaef7301e"
+version = "0.12.0"
+source = "git+https://github.com/withshalom/CAD?rev=0679fa886221b5c9034b651f51751112e36ab528#0679fa886221b5c9034b651f51751112e36ab528"
 dependencies = [
  "cad-dwg",
  "cad-model",
