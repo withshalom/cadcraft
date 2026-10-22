@@ -150,6 +150,12 @@ pub fn write_with(d: &Drawing, name: &str, opts: &SaveOptions) -> Result<Vec<u8>
     }
 }
 
+/// The DXF the DWG bridge converts to a DWG of `version`: what BlackCAD's and acadrust's writers
+/// read when CADCraft saves DWG. For tests and diagnostics; saving uses [`write_dwg_noted`].
+pub fn dwg_bridge_dxf(d: &Drawing, version: Version) -> String {
+    dxf_write::dwg_bridge(d, version)
+}
+
 /// Save as DWG of `version` and say how: the file, the engine that wrote it, and when acadrust
 /// wrote a version BlackCAD writes, why BlackCAD didn't.
 pub fn write_dwg_noted(d: &Drawing, version: Version) -> Result<cadcraft_dwg::Written> {
