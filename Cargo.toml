@@ -36,9 +36,9 @@ rayon = "1"
 
 # DWG: BlackCAD's open DWG and DXF readers and writers (MIT OR Apache-2.0, std only), the first
 # engine crates/dwg tries; acadrust (crates/dwg, native only) is the second.
-cad-dwg = { git = "https://github.com/withshalom/CAD", rev = "cabd16521b8f30e5dd2ca77bf90d901e1218d82a" }
-cad-dxf = { git = "https://github.com/withshalom/CAD", rev = "cabd16521b8f30e5dd2ca77bf90d901e1218d82a" }
-cad-native = { git = "https://github.com/withshalom/CAD", rev = "cabd16521b8f30e5dd2ca77bf90d901e1218d82a" }
+cad-dwg = { git = "https://github.com/withshalom/CAD", rev = "e14cd58cb61d4c63cb9d5309c99a143c3f07afec" }
+cad-dxf = { git = "https://github.com/withshalom/CAD", rev = "e14cd58cb61d4c63cb9d5309c99a143c3f07afec" }
+cad-native = { git = "https://github.com/withshalom/CAD", rev = "e14cd58cb61d4c63cb9d5309c99a143c3f07afec" }
 
 # rendering / formats
 tiny-skia = { version = "0.11", default-features = false, features = ["std", "simd", "png-format"] }
