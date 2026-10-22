@@ -22,9 +22,13 @@ main
 This branch shares no commits with the other two after `main`. It pulls from `main` for CADCraft's
 interface; BlackCAD's own progress arrives by moving the pin in `Cargo.toml` forward.
 
+`main` is a mirror of storytold/cadcraft and is never committed to, so syncing it is always a
+fast-forward. After each sync, `main` is merged into this branch (and into `dwg-native`, then
+`dwg-native` into `cad-native`); conflicts are resolved here, never on `main`.
+
 ## What's imported from withshalom/CAD
 
-All by git dependency, pinned to one BlackCAD commit (`0679fa8`, BlackCAD 0.12.0), never copied
+All by git dependency, pinned to one BlackCAD commit (`f5dc64e`, BlackCAD 0.15.0), never copied
 into this repository:
 
 | Crate | Licence | What it is |
@@ -36,7 +40,8 @@ into this repository:
 | `cad-native` | MIT OR Apache-2.0 | the `.cad` format, `.cdl` locks, compression and checksums |
 
 The open crates were already dependencies of `main` (`cad-dwg`, `cad-dxf`, `cad-model`); this
-branch moves them from BlackCAD 0.8.0 to 0.12.0 so all five come from one commit.
+branch moves them from BlackCAD 0.8.0 to 0.15.0 so all five come from one commit. Since 0.13.0
+the model also holds tolerances, raster images and wipeouts, and multilines (`.cad` 2.9).
 
 Not imported: `cad-ffi` (BlackCAD's bridge to the Android and web apps, with its `Session` and
 command line). It contains BlackCAD's only `unsafe` code and exports platform entry points, which
