@@ -115,6 +115,7 @@ on read with a note, so such files no longer exceed the DXF limit (#1482). **DWG
 | Format | AutoCAD 2027 | CADCraft | Hours to parity (est.) |
 |---|---|---|---|
 | DWT templates | open, save | NEW/QNEW from `.dwt` and `.dxf` templates, SAVEAS `.dwt` (#552) | 0–1 |
+| BlackCAD `.cad` (not an AutoCAD format) | — | open and save (branch `dwg-native`) through BlackCAD's open `cad-native` crate, on the DWG bridge: the drawing as BlackCAD's model reads our 2018 DXF, with an SVG preview of model space. The format adds a change journal, a SHA-256 hash chain and recovery data; CADCraft writes whole snapshots only | — |
 | DWS standards | open, save, CHECKSTANDARDS | no | 6–10 |
 | PDF output (PLOT, EXPORTPDF) | multi-sheet, layers, searchable text, hyperlinks | vector PDF with lineweights, real text in embedded TrueType subsets, layers (OCG), several sheets per file and hyperlinks (#567, #571); object transparency as PDF alpha when "Plot transparency" is on (the option isn't saved in DXF/DWG: no public plot layout flag) | 1–2 |
 | PDF import (PDFIMPORT) and PDF underlays (PDFATTACH) | yes | no | 15–25 |
@@ -142,10 +143,17 @@ external validator runs in CI (ezdxf's audit was run by hand once, 2026-10-06). 
 a licensed real-file corpus with an open → save → re-open → compare test per file, and checking
 our output in AutoCAD black-box.
 
+On the `dwg-native` branch, `crates/io/tests/dwg_corpus.rs` is that test for DWG: with
+`BLACKCAD_CORPUS` naming a folder of DWG files (in CI, BlackCAD's MI-201 corpus, one part saved by
+AutoCAD from R14 to 2018, cloned at run time and never committed here), it opens each file, saves
+it as 2018 DWG, opens that again, and reports what changed, in CADCraft's document and in the
+DWG's objects.
+
 ## Revision history
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-10-22 | minor | Branch `dwg-native`: BlackCAD's `.cad` opens and saves through its open `cad-native` crate; a real-file DWG round-trip test on BlackCAD's MI-201 corpus |
 | 2026-10-21 | minor | DWG: BlackCAD's open DWG and DXF crates (MIT OR Apache-2.0) convert first and are used when they carry the drawing over whole; acadrust converts the rest. The web build reads and writes DWG through BlackCAD |
 | 2026-10-17 | minor | DWG read: DGN line style components no line style definition reaches are left out before the DXF bridge, with a read note; an 83 MB site plan with 888,483 of them (1.2 GB of DXF, over the limit) now opens (#1482) |
 | 2026-10-12 | minor | PDF output: object transparency plotted as PDF alpha (`/ExtGState` `/ca` `/CA`) when the page setup's or the plot's "Plot transparency" is on; PNG plots blend it, SVG uses `opacity`; plots without it are unchanged byte for byte |

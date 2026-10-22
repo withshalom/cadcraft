@@ -14,7 +14,7 @@ use std::collections::BTreeMap;
 use std::fmt::Write as _;
 
 use cadcraft_doc::Drawing;
-use cadcraft_io::{SaveOptions, Version};
+use cadcraft_io::Version;
 
 /// CADCraft's view of a drawing: entities by space and type, layers, blocks.
 fn cadcraft_counts(d: &Drawing) -> BTreeMap<String, usize> {
@@ -90,6 +90,14 @@ fn corpus_dwg_round_trips() {
             failures.push(format!("{name}: can't read the file"));
             continue;
         };
+        if let Ok(c) = cadcraft_dwg::convert_dwg_with(cadcraft_dwg::Engine::BlackCad, &bytes, cadcraft_dwg::Limits::DEFAULT)
+            && !c.notes.is_empty()
+        {
+            let _ = writeln!(report, "BlackCAD alone would leave out ({} notes):", c.notes.len());
+            for n in c.notes.iter().take(5) {
+                let _ = writeln!(report, "  {n}");
+            }
+        }
         match cadcraft_dwg::convert_dwg(&bytes, cadcraft_dwg::Limits::DEFAULT) {
             Ok(c) => {
                 let _ = writeln!(
@@ -114,9 +122,14 @@ fn corpus_dwg_round_trips() {
                 continue;
             }
         };
-        let opts = SaveOptions { version: Some(Version::R2018), binary: false };
-        let saved = match cadcraft_io::write_with(&first, "round-trip.dwg", &opts) {
-            Ok(b) => b,
+        let saved = match cadcraft_io::write_dwg_noted(&first, Version::R2018) {
+            Ok(w) => {
+                let _ = writeln!(report, "saved by: {:?}", w.engine);
+                for n in w.notes.iter().take(5) {
+                    let _ = writeln!(report, "  BlackCAD's writer: {n}");
+                }
+                w.dwg
+            }
             Err(e) => {
                 let _ = writeln!(report, "SAVE FAILED: {e}\n");
                 failures.push(format!("{name}: doesn't save as DWG: {e}"));

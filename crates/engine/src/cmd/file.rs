@@ -550,16 +550,19 @@ pub fn not_saved_message(lost: &std::collections::BTreeMap<String, usize>) -> Op
 }
 
 /// Whether saving to `path` leaves out the entities [`not_saved`] counts: DWG does (the DWG
-/// bridge drops types it doesn't know); DXF writes them back as read.
+/// bridge drops types it doesn't know), and so does `.cad`, which takes the same bridge; DXF
+/// writes them back as read.
 pub fn drops_unknown(path: &str) -> bool {
     // Templates (.dwt) are written as DWG too.
-    std::path::Path::new(path).extension().is_some_and(|e| e.eq_ignore_ascii_case("dwg") || e.eq_ignore_ascii_case("dwt"))
+    std::path::Path::new(path)
+        .extension()
+        .is_some_and(|e| e.eq_ignore_ascii_case("dwg") || e.eq_ignore_ascii_case("dwt") || e.eq_ignore_ascii_case("cad"))
 }
 
-/// Whether `path` is saved as a drawing (DXF, DWG) rather than exported as an image.
+/// Whether `path` is saved as a drawing (DXF, DWG, `.cad`) rather than exported as an image.
 fn is_drawing_file(path: &str) -> bool {
     let ext = std::path::Path::new(path).extension().map(|e| e.to_string_lossy().to_ascii_lowercase()).unwrap_or_default();
-    matches!(ext.as_str(), "dxf" | "dwg" | "dwt" | "")
+    matches!(ext.as_str(), "dxf" | "dwg" | "dwt" | "cad" | "")
 }
 
 /// Say on the command line what the file couldn't keep, and list it in the result's `notSaved`.

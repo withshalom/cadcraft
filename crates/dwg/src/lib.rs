@@ -38,9 +38,12 @@
 #![forbid(unsafe_code)]
 
 mod blackcad;
+mod native;
 
 #[cfg(not(target_arch = "wasm32"))]
 mod acadrust_bridge;
+
+pub use native::{EXTENSION as CAD_EXTENSION, cad_to_dxf, dxf_to_cad, is_cad};
 
 /// DWG version codes we can write.
 pub const VERSIONS: &[(&str, &str)] =
@@ -165,13 +168,31 @@ fn too_large(bytes: &[u8], limits: Limits) -> String {
 /// (AC1018). A 2018 DXF is written by BlackCAD when it carries the drawing over whole.
 pub fn dxf_to_dwg(dxf: &[u8]) -> Result<Vec<u8>, String> {
     let blackcad = declared_version(dxf).is_some_and(|v| v == BLACKCAD_WRITES);
-    write_dwg(dxf, blackcad, None)
+    write_dwg(dxf, blackcad, None).map(|w| w.dwg)
 }
 
 /// Convert DXF bytes into a DWG file of `version`, a code from [`VERSIONS`] ("AC1032"),
 /// whatever version the DXF declares. 2018 (AC1032) is written by BlackCAD when it carries the
 /// drawing over whole, every other version by acadrust.
 pub fn dxf_to_dwg_as(dxf: &[u8], version: &str) -> Result<Vec<u8>, String> {
+    dxf_to_dwg_written(dxf, version).map(|w| w.dwg)
+}
+
+/// A DWG file written from DXF, and how.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Written {
+    /// The file.
+    pub dwg: Vec<u8>,
+    /// The engine that wrote it.
+    pub engine: Engine,
+    /// When acadrust wrote a version BlackCAD writes: why BlackCAD didn't (what its writer would
+    /// have left out, or its error), one note each. Empty when BlackCAD wrote the file.
+    pub notes: Vec<String>,
+}
+
+/// [`dxf_to_dwg_as`], also saying which engine wrote the file and, when it was acadrust, why
+/// BlackCAD didn't.
+pub fn dxf_to_dwg_written(dxf: &[u8], version: &str) -> Result<Written, String> {
     let code = version.trim().to_ascii_uppercase();
     if !VERSIONS.iter().any(|(c, _)| *c == code) {
         return Err(unsupported(version));
@@ -181,19 +202,26 @@ pub fn dxf_to_dwg_as(dxf: &[u8], version: &str) -> Result<Vec<u8>, String> {
 
 /// BlackCAD first when it writes the version asked for, then acadrust. When acadrust can't
 /// write the drawing either, the error says what BlackCAD would have left out.
-fn write_dwg(dxf: &[u8], blackcad: bool, version: Option<&str>) -> Result<Vec<u8>, String> {
+fn write_dwg(dxf: &[u8], blackcad: bool, version: Option<&str>) -> Result<Written, String> {
     let mut left_out = None;
+    let mut notes = Vec::new();
     if blackcad {
         match blackcad::dxf_to_dwg(dxf) {
-            Ok(blackcad::Outcome::Whole(dwg)) => return Ok(dwg),
-            Ok(blackcad::Outcome::Partial(_, notes)) => left_out = Some(notes),
-            Err(_) => {}
+            Ok(blackcad::Outcome::Whole(dwg)) => return Ok(Written { dwg, engine: Engine::BlackCad, notes }),
+            Ok(blackcad::Outcome::Partial(_, lost)) => {
+                notes.clone_from(&lost);
+                left_out = Some(lost);
+            }
+            Err(blackcad::Failure::Limit(e) | blackcad::Failure::Failed(e)) => notes.push(e),
         }
     }
-    acadrust_dxf_to_dwg(dxf, version).map_err(|e| match left_out {
-        Some(notes) => format!("{e} (BlackCAD's DWG writer would have left out: {})", notes.join("; ")),
-        None => e,
-    })
+    match acadrust_dxf_to_dwg(dxf, version) {
+        Ok(dwg) => Ok(Written { dwg, engine: Engine::Acadrust, notes }),
+        Err(e) => Err(match left_out {
+            Some(lost) => format!("{e} (BlackCAD's DWG writer would have left out: {})", lost.join("; ")),
+            None => e,
+        }),
+    }
 }
 
 /// The version an ASCII DXF declares in `$ACADVER` (the header comes first), if it does.
@@ -275,7 +303,7 @@ mod tests {
     }
 
     /// A 2018 DXF of a line and a circle, as a simple exporter writes it: no tables, no handles.
-    fn simple_dxf() -> String {
+    pub(crate) fn simple_dxf() -> String {
         let mut s = String::from("  0\nSECTION\n  2\nHEADER\n  9\n$ACADVER\n  1\nAC1032\n  0\nENDSEC\n  0\nSECTION\n  2\nENTITIES\n");
         s += "  0\nLINE\n  8\n0\n 10\n0\n 20\n0\n 30\n0\n 11\n100\n 21\n50\n 31\n0\n";
         s += "  0\nCIRCLE\n  8\nHOLES\n 10\n20\n 20\n20\n 30\n0\n 40\n5\n";

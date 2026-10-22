@@ -177,6 +177,25 @@ fn dxf_roundtrip_preserves_entities() {
     assert!(back.entity(h).is_none());
 }
 
+/// BlackCAD's `.cad` opens and saves through its open crates on every target (the web build
+/// too): the drawing comes back with its entities, layers, blocks and layouts, whatever the
+/// file is called.
+#[test]
+fn cad_roundtrip_keeps_the_drawing() {
+    let d = sample();
+    let bytes = write(&d, "part.cad").unwrap();
+    assert!(cadcraft_dwg::is_cad(&bytes) && !cadcraft_dwg::is_dwg(&bytes));
+    let back = read(&bytes, "renamed.bin").unwrap();
+    let kinds = |d: &Drawing| d.model.iter().map(|e| e.kind.type_name()).collect::<Vec<_>>();
+    assert_eq!(kinds(&back), kinds(&d), "notes: {:?}", back.read_notes);
+    assert_eq!(back.layer("Walls").unwrap().color, Color::Index(1));
+    assert!(back.block("Bolt").is_some());
+    assert_eq!(back.layout("Layout1").unwrap().entities.len(), 1);
+    // Saved again, it is the same drawing.
+    let again = read(&write(&back, "part.cad").unwrap(), "part.cad").unwrap();
+    assert_eq!(kinds(&again), kinds(&d));
+}
+
 #[test]
 fn lwpolyline_elevation_roundtrips() {
     for elevation in [5.0, -2.5, 0.0] {

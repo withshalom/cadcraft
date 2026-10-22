@@ -130,7 +130,8 @@ fn services() -> Services {
     Services {
         pick_open: Some(Box::new(|| {
             rfd::FileDialog::new()
-                .add_filter(i18n::t("Drawings (DWG, DXF)"), &["dwg", "dxf", "dwt"])
+                .add_filter(i18n::t("Drawings (DWG, DXF)"), &["dwg", "dxf", "dwt", "cad"])
+                .add_filter(i18n::t("BlackCAD drawings (.cad)"), &["cad"])
                 .add_filter(i18n::t("SVG drawings (SVG, SVGZ)"), &["svg", "svgz"])
                 .add_filter(i18n::t("All files"), &["*"])
                 .pick_file()
@@ -150,9 +151,16 @@ fn services() -> Services {
 /// filter's extension, and macOS accepts only listed extensions, replacing any other with the
 /// first one. DWG must be listed for a `.dwg` name to survive, and a drawing opened from DWG
 /// then defaults to DWG; other names keep DXF first.
-fn filters_for_save(name: &str) -> [(&'static str, &'static str); 6] {
-    let mut filters =
-        [("Drawing (DXF)", "dxf"), ("Drawing (DWG)", "dwg"), ("Drawing Template (DWT)", "dwt"), ("SVG", "svg"), ("PNG", "png"), ("PDF", "pdf")];
+fn filters_for_save(name: &str) -> [(&'static str, &'static str); 7] {
+    let mut filters = [
+        ("Drawing (DXF)", "dxf"),
+        ("Drawing (DWG)", "dwg"),
+        ("Drawing (BlackCAD .cad)", "cad"),
+        ("Drawing Template (DWT)", "dwt"),
+        ("SVG", "svg"),
+        ("PNG", "png"),
+        ("PDF", "pdf"),
+    ];
     let lower = name.to_ascii_lowercase();
     filters.sort_by_key(|(_, ext)| !lower.ends_with(&format!(".{ext}")));
     filters
@@ -397,6 +405,7 @@ mod tests {
         assert_eq!(first("Drawing1"), "dxf");
         assert_eq!(first("plan.pdf"), "pdf");
         assert_eq!(first("office.dwt"), "dwt");
+        assert_eq!(first("part.cad"), "cad");
         for name in ["a.dwg", "b.dxf", "c"] {
             let exts: Vec<_> = filters_for_save(name).iter().map(|(_, e)| *e).collect();
             assert!(exts.contains(&"dwg") && exts.contains(&"dxf"), "{name}");
