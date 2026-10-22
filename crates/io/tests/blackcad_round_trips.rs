@@ -1,5 +1,5 @@
 //! What CADCraft's own fixes keep when BlackCAD writes the file (dwg-native branch): checks of
-//! upstream fixes that DXF tests alone cover, run through DWG and `.cad` as well.
+//! upstream fixes that DXF tests alone cover, run through DWG and BlackCAD's `.blk` as well.
 
 use cadcraft_doc::{Drawing, Layout, PageSetup};
 use cadcraft_io::{Version, read, write, write_dwg_noted};
@@ -33,9 +33,9 @@ fn plot_window_corners_round_trip_through_blackcads_dwg() {
     assert_eq!(window_of(&back), ("window".into(), [0.0, -297.0, 420.0, 0.0]));
 }
 
-/// The same through BlackCAD's `.cad`.
+/// The same through BlackCAD's `.blk`.
 #[test]
-fn plot_window_corners_round_trip_through_cad() {
-    let back = read(&write(&windowed(), "win.cad").unwrap(), "win.cad").unwrap();
+fn plot_window_corners_round_trip_through_blk() {
+    let back = read(&write(&windowed(), "win.blk").unwrap(), "win.blk").unwrap();
     assert_eq!(window_of(&back), ("window".into(), [0.0, -297.0, 420.0, 0.0]));
 }

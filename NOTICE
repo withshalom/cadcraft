@@ -14,7 +14,7 @@ crate (DWG reading and writing, https://github.com/hakanaktt/acadrust) is licens
 Mozilla Public License 2.0 and is used unmodified as a separate library (crates/dwg). Its source
 is available from crates.io and the repository above.
 
-DWG is read and written first with BlackCAD's DWG and DXF crates, and BlackCAD's native .cad
+DWG is read and written first with BlackCAD's DWG and DXF crates, and BlackCAD's native .blk
 format with its cad-native crate (cad-dwg, cad-dxf, cad-native and the cad-model crate they
 share), licensed under the MIT License or the Apache License, Version 2.0, at your option, from
 https://github.com/withshalom/CAD (crates/cad-*). The rest of that repository is not open

@@ -1,4 +1,4 @@
-//! CADCraft file formats: DXF, DWG and `.cad` (BlackCAD's native format) read and write, SVG and
+//! CADCraft file formats: DXF, DWG and `.blk` (BlackCAD's native format) read and write, SVG and
 //! SVGZ import, SVG/PNG/PDF export (plotting).
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 #![forbid(unsafe_code)]
@@ -58,14 +58,14 @@ fn ext(name: &str) -> String {
     std::path::Path::new(name).extension().map(|e| e.to_string_lossy().to_ascii_lowercase()).unwrap_or_default()
 }
 
-/// Read a drawing; the format comes from the content (DXF ASCII/binary, DWG, `.cad`) or the name
+/// Read a drawing; the format comes from the content (DXF ASCII/binary, DWG, `.blk`) or the name
 /// (SVG and gzip-compressed SVGZ).
 pub fn read(bytes: &[u8], name: &str) -> Result<Drawing> {
     if cadcraft_dwg::is_dwg(bytes) {
         return read_dwg(bytes);
     }
-    if cadcraft_dwg::is_cad(bytes) {
-        return read_cad(bytes);
+    if cadcraft_dwg::is_blk(bytes) {
+        return read_blk(bytes);
     }
     match ext(name).as_str() {
         "svg" | "svgz" => svg_read::read(bytes),
@@ -101,18 +101,19 @@ fn read_dwg(bytes: &[u8]) -> Result<Drawing> {
     Ok(d)
 }
 
-/// A `.cad` file, BlackCAD's native format, through the same bridge as DWG (BlackCAD's open
-/// `cad-native` crate). It saves again as 2018, the version its DXF declares.
-fn read_cad(bytes: &[u8]) -> Result<Drawing> {
-    let (dxf, notes) = cadcraft_dwg::cad_to_dxf(bytes, cadcraft_dwg::Limits::DEFAULT).map_err(IoError::Format)?;
-    let mut d = dxf_read::read(&dxf).map_err(|e| IoError::Format(format!("{e} (in the DXF converted from this .cad file)")))?;
+/// A `.blk` file, BlackCAD's native format, through the same bridge as DWG (BlackCAD's open
+/// `cad-native` crate); older ones are named `.cad`, and the content says which they are. It saves
+/// again as 2018, the version its DXF declares.
+fn read_blk(bytes: &[u8]) -> Result<Drawing> {
+    let (dxf, notes) = cadcraft_dwg::blk_to_dxf(bytes, cadcraft_dwg::Limits::DEFAULT).map_err(IoError::Format)?;
+    let mut d = dxf_read::read(&dxf).map_err(|e| IoError::Format(format!("{e} (in the DXF converted from this BlackCAD file)")))?;
     d.read_notes = notes;
     Ok(d)
 }
 
 /// Write a drawing in the format chosen by the name's extension. Images (PNG, SVG, PDF) show
 /// model space fitted to its extents. DXF and DWG are written in the drawing's version
-/// ([`save_version`]), DXF as ASCII; `.cad` always holds the 2018 drawing, with a preview.
+/// ([`save_version`]), DXF as ASCII; `.blk` always holds the 2018 drawing, with a preview.
 pub fn write(d: &Drawing, name: &str) -> Result<Vec<u8>> {
     write_framed(d, name, None)
 }
@@ -137,11 +138,11 @@ pub fn write_with(d: &Drawing, name: &str, opts: &SaveOptions) -> Result<Vec<u8>
             let version = opts.version.unwrap_or_else(|| version.max(Version::R2004));
             write_dwg_noted(d, version).map(|w| w.dwg)
         }
-        // `.cad` (BlackCAD's native format) holds the drawing as BlackCAD's model reads our 2018
+        // `.blk` (BlackCAD's native format) holds the drawing as BlackCAD's model reads our 2018
         // DXF, with model space as an SVG preview for file browsers and Open dialogs.
-        "cad" if !opts.binary => {
+        "blk" if !opts.binary => {
             let preview = svg::export_window(d, &Space::Model, None);
-            cadcraft_dwg::dxf_to_cad(dxf_write::dwg_bridge(d, Version::R2018).as_bytes(), Some(preview))
+            cadcraft_dwg::dxf_to_blk(dxf_write::dwg_bridge(d, Version::R2018).as_bytes(), Some(preview))
                 .map(|(bytes, _notes)| bytes)
                 .map_err(IoError::Format)
         }
@@ -177,7 +178,7 @@ pub fn write_framed(d: &Drawing, name: &str, window: Option<Bounds2>) -> Result<
         check_window(w)?;
     }
     match ext(name).as_str() {
-        "dxf" | "" | "dwg" | "cad" => write_with(d, name, &SaveOptions::default()),
+        "dxf" | "" | "dwg" | "blk" => write_with(d, name, &SaveOptions::default()),
         "svg" => Ok(svg::export_window(d, &Space::Model, window).into_bytes()),
         "png" => png_framed(d, &Space::Model, 2400, 1600, window),
         "pdf" => pdf::pdf(d, &Space::Model, &PdfOptions { compress: true, window, ..PdfOptions::default() }),

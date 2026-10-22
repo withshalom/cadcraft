@@ -177,23 +177,33 @@ fn dxf_roundtrip_preserves_entities() {
     assert!(back.entity(h).is_none());
 }
 
-/// BlackCAD's `.cad` opens and saves through its open crates on every target (the web build
+/// BlackCAD's `.blk` opens and saves through its open crates on every target (the web build
 /// too): the drawing comes back with its entities, layers, blocks and layouts, whatever the
-/// file is called.
+/// file is called, so BlackCAD files saved as `.cad` before its rename open too.
 #[test]
-fn cad_roundtrip_keeps_the_drawing() {
+fn blk_roundtrip_keeps_the_drawing() {
     let d = sample();
-    let bytes = write(&d, "part.cad").unwrap();
-    assert!(cadcraft_dwg::is_cad(&bytes) && !cadcraft_dwg::is_dwg(&bytes));
-    let back = read(&bytes, "renamed.bin").unwrap();
+    let bytes = write(&d, "part.blk").unwrap();
+    assert!(cadcraft_dwg::is_blk(&bytes) && !cadcraft_dwg::is_dwg(&bytes));
     let kinds = |d: &Drawing| d.model.iter().map(|e| e.kind.type_name()).collect::<Vec<_>>();
-    assert_eq!(kinds(&back), kinds(&d), "notes: {:?}", back.read_notes);
-    assert_eq!(back.layer("Walls").unwrap().color, Color::Index(1));
-    assert!(back.block("Bolt").is_some());
-    assert_eq!(back.layout("Layout1").unwrap().entities.len(), 1);
+    for name in ["renamed.bin", "older.cad"] {
+        let back = read(&bytes, name).unwrap();
+        assert_eq!(kinds(&back), kinds(&d), "{name}: notes: {:?}", back.read_notes);
+        assert_eq!(back.layer("Walls").unwrap().color, Color::Index(1));
+        assert!(back.block("Bolt").is_some());
+        assert_eq!(back.layout("Layout1").unwrap().entities.len(), 1);
+    }
     // Saved again, it is the same drawing.
-    let again = read(&write(&back, "part.cad").unwrap(), "part.cad").unwrap();
+    let back = read(&bytes, "part.blk").unwrap();
+    let again = read(&write(&back, "part.blk").unwrap(), "part.blk").unwrap();
     assert_eq!(kinds(&again), kinds(&d));
+}
+
+/// `.cad` is CADCraft's own native format (the `cad-native` branch), not BlackCAD's: this
+/// branch doesn't save it.
+#[test]
+fn cad_is_not_saved_as_blackcads_format() {
+    assert!(write(&sample(), "part.cad").is_err());
 }
 
 #[test]

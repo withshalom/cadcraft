@@ -45,7 +45,7 @@ mainly 2018 files of what it models: it keeps some objects of older files only a
 bridge repairs two acadrust gaps in 2010+ DWG: merged table cells and table-style title/header
 suppression.
 
-On the `dwg-native` branch (BlackCAD 0.15.0), BlackCAD both opens and saves real 2018 files
+On the `dwg-native` branch (BlackCAD 0.17.0), BlackCAD both opens and saves real 2018 files
 whole: the MI-201 corpus round trip (`crates/io/tests/dwg_corpus.rs`) keeps every object
 CADCraft sees, and the saved file holds AutoCAD's objects plus CADCraft's own four. Getting there
 fixed four things in BlackCAD that CADCraft's tests caught once BlackCAD wrote the saves (table
@@ -60,8 +60,8 @@ extended records.
 From BlackCAD 0.13.0 to 0.15.0 its drawing model also holds geometric tolerances, raster images
 and wipeouts (with their image definitions, reactors and raster variables) and multilines, which
 it kept only as DWG records before and dropped from DXF. Drawings with them now open and save
-through BlackCAD, and `.cad` keeps them; `crates/io/tests/blackcad_round_trips.rs` checks
-upstream fixes (the plot window corners of #1667) through BlackCAD's DWG and `.cad` too.
+through BlackCAD, and BlackCAD's `.blk` keeps them; `crates/io/tests/blackcad_round_trips.rs` checks
+upstream fixes (the plot window corners of #1667) through BlackCAD's DWG and `.blk` too.
 
 | DWG version | Code | AutoCAD 2027 | CADCraft read | CADCraft write | Tested how |
 |---|---|---|---|---|---|
@@ -133,7 +133,7 @@ on read with a note, so such files no longer exceed the DXF limit (#1482). **DWG
 | Format | AutoCAD 2027 | CADCraft | Hours to parity (est.) |
 |---|---|---|---|
 | DWT templates | open, save | NEW/QNEW from `.dwt` and `.dxf` templates, SAVEAS `.dwt` (#552) | 0–1 |
-| BlackCAD `.cad` (not an AutoCAD format) | — | open and save (branch `dwg-native`) through BlackCAD's open `cad-native` crate, on the DWG bridge: the drawing as BlackCAD's model reads our 2018 DXF, with an SVG preview of model space. The format adds a change journal, a SHA-256 hash chain and recovery data; CADCraft writes whole snapshots only | — |
+| BlackCAD `.blk` (not an AutoCAD format; `.cad` before BlackCAD 0.16.0) | — | open and save (branch `dwg-native`; older BlackCAD files named `.cad` open too) through BlackCAD's open `cad-native` crate, on the DWG bridge: the drawing as BlackCAD's model reads our 2018 DXF, with an SVG preview of model space. The format adds a change journal, a SHA-256 hash chain and recovery data; CADCraft writes whole snapshots only | — |
 | DWS standards | open, save, CHECKSTANDARDS | no | 6–10 |
 | PDF output (PLOT, EXPORTPDF) | multi-sheet, layers, searchable text, hyperlinks | vector PDF with lineweights, real text in embedded TrueType subsets, layers (OCG), several sheets per file and hyperlinks (#567, #571); object transparency as PDF alpha when "Plot transparency" is on (the option isn't saved in DXF/DWG: no public plot layout flag) | 1–2 |
 | PDF import (PDFIMPORT) and PDF underlays (PDFATTACH) | yes | no | 15–25 |
@@ -172,6 +172,7 @@ DWG's objects.
 | Date | Change | Summary |
 |---|---|---|
 | 2026-10-22 | minor | Branch `dwg-native`: BlackCAD's `.cad` opens and saves through its open `cad-native` crate; a real-file DWG round-trip test on BlackCAD's MI-201 corpus |
+| 2026-10-22 | minor | Branch `dwg-native`: BlackCAD 0.17.0. BlackCAD's format is `.blk` (`.cad` is CADCraft's own native format, developed on `cad-native`); BlackCAD files named `.cad` still open, told apart by content |
 | 2026-10-21 | minor | DWG: BlackCAD's open DWG and DXF crates (MIT OR Apache-2.0) convert first and are used when they carry the drawing over whole; acadrust converts the rest. The web build reads and writes DWG through BlackCAD |
 | 2026-10-17 | minor | DWG read: DGN line style components no line style definition reaches are left out before the DXF bridge, with a read note; an 83 MB site plan with 888,483 of them (1.2 GB of DXF, over the limit) now opens (#1482) |
 | 2026-10-12 | minor | PDF output: object transparency plotted as PDF alpha (`/ExtGState` `/ca` `/CA`) when the page setup's or the plot's "Plot transparency" is on; PNG plots blend it, SVG uses `opacity`; plots without it are unchanged byte for byte |
