@@ -1,0 +1,76 @@
+# The blackcad-native branch: BlackCAD's engine (cad-core, from withshalom/CAD) under CADCraft's
+# interface. Lint, tests and the web check of the crates the branch changes, and a round trip of
+# BlackCAD's MI-201 corpus through the engine (real AutoCAD files, cloned from withshalom/CAD at
+# run time, never committed here). Failures and the corpus report are posted as annotations.
+# `full: true` also runs `cargo xtask ci`.
+name: blackcad-native
+
+on:
+  push:
+    branches: [blackcad-native]
+  workflow_dispatch:
+    inputs:
+      full:
+        description: "Also run cargo xtask ci (the whole workspace)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: blackcad-native-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+    steps:
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android /opt/hostedtoolcache/CodeQL /usr/local/share/boost
+          df -h /
+      - uses: actions/checkout@v5
+      - name: Toolchain
+        run: |
+          rustup toolchain install stable --profile minimal --component clippy,rustfmt
+          rustup default stable
+          rustup target add wasm32-unknown-unknown
+          rustc --version
+      - name: BlackCAD corpus
+        run: |
+          git clone --depth 1 https://github.com/withshalom/CAD "$RUNNER_TEMP/blackcad"
+          echo "BLACKCAD_CORPUS=$RUNNER_TEMP/blackcad/corpus/mosaiciron-mi201" >> "$GITHUB_ENV"
+      - name: Format
+        run: |
+          cargo fmt --all -- --check > "$RUNNER_TEMP/fmt.log" 2>&1 || { python3 .github/scripts/annotate.py notice fmt "$RUNNER_TEMP/fmt.log"; exit 1; }
+      - name: Lint
+        run: |
+          cargo clippy --locked -p cadcraft-blackcad -p cadcraft-dwg -p cadcraft-io --all-targets -- -D warnings > "$RUNNER_TEMP/clippy.log" 2>&1 \
+            || { python3 .github/scripts/annotate.py error clippy "$RUNNER_TEMP/clippy.log"; exit 1; }
+      - name: Test
+        run: |
+          status=0
+          BLACKCAD_CORPUS_REPORT="$RUNNER_TEMP/corpus.md" cargo test --locked --no-fail-fast -p cadcraft-blackcad -p cadcraft-dwg -p cadcraft-io > "$RUNNER_TEMP/test.log" 2>&1 || status=$?
+          [ -f "$RUNNER_TEMP/corpus.md" ] && python3 .github/scripts/annotate.py notice "MI-201 corpus through BlackCAD's engine" "$RUNNER_TEMP/corpus.md"
+          if [ $status -ne 0 ]; then python3 .github/scripts/annotate.py error test "$RUNNER_TEMP/test.log"; exit 1; fi
+      - name: Layers
+        run: |
+          cargo xtask layers > "$RUNNER_TEMP/layers.log" 2>&1 || { python3 .github/scripts/annotate.py error layers "$RUNNER_TEMP/layers.log"; exit 1; }
+      - name: Web
+        run: |
+          cargo check --locked -p cadcraft-blackcad -p cadcraft-dwg -p cadcraft-io --target wasm32-unknown-unknown > "$RUNNER_TEMP/wasm.log" 2>&1 \
+            || { python3 .github/scripts/annotate.py error wasm "$RUNNER_TEMP/wasm.log"; exit 1; }
+      - name: System libraries (full check)
+        # The UI crates link GTK and run GPU tests on Mesa's software renderer, as the full check
+        # does wherever it runs.
+        if: ${{ inputs.full }}
+        run: sudo apt-get update -q && sudo apt-get install -yq libxkbcommon-dev libwayland-dev libgtk-3-dev libudev-dev mesa-vulkan-drivers
+      - name: Full check (cargo xtask ci)
+        if: ${{ inputs.full }}
+        run: |
+          cargo xtask ci > "$RUNNER_TEMP/ci.log" 2>&1 || { python3 .github/scripts/annotate.py error "xtask ci" "$RUNNER_TEMP/ci.log"; exit 1; }

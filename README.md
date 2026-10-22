@@ -79,6 +79,11 @@
   </tr>
 </table>
 
+> **Branch `blackcad-native`:** an experiment that puts BlackCAD's engine
+> ([withshalom/CAD](https://github.com/withshalom/CAD)'s `cad-core`) under CADCraft's interface.
+> `cad-core` is proprietary, so builds of this branch are not open source; see `NOTICE` and
+> [docs/blackcad-native.md](docs/blackcad-native.md).
+
 ## Why CADCraft
 
 - **The workflow you know.** Type `L`, click two points, type `@5<45`, press Enter. The command

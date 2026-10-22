@@ -36,6 +36,8 @@ pub const TABLE: &[(&str, Class)] = &[
     ("geom", Class::Layer(0)),
     ("dxf", Class::Standalone),
     ("dwg", Class::Standalone),
+    // blackcad-native: BlackCAD's engine (cad-core) behind its own seam; no workspace crates yet.
+    ("blackcad", Class::Standalone),
     ("color", Class::Layer(0)),
     ("doc", Class::Layer(1)),
     ("constraints", Class::Layer(2)),

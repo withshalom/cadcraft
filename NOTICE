@@ -19,6 +19,15 @@ cad-model crate they share), licensed under the MIT License or the Apache Licens
 at your option, from https://github.com/withshalom/CAD (crates/cad-*). The rest of that
 repository is not open source; CADCraft uses only those three crates.
 
+The blackcad-native branch (crates/blackcad) also uses BlackCAD's engine, cad-core, from the same
+repository, and with it BlackCAD's open cad-native crate (the .cad format, MIT OR Apache-2.0).
+cad-core is NOT open source: it is proprietary (LicenseRef-Proprietary; all rights reserved by
+its owner, and no licence to use, copy, modify or distribute it is granted without the owner's
+written permission; see LICENSE in that repository). The code in crates/blackcad is MIT OR
+Apache-2.0 like the rest of CADCraft, but any build that includes it, and with it cad-core, is
+subject to cad-core's terms and is not open source. This applies to the blackcad-native branch only; CADCraft's main line does not
+depend on cad-core.
+
 
 None: every bundled asset is original to CADCraft (icons, drafting font, hatch patterns and
 linetypes are drawn or defined in code). The per-file list is in ATTRIBUTION.md. Builds made with

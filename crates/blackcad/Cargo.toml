@@ -1,0 +1,16 @@
+[package]
+name = "cadcraft-blackcad"
+description = "BlackCAD's engine (cad-core) under CADCraft's interface: the blackcad-native experiment. This crate's own code is MIT OR Apache-2.0; cad-core is proprietary (see NOTICE)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+# BlackCAD's engine: the drawing database, DWG/DXF/.cad files, drafting
+# operations, rendering. Proprietary (LicenseRef-Proprietary), standard
+# library only. Its open crates (cad-model, cad-dwg, cad-dxf, cad-native)
+# come with it.
+cad-core = { workspace = true }
