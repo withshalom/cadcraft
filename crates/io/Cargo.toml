@@ -25,4 +25,6 @@ quick-xml = { workspace = true }
 [dev-dependencies]
 # Reads CADCraft's DWG output as written (tests only; the same version as cadcraft-dwg's).
 acadrust = "0.6.4"
+# BlackCAD's reader, for counting what a DWG holds before and after a round trip (tests/dwg_corpus.rs).
+cad-dwg = { workspace = true }
 tiny-skia = { workspace = true }
