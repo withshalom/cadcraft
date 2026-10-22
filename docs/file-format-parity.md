@@ -45,7 +45,7 @@ mainly 2018 files of what it models: it keeps some objects of older files only a
 bridge repairs two acadrust gaps in 2010+ DWG: merged table cells and table-style title/header
 suppression.
 
-On the `dwg-native` branch (BlackCAD 0.12.0), BlackCAD both opens and saves real 2018 files
+On the `dwg-native` branch (BlackCAD 0.15.0), BlackCAD both opens and saves real 2018 files
 whole: the MI-201 corpus round trip (`crates/io/tests/dwg_corpus.rs`) keeps every object
 CADCraft sees, and the saved file holds AutoCAD's objects plus CADCraft's own four. Getting there
 fixed four things in BlackCAD that CADCraft's tests caught once BlackCAD wrote the saves (table
@@ -56,6 +56,12 @@ still opened by acadrust (BlackCAD keeps some of their objects only as DWG recor
 style objects acadrust's conversion gives (materials, visual, section and detail view styles)
 are not written by BlackCAD, so those saves still go to acadrust and lose dictionaries and
 extended records.
+
+From BlackCAD 0.13.0 to 0.15.0 its drawing model also holds geometric tolerances, raster images
+and wipeouts (with their image definitions, reactors and raster variables) and multilines, which
+it kept only as DWG records before and dropped from DXF. Drawings with them now open and save
+through BlackCAD, and `.cad` keeps them; `crates/io/tests/blackcad_round_trips.rs` checks
+upstream fixes (the plot window corners of #1667) through BlackCAD's DWG and `.cad` too.
 
 | DWG version | Code | AutoCAD 2027 | CADCraft read | CADCraft write | Tested how |
 |---|---|---|---|---|---|
