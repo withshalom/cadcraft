@@ -54,7 +54,7 @@ jobs:
       - name: Test
         run: |
           status=0
-          DWG_CORPUS_REPORT="$RUNNER_TEMP/corpus.md" cargo test --locked -p cadcraft-dwg -p cadcraft-io > "$RUNNER_TEMP/test.log" 2>&1 || status=$?
+          DWG_CORPUS_REPORT="$RUNNER_TEMP/corpus.md" cargo test --locked --no-fail-fast -p cadcraft-dwg -p cadcraft-io > "$RUNNER_TEMP/test.log" 2>&1 || status=$?
           [ -f "$RUNNER_TEMP/corpus.md" ] && python3 .github/scripts/annotate.py notice "MI-201 corpus" "$RUNNER_TEMP/corpus.md"
           if [ $status -ne 0 ]; then python3 .github/scripts/annotate.py error test "$RUNNER_TEMP/test.log"; exit 1; fi
       - name: Web

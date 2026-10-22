@@ -41,7 +41,12 @@ def main() -> None:
         blocks.append(m.group(0))
     if not blocks:
         blocks = [text[-4000:]]
-    for b in blocks[:10]:
+    # The names of every failed test first, in one annotation: the details
+    # below are capped at nine.
+    failed = re.findall(r"^    (\S+)$", text.split("failures:")[-1], re.M) if "failures:" in text else []
+    if failed:
+        print(f"::error title={title} (failed tests)::{esc(chr(10).join(failed)[:4000])}")
+    for b in blocks[:9]:
         print(f"::error title={title}::{esc(b[:4000])}")
 
 
