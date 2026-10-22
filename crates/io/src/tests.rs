@@ -177,14 +177,14 @@ fn dxf_roundtrip_preserves_entities() {
     assert!(back.entity(h).is_none());
 }
 
-/// BlackCAD's `.blk` opens and saves through its open crates on every target (the web build
+/// BlackCAD's `.blc` opens and saves through its open crates on every target (the web build
 /// too): the drawing comes back with its entities, layers, blocks and layouts, whatever the
 /// file is called, so BlackCAD files saved as `.cad` before its rename open too.
 #[test]
-fn blk_roundtrip_keeps_the_drawing() {
+fn blc_roundtrip_keeps_the_drawing() {
     let d = sample();
-    let bytes = write(&d, "part.blk").unwrap();
-    assert!(cadcraft_dwg::is_blk(&bytes) && !cadcraft_dwg::is_dwg(&bytes));
+    let bytes = write(&d, "part.blc").unwrap();
+    assert!(cadcraft_dwg::is_blc(&bytes) && !cadcraft_dwg::is_dwg(&bytes));
     let kinds = |d: &Drawing| d.model.iter().map(|e| e.kind.type_name()).collect::<Vec<_>>();
     for name in ["renamed.bin", "older.cad"] {
         let back = read(&bytes, name).unwrap();
@@ -194,8 +194,8 @@ fn blk_roundtrip_keeps_the_drawing() {
         assert_eq!(back.layout("Layout1").unwrap().entities.len(), 1);
     }
     // Saved again, it is the same drawing.
-    let back = read(&bytes, "part.blk").unwrap();
-    let again = read(&write(&back, "part.blk").unwrap(), "part.blk").unwrap();
+    let back = read(&bytes, "part.blc").unwrap();
+    let again = read(&write(&back, "part.blc").unwrap(), "part.blc").unwrap();
     assert_eq!(kinds(&again), kinds(&d));
 }
 
