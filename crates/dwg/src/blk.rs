@@ -28,7 +28,11 @@ pub fn is_blk(bytes: &[u8]) -> bool {
 /// conversion left out or the reader repaired.
 pub fn blk_to_dxf(bytes: &[u8], limits: Limits) -> Result<(Vec<u8>, Vec<String>), String> {
     if bytes.len() > limits.max_dwg_bytes {
-        return Err(format!("BlackCAD file: the file is {}, larger than the {} CADCraft opens", mb(bytes.len() as u64), mb(limits.max_dwg_bytes as u64)));
+        return Err(format!(
+            "BlackCAD file: the file is {}, larger than the {} CADCraft opens",
+            mb(bytes.len() as u64),
+            mb(limits.max_dwg_bytes as u64)
+        ));
     }
     let d = catch_unwind(|| cad_native::read_bytes(bytes))
         .map_err(|_| "BlackCAD's .blk reader failed on this file".to_string())?
