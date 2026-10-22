@@ -68,9 +68,14 @@ pub(crate) fn dxf_to_dwg(dxf: &[u8]) -> Result<Outcome, Failure> {
     let mut losses = warnings(&d, "DXF");
     if let Some(note) = left_out_note(&out.left_out, "DWG", "couldn't be written to the DWG") {
         losses.push(note);
+        // Why, object by object: what the writer said about the first few.
+        losses.extend(out.notes.iter().take(WRITER_NOTES).map(|n| format!("DWG writer: {n}")));
     }
     Ok(outcome(out.bytes, losses))
 }
+
+/// Most of the DWG writer's own notes passed on when it leaves objects out.
+const WRITER_NOTES: usize = 8;
 
 fn outcome(bytes: Vec<u8>, losses: Vec<String>) -> Outcome {
     if losses.is_empty() { Outcome::Whole(bytes) } else { Outcome::Partial(bytes, losses) }

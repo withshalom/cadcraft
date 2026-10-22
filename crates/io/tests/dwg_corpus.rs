@@ -65,6 +65,40 @@ fn changes(before: &BTreeMap<String, usize>, after: &BTreeMap<String, usize>) ->
         .collect()
 }
 
+/// The first DXF record of each type the DWG writer's notes ("DWG writer: 1A2 TABLESTYLE: …")
+/// name, as `code=value` pairs (at most 2,000 characters each).
+fn refused_records(notes: &[String], dxf: &str) -> Vec<(String, String)> {
+    let mut kinds: Vec<String> = notes
+        .iter()
+        .filter_map(|n| n.strip_prefix("DWG writer: "))
+        .filter_map(|n| n.split_whitespace().nth(1))
+        .map(|k| k.trim_end_matches(':').to_string())
+        .collect();
+    kinds.sort();
+    kinds.dedup();
+    let lines: Vec<&str> = dxf.lines().map(str::trim).collect();
+    let mut out = Vec::new();
+    for kind in kinds {
+        let mut i = 0;
+        while i + 1 < lines.len() {
+            if lines[i] == "0" && lines[i + 1].eq_ignore_ascii_case(&kind) {
+                let mut pairs = Vec::new();
+                let mut j = i + 2;
+                while j + 1 < lines.len() && lines[j] != "0" {
+                    pairs.push(format!("{}={}", lines[j], lines[j + 1]));
+                    j += 2;
+                }
+                let mut text = pairs.join("; ");
+                text.truncate(text.char_indices().nth(2000).map_or(text.len(), |(k, _)| k));
+                out.push((kind.clone(), text));
+                break;
+            }
+            i += 1;
+        }
+    }
+    out
+}
+
 fn model_entities(m: &BTreeMap<String, usize>) -> usize {
     m.iter().filter(|(k, _)| k.starts_with("model ")).map(|(_, n)| n).sum()
 }
@@ -98,8 +132,10 @@ fn corpus_dwg_round_trips() {
                 let _ = writeln!(report, "  {n}");
             }
         }
+        let mut blackcad_opened = false;
         match cadcraft_dwg::convert_dwg(&bytes, cadcraft_dwg::Limits::DEFAULT) {
             Ok(c) => {
+                blackcad_opened = c.engine == cadcraft_dwg::Engine::BlackCad;
                 let _ = writeln!(
                     report,
                     "opened by: {:?}{}",
@@ -125,8 +161,16 @@ fn corpus_dwg_round_trips() {
         let saved = match cadcraft_io::write_dwg_noted(&first, Version::R2018) {
             Ok(w) => {
                 let _ = writeln!(report, "saved by: {:?}", w.engine);
-                for n in w.notes.iter().take(5) {
+                for n in w.notes.iter().take(10) {
                     let _ = writeln!(report, "  BlackCAD's writer: {n}");
+                }
+                // For files BlackCAD opened, the DXF records its writer refused, as CADCraft
+                // wrote them: what to teach the writer.
+                if blackcad_opened {
+                    let dxf = cadcraft_io::dwg_bridge_dxf(&first, Version::R2018);
+                    for (kind, record) in refused_records(&w.notes, &dxf) {
+                        let _ = writeln!(report, "  refused {kind} as CADCraft writes it: {record}");
+                    }
                 }
                 w.dwg
             }
