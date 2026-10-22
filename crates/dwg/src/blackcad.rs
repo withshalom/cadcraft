@@ -31,8 +31,8 @@ pub(crate) enum Failure {
 }
 
 /// The program name and version BlackCAD's writer records in the DWG files CADCraft saves.
-const APP_NAME: &str = "CADCraft";
-const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
+pub(crate) const APP_NAME: &str = "CADCraft";
+pub(crate) const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// Read DWG bytes into an ASCII DXF (AutoCAD 2018 format).
 pub(crate) fn dwg_to_dxf(bytes: &[u8], limits: Limits) -> Result<Outcome, Failure> {
@@ -50,7 +50,7 @@ pub(crate) fn dwg_to_dxf(bytes: &[u8], limits: Limits) -> Result<Outcome, Failur
         )));
     }
     let mut losses = warnings(&d, "DWG");
-    if let Some(note) = left_out_note(&out.left_out, "couldn't be converted to DXF") {
+    if let Some(note) = left_out_note(&out.left_out, "DWG", "couldn't be converted to DXF") {
         losses.push(note);
     }
     Ok(outcome(out.bytes, losses))
@@ -66,7 +66,7 @@ pub(crate) fn dxf_to_dwg(dxf: &[u8]) -> Result<Outcome, Failure> {
         .map_err(|_| Failure::Failed("BlackCAD's DWG writer failed on this drawing".into()))?
         .map_err(|e| Failure::Failed(format!("DWG write: {e}")))?;
     let mut losses = warnings(&d, "DXF");
-    if let Some(note) = left_out_note(&out.left_out, "couldn't be written to the DWG") {
+    if let Some(note) = left_out_note(&out.left_out, "DWG", "couldn't be written to the DWG") {
         losses.push(note);
     }
     Ok(outcome(out.bytes, losses))
@@ -78,7 +78,7 @@ fn outcome(bytes: Vec<u8>, losses: Vec<String>) -> Outcome {
 
 /// The reader's warnings and errors: objects that failed to decode, records left out, damage it
 /// read around. Its information notes (what it filled in) are not losses.
-fn warnings(d: &Drawing, format: &str) -> Vec<String> {
+pub(crate) fn warnings(d: &Drawing, format: &str) -> Vec<String> {
     d.diagnostics
         .iter()
         .filter(|x: &&Diagnostic| matches!(x.severity, Severity::Warning | Severity::Error))
@@ -89,8 +89,9 @@ fn warnings(d: &Drawing, format: &str) -> Vec<String> {
 /// Most object types named in a note.
 const NOTE_TYPES: usize = 6;
 
-/// The note on the objects a conversion left out, by type (most first), or nothing.
-fn left_out_note(left_out: &std::collections::BTreeMap<String, usize>, what: &str) -> Option<String> {
+/// The note on the objects a conversion of a `format` file left out, by type (most first), or
+/// nothing.
+pub(crate) fn left_out_note(left_out: &std::collections::BTreeMap<String, usize>, format: &str, what: &str) -> Option<String> {
     let total: usize = left_out.values().sum();
     if total == 0 {
         return None;
@@ -102,5 +103,5 @@ fn left_out_note(left_out: &std::collections::BTreeMap<String, usize>, what: &st
         list.push(format!("{} more types", types.len() - NOTE_TYPES));
     }
     let (objects, were) = if total == 1 { ("object", "was") } else { ("objects", "were") };
-    Some(format!("DWG: {total} {objects} {what} and {were} left out ({})", list.join(", ")))
+    Some(format!("{format}: {total} {objects} {what} and {were} left out ({})", list.join(", ")))
 }
