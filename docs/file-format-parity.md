@@ -45,6 +45,18 @@ mainly 2018 files of what it models: it keeps some objects of older files only a
 bridge repairs two acadrust gaps in 2010+ DWG: merged table cells and table-style title/header
 suppression.
 
+On the `dwg-native` branch (BlackCAD 0.12.0), BlackCAD both opens and saves real 2018 files
+whole: the MI-201 corpus round trip (`crates/io/tests/dwg_corpus.rs`) keeps every object
+CADCraft sees, and the saved file holds AutoCAD's objects plus CADCraft's own four. Getting there
+fixed four things in BlackCAD that CADCraft's tests caught once BlackCAD wrote the saves (table
+and multileader styles and dimension associations as CADCraft writes them, attribute lock
+position, MEASUREMENT, hatch boundary objects). The bridge now reports which engine wrote a DWG
+and why BlackCAD stepped aside (`dxf_to_dwg_written`, `io::write_dwg_noted`). Older versions are
+still opened by acadrust (BlackCAD keeps some of their objects only as DWG records), and the
+style objects acadrust's conversion gives (materials, visual, section and detail view styles)
+are not written by BlackCAD, so those saves still go to acadrust and lose dictionaries and
+extended records.
+
 | DWG version | Code | AutoCAD 2027 | CADCraft read | CADCraft write | Tested how |
 |---|---|---|---|---|---|
 | R1.0–R2.6, R9, R10, R11/R12 | MC0.0–AC1009 | read | **no** (`is_dwg` accepts only `AC10xx` magic; acadrust doesn't target pre-R13) | no | — |
@@ -55,7 +67,7 @@ suppression.
 | 2007–2009 | AC1021 | read, write | via bridge | yes | `dwg_at_every_version_reads_back` |
 | 2010–2012 | AC1024 | read, write | via bridge | yes | `dwg_at_every_version_reads_back`, `ac1024_dwg_with_many_entities_opens` |
 | 2013–2017 | AC1027 | read, write | via bridge | yes | `dwg_at_every_version_reads_back` |
-| 2018–2027 | AC1032 | read, write (default) | via bridge: BlackCAD first; untested here on real files (BlackCAD's own tests use AutoCAD's) | yes (default for new drawings): BlackCAD writes it when it carries the drawing over whole | `dwg_at_every_version_reads_back` (synthetic), `blackcad_writes_and_reads_2018_whole` |
+| 2018–2027 | AC1032 | read, write (default) | via bridge: BlackCAD first; on `dwg-native`, AutoCAD's MI-201 files open and save through BlackCAD whole | yes (default for new drawings): BlackCAD writes it when it carries the drawing over whole | `dwg_at_every_version_reads_back` (synthetic), `blackcad_writes_and_reads_2018_whole`, `corpus_dwg_round_trips` (real files, `dwg-native`) |
 | Web build | — | — | BlackCAD's whole conversions (R13–2018 except 2007) | 2018, when BlackCAD carries the drawing over whole | `blackcad_writes_and_reads_2018_whole` (host) |
 
 Everything lost in the DXF read/write paths below is also lost through DWG, plus whatever
