@@ -114,21 +114,13 @@ fn still_ours(_: &Mutex<Held>) -> bool {
     true
 }
 
-/// `secs` since 1970 as `YYYY-MM-DD HH:MM UTC`.
+/// `secs` since 1970 as `YYYY-MM-DD HH:MM UTC` (through chrono, AGENTS.md); a time chrono can't
+/// represent is shown as seconds.
 fn utc(secs: u64) -> String {
-    let days = i64::try_from(secs / 86_400).unwrap_or(0);
-    let (h, m) = (secs % 86_400 / 3600, secs % 3600 / 60);
-    // Civil date from days since 1970-01-01 (H. Hinnant's algorithm).
-    let z = days + 719_468;
-    let era = z.div_euclid(146_097);
-    let doe = z - era * 146_097;
-    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
-    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-    let mp = (5 * doy + 2) / 153;
-    let d = doy - (153 * mp + 2) / 5 + 1;
-    let mo = if mp < 10 { mp + 3 } else { mp - 9 };
-    let y = yoe + era * 400 + i64::from(mo <= 2);
-    format!("{y:04}-{mo:02}-{d:02} {h:02}:{m:02} UTC")
+    i64::try_from(secs)
+        .ok()
+        .and_then(|t| chrono::DateTime::from_timestamp(t, 0))
+        .map_or_else(|| format!("{secs} s after 1970 (UTC)"), |t| t.format("%Y-%m-%d %H:%M UTC").to_string())
 }
 
 /// Who holds a file, as a sentence part: "shalom on shop-pc (CADCraft 0.10.0) since …".
@@ -286,6 +278,7 @@ mod tests {
 
     #[test]
     fn utc_dates() {
+        assert_eq!(utc(u64::MAX), format!("{} s after 1970 (UTC)", u64::MAX));
         assert_eq!(utc(0), "1970-01-01 00:00 UTC");
         assert_eq!(utc(951_782_400), "2000-02-29 00:00 UTC");
         assert_eq!(utc(1_792_678_200), "2026-10-22 14:10 UTC");
