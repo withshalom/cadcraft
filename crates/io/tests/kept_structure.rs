@@ -14,6 +14,8 @@ fn drawing() -> (Drawing, Handle, Handle) {
     let l1 = d.add(&Space::Model, c(), EntityKind::Line(Line { a: Vec3::ZERO, b: Vec3::new(0.0, 5.0, 0.0) })).unwrap();
     let l2 = d.add(&Space::Model, c(), EntityKind::Line(Line { a: Vec3::new(10.0, 0.0, 0.0), b: Vec3::new(10.0, 5.0, 0.0) })).unwrap();
     let dim = Dimension {
+        flag_73: Default::default(),
+        flip_arrows: Default::default(),
         attachment: Default::default(),
         kind: DimKind::Linear { rotation: 0.0 },
         defpt: Vec3::new(0.0, -2.0, 0.0),
@@ -30,8 +32,8 @@ fn drawing() -> (Drawing, Handle, Handle) {
         block: None,
         overrides: Default::default(),
         assoc: vec![
-            DimAssoc { point: "p13".into(), handle: l1, snap: AssocSnap::Start },
-            DimAssoc { point: "p14".into(), handle: l2, snap: AssocSnap::Start },
+            DimAssoc { read: Default::default(), point: "p13".into(), handle: l1, snap: AssocSnap::Start },
+            DimAssoc { read: Default::default(), point: "p14".into(), handle: l2, snap: AssocSnap::Start },
         ],
         marks: Default::default(),
     };

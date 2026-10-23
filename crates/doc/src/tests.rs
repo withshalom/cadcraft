@@ -533,6 +533,8 @@ fn invisible_dimblock_entity_is_ignored_in_dimension_extents() {
             &Space::Model,
             Common::default(),
             EntityKind::Dimension(Dimension {
+                flag_73: Default::default(),
+                flip_arrows: Default::default(),
                 attachment: Default::default(),
                 kind: DimKind::Linear { rotation: 0.0 },
                 defpt: Vec3::new(1.0, 1.0, 0.0),

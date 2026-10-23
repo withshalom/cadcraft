@@ -306,6 +306,7 @@ fn run_copy(s: &mut Session, p: &Value) -> Result<Value> {
         store.push(Entity { handle: h, ..Entity::clone(e) });
     }
     d.layouts.push(Layout {
+        record: Default::default(),
         handle: Default::default(),
         begin_handle: Default::default(),
         block_handle: Default::default(),

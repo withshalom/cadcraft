@@ -139,6 +139,8 @@ struct OsnapRef {
     param: f64,
     point: Vec3,
     other: Option<Handle>,
+    /// What the file held for this reference, while the link is still the one read.
+    read: Option<OsnapRead>,
 }
 
 /// Handles and names the entity writer needs from the rest of the file.
@@ -1031,6 +1033,12 @@ fn entity(w: &mut W, d: &Drawing, e: &Entity, owner: &str, paper: bool, cx: &Ctx
             }
             // The actual measurement (read-only in DXF): AutoLISP's entget shows it.
             w.f(42, g.measurement);
+            // The flag before the arrowhead flips, and the flips (2007 and later).
+            if cx.target >= Version::R2007 || dm.flag_73 || dm.flip_arrows.iter().any(|f| *f) {
+                w.i(73, i64::from(dm.flag_73));
+                w.i(74, i64::from(dm.flip_arrows[0]));
+                w.i(75, i64::from(dm.flip_arrows[1]));
+            }
             if !dm.text.is_empty() {
                 w.s(1, &dm.text);
             }
@@ -1672,6 +1680,11 @@ pub(crate) fn polyline_vertex_ref(p: &LwPolyline, index: usize) -> Option<(i64, 
 /// Standard DIMASSOC point references of an associative dimension: the extension-line
 /// origins of linear/aligned dimensions and the feature point of ordinate dimensions, linked
 /// to objects that exist ([`whole_object_ref`]). CADCraft's exact links travel in xdata as well.
+/// The reference data the file held for `a`, while `a` is still the link that was read.
+fn kept_read(a: &DimAssoc) -> Option<OsnapRead> {
+    a.read.0.as_deref().filter(|r| r.handle == a.handle && r.snap.as_ref() == Some(&a.snap)).cloned()
+}
+
 fn std_assoc_refs(d: &Drawing, dm: &Dimension) -> (i64, Vec<OsnapRef>) {
     let slots: &[&str] = match dm.kind {
         DimKind::Linear { .. } | DimKind::Aligned => &["p13", "p14"],
@@ -1693,7 +1706,7 @@ fn std_assoc_refs(d: &Drawing, dm: &Dimension) -> (i64, Vec<OsnapRef>) {
             };
             let Some((osnap, param, segment)) = index.and_then(|i| polyline_vertex_ref(p, i)) else { continue };
             flags |= 1 << slot;
-            refs.push(OsnapRef { osnap, main: a.handle, segment, param, point, other: None });
+            refs.push(OsnapRef { osnap, main: a.handle, segment, param, point, other: None, read: kept_read(a) });
             continue;
         }
         if !whole_object_ref(&ent.kind) {
@@ -1712,7 +1725,7 @@ fn std_assoc_refs(d: &Drawing, dm: &Dimension) -> (i64, Vec<OsnapRef>) {
             }
         };
         flags |= 1 << slot;
-        refs.push(OsnapRef { osnap, main: a.handle, segment: 0, param, point, other });
+        refs.push(OsnapRef { osnap, main: a.handle, segment: 0, param, point, other, read: kept_read(a) });
     }
     (flags, refs)
 }
@@ -1769,14 +1782,18 @@ fn paper_view(w: &mut W, d: &Drawing, e: &Entity, owner: &str, cx: &Ctx) {
 
 /// The VPORT table: the `*Active` model space tiles (one viewport on the extents when there is no
 /// tiled configuration) and the saved configurations, each tile a record, the current one first.
-fn vport_table(w: &mut W, d: &Drawing, ext: Bounds2) {
+fn vport_table(w: &mut W, d: &Drawing, ext: Bounds2, target: Version) {
+    // A lone `*Active` tile the file held: its settings, handle and window shape are kept; the view
+    // itself is the drawing's extents (CADCraft zooms to them on opening).
+    let held = d.active_vport.as_deref();
     let single = VportTile {
-        handle: Default::default(),
+        settings: held.map(|t| t.settings.clone()).unwrap_or_default(),
+        handle: held.map(|t| t.handle).unwrap_or_default(),
         min: Vec2::ZERO,
         max: Vec2::new(1.0, 1.0),
         center: if ext.is_empty() { Vec2::new(6.0, 4.5) } else { ext.center() },
         height: if ext.is_empty() { 9.0 } else { (ext.height() * 1.1).max(1e-6) },
-        aspect: 1.6,
+        aspect: held.map_or(1.6, |t| t.aspect),
     };
     let tiled = d.vports.iter().find(|c| c.is_active() && c.tiles.len() > 1);
     let mut records: Vec<(&str, &VportTile)> = match tiled {
@@ -1787,6 +1804,7 @@ fn vport_table(w: &mut W, d: &Drawing, ext: Bounds2) {
     let th = table_head(w, "VPORT", records.len());
     let finite = |p: Vec2, or: Vec2| if p.is_finite() { p } else { or };
     for (name, t) in records {
+        let v = &t.settings;
         record_head(w, "VPORT", name, t.handle, &th, "AcDbViewportTableRecord");
         w.s(2, name);
         w.i(70, 0);
@@ -1797,12 +1815,67 @@ fn vport_table(w: &mut W, d: &Drawing, ext: Bounds2) {
         w.p2(13, d.header.point("SNAPBASE").map(|p| p.xy()).filter(|p| p.is_finite()).unwrap_or(Vec2::ZERO));
         w.p2(14, d.header.snap_unit());
         w.p2(15, d.header.grid_unit());
-        w.p(16, Vec3::Z);
-        w.p(17, Vec3::ZERO);
+        w.p(16, v.direction);
+        w.p(17, v.target);
         w.f(40, if t.height.is_finite() && t.height > 0.0 { t.height } else { 1.0 });
         w.f(41, if t.aspect.is_finite() && t.aspect > 0.0 { t.aspect } else { 1.0 });
-        w.f(42, 50.0);
+        w.f(42, v.lens);
+        w.f(43, v.front_clip);
+        w.f(44, v.back_clip);
         w.f(50, d.header.f64("SNAPANG", 0.0));
+        w.f(51, v.twist);
+        for (c, x) in [
+            (71, v.view_mode),
+            (72, v.circle_zoom),
+            (73, v.fast_zoom),
+            (74, v.ucs_icon),
+            (75, v.snap_on),
+            (76, v.grid_on),
+            (77, v.snap_style),
+            (78, v.snap_isopair),
+        ] {
+            w.i(c, i64::from(x));
+        }
+        if let Some(sheet) = &v.style_sheet {
+            w.s(1, sheet.clone());
+        }
+        w.i(281, i64::from(v.render_mode));
+        w.i(65, i64::from(v.ucs_per_viewport));
+        w.p(110, v.ucs_origin);
+        w.p(111, v.ucs_x);
+        w.p(112, v.ucs_y);
+        w.i(79, i64::from(v.ortho_type));
+        w.f(146, v.elevation);
+        for (c, h) in [(345, v.named_ucs), (346, v.base_ucs)] {
+            if !h.is_none() {
+                w.s(c, h.hex());
+            }
+        }
+        if v.shade_plot != 0 {
+            w.i(170, i64::from(v.shade_plot));
+        }
+        // Grid flags and the default lighting came with AutoCAD 2007.
+        if target >= Version::R2007 {
+            w.i(60, i64::from(v.grid_flags));
+            w.i(61, i64::from(v.major_grid));
+        }
+        for (c, h) in [(332, v.background), (333, v.shade_plot_object), (348, v.visual_style)] {
+            if !h.is_none() {
+                w.s(c, h.hex());
+            }
+        }
+        if target >= Version::R2007 {
+            w.i(292, i64::from(v.default_lighting));
+            w.i(282, i64::from(v.lighting_type));
+            w.f(141, v.brightness);
+            w.f(142, v.contrast);
+        }
+        if let Some(a) = v.ambient {
+            w.i(63, i64::from(a));
+        }
+        if let Some(rgb) = v.ambient_rgb {
+            w.i(421, rgb);
+        }
     }
     w.s(0, "ENDTAB");
 }
@@ -2164,7 +2237,7 @@ fn tags_for(d: &Drawing, version: Version, target: Version) -> Vec<Tag> {
     // ---------------- TABLES ----------------
     w.s(0, "SECTION");
     w.s(2, "TABLES");
-    vport_table(&mut w, d, ext);
+    vport_table(&mut w, d, ext, target);
     // LTYPE. Embedded text and shapes point at STYLE records (340), which get their handles
     // in the STYLE table below: (tag position, style name, is a shape) are filled in there.
     let mut ltype_handles: HashMap<String, String> = HashMap::new();
@@ -2347,12 +2420,22 @@ fn tags_for(d: &Drawing, version: Version, target: Version) -> Vec<Tag> {
         w.f(146, 0.0);
     }
     w.s(0, "ENDTAB");
-    let apps = ["ACAD", dxf_ext::APP, "AcadAnnotative", dxf_ext::LAYER_TRANSPARENCY_APP, dxf_ext::LAYER_DESCRIPTION_APP];
+    // Our own and AutoCAD's applications, then the others the file registered; a registered name
+    // keeps its case, flags and handle.
+    let mut apps: Vec<AppId> = ["ACAD", dxf_ext::APP, "AcadAnnotative", dxf_ext::LAYER_TRANSPARENCY_APP, dxf_ext::LAYER_DESCRIPTION_APP]
+        .into_iter()
+        .map(|n| d.appids.iter().find(|a| a.name.eq_ignore_ascii_case(n)).cloned().unwrap_or_else(|| AppId { name: n.into(), ..AppId::default() }))
+        .collect();
+    for a in &d.appids {
+        if !apps.iter().any(|x| x.name.eq_ignore_ascii_case(&a.name)) {
+            apps.push(a.clone());
+        }
+    }
     let th = table_head(&mut w, "APPID", apps.len());
-    for app in apps {
-        record_head(&mut w, "APPID", app, Handle(0), &th, "AcDbRegAppTableRecord");
-        w.s(2, app);
-        w.i(70, 0);
+    for app in &apps {
+        record_head(&mut w, "APPID", &app.name, app.handle, &th, "AcDbRegAppTableRecord");
+        w.s(2, &app.name);
+        w.i(70, i64::from(app.flags));
     }
     w.s(0, "ENDTAB");
     // DIMSTYLE
@@ -2557,30 +2640,26 @@ fn tags_for(d: &Drawing, version: Version, target: Version) -> Vec<Tag> {
     w.s(330, "0");
     w.s(100, "AcDbDictionary");
     w.i(281, 1);
-    w.s(3, "ACAD_GROUP");
-    w.s(350, group_dict.clone());
+    // Entries in key order, as AutoCAD writes them.
+    let mut nod: Vec<(String, String)> = vec![
+        ("ACAD_GROUP".into(), group_dict.clone()),
+        ("ACAD_LAYOUT".into(), layout_dict.clone()),
+        ("ACAD_MLEADERSTYLE".into(), mleader_dict.clone()),
+        ("ACAD_MLINESTYLE".into(), cx.mlines.dict.clone()),
+        (dxf_ext::PLOT_STYLE_NAMES_KEY.into(), pstyle_dict.clone()),
+        ("ACAD_TABLESTYLE".into(), table_style_dict.clone()),
+        ("ACAD_SCALELIST".into(), scale_dict.clone()),
+    ];
     if !cx.images.is_empty() {
-        w.s(3, "ACAD_IMAGE_DICT");
-        w.s(350, cx.images.dict.clone());
-        w.s(3, "ACAD_IMAGE_VARS");
-        w.s(350, cx.images.vars.clone());
+        nod.push(("ACAD_IMAGE_DICT".into(), cx.images.dict.clone()));
+        nod.push(("ACAD_IMAGE_VARS".into(), cx.images.vars.clone()));
     }
-    w.s(3, "ACAD_LAYOUT");
-    w.s(350, layout_dict.clone());
-    w.s(3, "ACAD_MLEADERSTYLE");
-    w.s(350, mleader_dict.clone());
-    w.s(3, "ACAD_MLINESTYLE");
-    w.s(350, cx.mlines.dict.clone());
-    w.s(3, dxf_ext::PLOT_STYLE_NAMES_KEY);
-    w.s(350, pstyle_dict.clone());
-    w.s(3, "ACAD_TABLESTYLE");
-    w.s(350, table_style_dict.clone());
-    for (key, h, _) in &xrecords {
-        w.s(3, *key);
+    nod.extend(xrecords.iter().map(|(key, h, _)| ((*key).to_string(), h.clone())));
+    nod.sort_by(|a, b| a.0.cmp(&b.0));
+    for (key, h) in nod {
+        w.s(3, key);
         w.s(350, h);
     }
-    w.s(3, "ACAD_SCALELIST");
-    w.s(350, scale_dict.clone());
     w.s(0, "DICTIONARY");
     w.s(5, group_dict);
     w.s(330, root_dict.clone());
@@ -2604,9 +2683,8 @@ fn tags_for(d: &Drawing, version: Version, target: Version) -> Vec<Tag> {
         w.s(3, &s.name);
         w.s(350, h);
     }
-    let byblock_ltype = ltype_handles.get("BYBLOCK").cloned();
     for (s, h) in mleader_styles.iter().zip(&mleader_handles) {
-        mleader_style_obj(&mut w, s, h, &mleader_dict, byblock_ltype.as_deref(), cx.style(&s.text_style));
+        mleader_style_obj(&mut w, s, h, &mleader_dict, &cx, cx.style(&s.text_style));
     }
     // Multiline styles.
     w.t.extend(crate::dxf_mline::objects(&cx.mlines, &root_dict));
@@ -2680,13 +2758,21 @@ fn tags_for(d: &Drawing, version: Version, target: Version) -> Vec<Tag> {
         w.i(70, 0);
         w.i(71, 0);
         for r in &a.refs {
+            let rd = r.read.as_ref();
             w.s(1, "AcDbOsnapPointRef");
-            w.i(72, r.osnap);
+            w.i(72, rd.map_or(r.osnap, |x| i64::from(x.osnap)));
             w.s(331, r.main.hex());
-            w.i(73, if r.segment > 0 { 2 } else { 0 });
-            w.i(91, r.segment);
-            w.s(301, "");
-            w.f(40, r.param);
+            w.i(73, rd.map_or(if r.segment > 0 { 2 } else { 0 }, |x| i64::from(x.subent)));
+            w.i(91, rd.map_or(r.segment, |x| x.gs_marker));
+            match rd {
+                Some(x) => {
+                    if let Some(xref) = &x.xref {
+                        w.s(301, xref.clone());
+                    }
+                }
+                None => w.s(301, ""),
+            }
+            w.f(40, rd.map_or(r.param, |x| x.param));
             w.p(10, r.point);
             if let Some(o) = r.other {
                 w.s(332, o.hex());
@@ -2713,7 +2799,7 @@ fn tags_for(d: &Drawing, version: Version, target: Version) -> Vec<Tag> {
         w.s(3, name);
         w.s(350, h);
     }
-    let layout_obj = |w: &mut W, h: &str, name: &str, tab: i64, brh: &str, flags: i64, page: &PageSetup, view: Option<(Vec2, f64)>| {
+    let layout_obj = |w: &mut W, h: &str, name: &str, tab: i64, brh: &str, page: &PageSetup, rec: &LayoutRecord, view: Option<(Vec2, f64)>| {
         // Plot scale: a standard scale when fitting or 1:1, otherwise custom (142 paper units
         // per 143 drawing units).
         let scale = if page.scale.is_finite() && page.scale > 0.0 { page.scale } else { 1.0 };
@@ -2731,58 +2817,80 @@ fn tags_for(d: &Drawing, version: Version, target: Version) -> Vec<Tag> {
             "window" => 4,
             _ => 5,
         };
+        // The values the file held, while the page is still what was made of them.
+        let rd = page.read.0.as_deref().filter(|r| r.still(page));
+        let ps = &page.settings;
         w.s(0, "LAYOUT");
         w.s(5, h);
+        w.group("ACAD_REACTORS", 330, &[&layout_dict]);
         w.s(330, layout_dict.clone());
         w.s(100, "AcDbPlotSettings");
-        w.s(1, "");
+        w.s(1, ps.name.clone());
         let device = page.device.trim();
-        w.s(2, if device.is_empty() || device.eq_ignore_ascii_case("None") { "none_device" } else { device });
-        w.s(4, page.paper.replace(' ', "_"));
-        w.s(6, "");
+        match rd {
+            Some(r) => w.s(2, r.device.clone()),
+            None => w.s(2, if device.is_empty() || device.eq_ignore_ascii_case("None") { "none_device" } else { device }),
+        }
+        w.s(4, rd.map_or_else(|| page.paper.replace(' ', "_"), |r| r.paper.clone()));
+        w.s(6, ps.view_name.clone());
+        let size = rd.map_or([page.width_mm, page.height_mm], |r| r.size);
+        let ratio = rd.map_or([scale, 1.0], |r| r.scale);
         for (c, v) in [
             (40, page.margins_mm[0]),
             (41, page.margins_mm[1]),
             (42, page.margins_mm[2]),
             (43, page.margins_mm[3]),
-            (44, page.width_mm),
-            (45, page.height_mm),
-            (46, 0.0),
-            (47, 0.0),
+            (44, size[0]),
+            (45, size[1]),
+            (46, ps.origin[0]),
+            (47, ps.origin[1]),
             (48, page.plot_window[0]),
             (49, page.plot_window[1]),
             (140, page.plot_window[2]),
             (141, page.plot_window[3]),
-            (142, scale),
-            (143, 1.0),
+            (142, ratio[0]),
+            (143, ratio[1]),
         ] {
             w.f(c, v);
         }
-        w.i(70, plot_flags);
+        w.i(70, rd.map_or(plot_flags, |r| r.flags));
         // Plot paper units: 1 millimetres, 0 inches (#1058).
-        w.i(72, i64::from(cadcraft_render::paper::page_unit_mm(d, page) == 1.0));
-        w.i(73, i64::from(page.landscape));
-        w.i(74, plot_type);
+        w.i(72, rd.map_or_else(|| i64::from(cadcraft_render::paper::page_unit_mm(d, page) == 1.0), |r| i64::from(r.paper_units)));
+        w.i(73, rd.map_or_else(|| i64::from(page.landscape), |r| i64::from(r.rotation)));
+        w.i(74, rd.map_or(plot_type, |r| i64::from(r.plot_type)));
         w.s(7, &page.plot_style_table);
-        w.i(75, if page.scale_to_fit { 0 } else { 16 });
-        w.f(147, scale);
-        w.f(148, 0.0);
-        w.f(149, 0.0);
+        w.i(75, rd.map_or(if page.scale_to_fit { 0 } else { 16 }, |r| i64::from(r.standard_scale)));
+        if target >= Version::R2004 {
+            w.i(76, i64::from(ps.shade_mode));
+            w.i(77, i64::from(ps.shade_resolution));
+            w.i(78, i64::from(ps.shade_dpi));
+        }
+        w.f(147, rd.map_or(scale, |r| r.factor));
+        w.f(148, ps.image_origin[0]);
+        w.f(149, ps.image_origin[1]);
+        if !ps.shade_plot.is_none() {
+            w.s(333, ps.shade_plot.hex());
+        }
         w.s(100, "AcDbLayout");
         w.s(1, name);
-        w.i(70, flags);
+        w.i(70, i64::from(rec.flags));
         w.i(71, tab);
-        w.p2(10, Vec2::ZERO);
-        w.p2(11, Vec2::new(12.0, 9.0));
-        w.p(12, Vec3::ZERO);
-        w.p(14, Vec3::ZERO);
-        w.p(15, Vec3::ZERO);
-        w.f(146, 0.0);
-        w.p(13, Vec3::ZERO);
-        w.p(16, Vec3::new(1.0, 0.0, 0.0));
-        w.p(17, Vec3::new(0.0, 1.0, 0.0));
-        w.i(76, 0);
+        w.p2(10, rec.limits_min);
+        w.p2(11, rec.limits_max);
+        w.p(12, rec.insbase);
+        w.p(14, rec.extents_min);
+        w.p(15, rec.extents_max);
+        w.f(146, rec.elevation);
+        w.p(13, rec.ucs_origin);
+        w.p(16, rec.ucs_x);
+        w.p(17, rec.ucs_y);
+        w.i(76, i64::from(rec.ortho_type));
         w.s(330, brh);
+        for (c, v) in [(331, rec.last_viewport), (345, rec.named_ucs), (346, rec.base_ucs)] {
+            if !v.is_none() {
+                w.s(c, v.hex());
+            }
+        }
         // The saved paper-space view (centre, height) as CADCraft xdata.
         if let Some((c, height)) = view.filter(|(c, v)| c.x.is_finite() && c.y.is_finite() && v.is_finite()) {
             w.s(1001, dxf_ext::APP);
@@ -2798,10 +2906,14 @@ fn tags_for(d: &Drawing, version: Version, target: Version) -> Vec<Tag> {
     // plot type 5, "Layout information" (DXF Reference, PLOTSETTINGS group 74), which means
     // nothing for model space: another program's Plot dialog then shows no plot area or scale.
     let model_page = PageSetup { plot_area: "extents".into(), scale_to_fit: true, ..PageSetup::default() };
-    layout_obj(&mut w, &model_layout, "Model", 0, &ms_br, 1, &model_page, None);
+    let (model_page, model_rec) = match d.model_layout.as_deref() {
+        Some(m) => (m.page.clone(), m.record.clone()),
+        None => (model_page, LayoutRecord::default()),
+    };
+    layout_obj(&mut w, &model_layout, "Model", 0, &ms_br, &model_page, &model_rec, None);
     for (i, (_, brh, l)) in ps_brs.iter().enumerate() {
         let h = layout_handles.get(i).cloned().unwrap_or_default();
-        layout_obj(&mut w, &h, &l.name, i64::from(l.tab_order.max(1)), brh, 1, &l.page, l.view);
+        layout_obj(&mut w, &h, &l.name, i64::from(l.tab_order.max(1)), brh, &l.page, &l.record, l.view);
     }
     // Raster image definitions.
     w.t.extend(crate::dxf_image::objects(&cx.images, &root_dict));
@@ -2885,18 +2997,21 @@ fn table_style_obj(w: &mut W, d: &Drawing, s: &TableStyle, h: &str, dict: &str) 
     w.group("ACAD_REACTORS", 330, &[dict]);
     w.s(330, dict);
     w.s(100, "AcDbTableStyle");
-    w.s(3, "");
-    w.i(70, 0);
-    w.i(71, 0);
+    if let Some(v) = s.props.version {
+        w.i(280, i64::from(v));
+    }
+    w.s(3, s.props.description.clone());
+    w.i(70, i64::from(s.props.flow_up));
+    w.i(71, i64::from(s.props.flags));
     w.f(40, s.margin);
     w.f(41, s.margin);
     w.i(280, i64::from(!s.title));
     w.i(281, i64::from(!s.header));
     // Data, column header and title cell styles; CADCraft's complete cell styles in xdata.
-    for kind in crate::dxf_table::CELL_TYPES {
+    for (kind, data) in crate::dxf_table::CELL_TYPES.into_iter().zip(&s.props.cells) {
         let cs = s.cell_style(kind);
         let style = if d.text_style(&cs.text_style).is_some() { cs.text_style.clone() } else { "Standard".to_string() };
-        w.t.extend(crate::dxf_table::cell_type_tags(&cs, &style));
+        w.t.extend(crate::dxf_table::cell_type_tags(&cs, &style, data));
     }
     let x = crate::dxf_table::cell_styles_xdata(s);
     if !x.is_empty() {
@@ -2926,61 +3041,77 @@ fn group_obj(w: &mut W, g: &Group, h: &str, dict: &str, written: &std::collectio
 /// A MLEADERSTYLE object (DXF Reference, OBJECTS: MLEADERSTYLE): MText content and straight
 /// ByBlock leaders with the style's landing gap, dogleg length, arrow size, text style and
 /// text height.
-fn mleader_style_obj(w: &mut W, s: &MLeaderStyle, h: &str, dict: &str, byblock_ltype: Option<&str>, text_style: Option<String>) {
-    // ByBlock as a 32-bit colour value (0xC1000000).
-    const BYBLOCK: i64 = -1_056_964_608;
+fn mleader_style_obj(w: &mut W, s: &MLeaderStyle, h: &str, dict: &str, cx: &Ctx, text_style: Option<String>) {
+    let p = &s.props;
+    // A linetype or block the style names, by its record's handle.
+    let ltype = |name: &str| cx.ltypes.get(&name.to_ascii_uppercase()).or_else(|| cx.ltypes.get("BYBLOCK")).cloned();
+    let block = |name: &str| (!name.is_empty()).then(|| cx.block_records.get(&name.to_ascii_uppercase()).cloned()).flatten();
     w.s(0, "MLEADERSTYLE");
     w.s(5, h);
     w.group("ACAD_REACTORS", 330, &[dict]);
     w.s(330, dict);
     w.s(100, "AcDbMLeaderStyle");
-    w.i(179, 2);
-    w.i(170, 2);
-    w.i(171, 1);
-    w.i(172, 0);
-    w.i(90, 2);
-    w.f(40, 0.0);
-    w.f(41, 0.0);
-    w.i(173, 1);
-    w.i(91, BYBLOCK);
-    if let Some(lt) = byblock_ltype {
+    // The style version (and the attachment direction at the end) came with AutoCAD 2010.
+    if cx.target >= Version::R2010 {
+        w.i(179, i64::from(p.version));
+    }
+    w.i(170, i64::from(p.content_type));
+    w.i(171, i64::from(p.draw_mleader_order));
+    w.i(172, i64::from(p.draw_leader_order));
+    w.i(90, i64::from(p.max_leader_points));
+    w.f(40, p.first_angle);
+    w.f(41, p.second_angle);
+    w.i(173, i64::from(p.leader_type));
+    w.i(91, p.leader_color);
+    if let Some(lt) = ltype(&p.leader_linetype) {
         w.s(340, lt);
     }
-    w.i(92, -2);
-    w.i(290, 1);
+    w.i(92, i64::from(p.leader_lineweight));
+    w.i(290, i64::from(p.landing));
     w.f(42, s.landing_gap);
-    w.i(291, 1);
+    w.i(291, i64::from(p.dogleg_on));
     w.f(43, s.dogleg);
-    w.s(3, "");
+    w.s(3, p.description.clone());
+    if let Some(a) = block(&p.arrow_block) {
+        w.s(341, a);
+    }
     w.f(44, s.arrow_size);
-    w.s(300, "");
+    w.s(300, p.default_text.clone());
     if let Some(ts) = text_style {
         w.s(342, ts);
     }
-    w.i(174, 1);
-    w.i(178, 1);
-    w.i(175, 1);
-    w.i(176, 0);
-    w.i(93, BYBLOCK);
+    w.i(174, i64::from(p.text_left_attachment));
+    w.i(178, i64::from(p.text_right_attachment));
+    w.i(175, i64::from(p.text_angle));
+    w.i(176, i64::from(p.text_alignment));
+    w.i(93, p.text_color);
     w.f(45, s.text_height);
-    w.i(292, 0);
-    w.i(297, 0);
-    w.f(46, 4.0);
-    w.i(94, BYBLOCK);
-    for c in [47, 49, 140] {
-        w.f(c, 1.0);
+    w.i(292, i64::from(p.text_frame));
+    w.i(297, i64::from(p.text_align_left));
+    w.f(46, p.align_space);
+    if let Some(b) = block(&p.block) {
+        w.s(343, b);
     }
-    w.i(293, 1);
-    w.f(141, 0.0);
-    w.i(294, 1);
-    w.i(177, 0);
-    w.f(142, 1.0);
-    w.i(295, 0);
+    w.i(94, p.block_color);
+    for (c, v) in [(47, p.block_scale[0]), (49, p.block_scale[1]), (140, p.block_scale[2])] {
+        w.f(c, v);
+    }
+    w.i(293, i64::from(p.block_scale_on));
+    w.f(141, p.block_rotation);
+    w.i(294, i64::from(p.block_rotation_on));
+    w.i(177, i64::from(p.block_connection));
+    w.f(142, p.scale);
+    w.i(295, i64::from(p.overwrite));
     w.i(296, i64::from(s.annotative));
-    w.f(143, 0.125);
-    w.i(271, 0);
-    w.i(272, 9);
-    w.i(273, 9);
+    w.f(143, p.break_gap);
+    if cx.target >= Version::R2010 {
+        w.i(271, i64::from(p.attachment_direction));
+        w.i(272, i64::from(p.bottom_attachment));
+        w.i(273, i64::from(p.top_attachment));
+    }
+    if let Some(g) = p.group_298 {
+        w.i(298, i64::from(g));
+    }
 }
 
 /// The ACAD_SCALELIST dictionary and its SCALE objects (DXF Reference, OBJECTS section): name

@@ -615,7 +615,7 @@ pub(crate) fn read_assoc(tags: &[Tag]) -> Vec<DimAssoc> {
             },
             _ => continue,
         };
-        out.push(DimAssoc { point: point.to_string(), handle, snap });
+        out.push(DimAssoc { read: Default::default(), point: point.to_string(), handle, snap });
     }
     out
 }

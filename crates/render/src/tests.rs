@@ -355,6 +355,8 @@ fn truetype_mtext_and_dimension_text() {
 
 fn lin_dim() -> cadcraft_doc::Dimension {
     cadcraft_doc::Dimension {
+        flag_73: Default::default(),
+        flip_arrows: Default::default(),
         attachment: Default::default(),
         kind: cadcraft_doc::DimKind::Linear { rotation: 0.0 },
         defpt: Vec3::new(0.0, 2.0, 0.0),

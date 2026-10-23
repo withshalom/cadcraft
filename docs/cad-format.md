@@ -1,4 +1,4 @@
-# CADCraft's native format (`.cad`) — records 1.1
+# CADCraft's native format (`.cad`) — records 1.2
 
 > **Status:** draft, first version (branch `cad-native`) · **Lock file:** `.cdl` · **Code:**
 > `crates/io/src/cad_file/` (format), `crates/engine/src/cmd/file/lock.rs` (lock)
@@ -34,7 +34,10 @@ control channel, and its own extension data inside DXF files. The format is buil
 | `blocks` | `BTreeMap<String, Arc<Block>>` | Block definitions: base point, flags, units, xref path, associative array parameters, and an entity store |
 | `model` | `EntityStore` | Model space |
 | `layouts` | `Vec<Layout>` | Paper-space layouts: tab order, page setup, saved paper view, and an entity store each |
-| `views`, `vports`, `ucss` | | Named views, model-space viewport configurations, named UCSs |
+| `views`, `vports`, `ucss` | | Named views, model-space viewport configurations (each tile with its view settings), named UCSs |
+| `active_vport` | `Option<VportTile>` | The lone `*Active` viewport's handle, window and view settings (records 1.2) |
+| `appids` | `Vec<AppId>` | Registered applications, in the case they were registered with (records 1.2) |
+| `model_layout` | `Option<Layout>` | The Model layout's page setup and layout data (records 1.2) |
 | `layer_states`, `groups`, `scales` | | LAYERSTATE, GROUP, the annotation scale list |
 | `plot_style_tables` | | Plot style tables kept with the drawing (`.ctb`/`.stb` content) |
 | `constraints`, `parametric` | | Geometric and dimensional constraints, user parameters and parametric settings |
@@ -118,7 +121,7 @@ names are skipped with their value.
 
 | Name | Value |
 |---|---|
-| `$CADCRAFT_FORMAT` | `1` STR, the records version: `"1.1"` |
+| `$CADCRAFT_FORMAT` | `1` STR, the records version: `"1.2"` |
 | `$CAD_WRITER` | `1` STR, e.g. `"CADCraft 0.10.0"` |
 | `$CAD_OBJECTS` | `160` I64, records in the `Objects` sections (a check value) |
 | `$CAD_PAGES` | `160` I64, number of `Objects.N` sections |
@@ -235,7 +238,10 @@ the drawing).
 | `PARAMETRIC` | `parametric` | user parameters and parametric settings |
 | `BLOCK` | each block, by name | the block's fields (not its entities) |
 | entities of that block | in draw order | envelope `5` and `2001`, body `common` and `kind` |
-| `LAYOUT` | each layout, in list order | the layout's fields (not its entities) |
+| `LAYOUT` | each layout, in list order | the layout's fields: page setup with its plot settings, layout data (not its entities) |
+| `ACTIVE_VPORT` (records 1.2) | the one `*Active` viewport a file held | its handle, window shape and view settings |
+| `MODEL_LAYOUT` (records 1.2) | the Model layout | page setup and layout data, no entities |
+| `APPID` (records 1.2) | each registered application | `name`, `handle`, `flags` |
 | entities of that layout | in draw order | envelope `5` and `410` |
 | entities of model space | in draw order | envelope `5` |
 | `FOREIGN_CLASS`, `FOREIGN_OBJECT`, `FOREIGN_DICTIONARY`, `FOREIGN_EXTRA`, `FOREIGN_RECORD_EXTRA`, `FOREIGN_TARGET`, `FOREIGN_DATASTORE` | kept foreign data | its DXF groups as raw groups (§5), handles as HANDLE |
@@ -336,4 +342,5 @@ open, on which machine, in which program, since when, and a heartbeat.
 | Date | Change |
 |---|---|
 | 2026-10-22 | Records 1.0: the model map, the format, notes, and the `.cdl` lock |
+| 2026-10-23 | Records 1.2: plot settings and layout data, viewport settings, multileader and table style fields, dimension link snap data and flips travel in their records' fields; `APPID` and `MODEL_LAYOUT` records |
 | 2026-10-23 | Records 1.1: header variables keep their DXF group codes (`2001` tag); tables, blocks, layouts and styles keep their handles (`handle` fields, `FOREIGN_HANDLE` records) |

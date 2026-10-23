@@ -55,6 +55,7 @@ fn sample() -> Drawing {
 
 fn sched() -> TableStyle {
     TableStyle {
+        props: Default::default(),
         handle: Default::default(),
         name: "Sched".into(),
         text_height: 2.5,
@@ -153,7 +154,11 @@ fn dwg_at_every_version_reads_back() {
             let line = back.model.iter().find(|e| matches!(e.kind, EntityKind::Line(_))).unwrap();
             assert_eq!(line.common.color, Color::True(Rgb(1, 2, 3)), "{v}");
             assert_eq!(line.common.transparency, Transparency::Percent(40), "{v}");
-            assert_eq!(back.table_styles.iter().find(|s| s.name == "Sched"), Some(&sched()), "{v}");
+            // The style's own settings; the rest of its record (flags, handle) is the DWG's.
+            let got = back.table_styles.iter().find(|s| s.name == "Sched").expect("style");
+            let want = sched();
+            assert_eq!((got.text_height, got.margin, got.title, got.header), (want.text_height, want.margin, want.title, want.header), "{v}");
+            assert_eq!(got.cell_styles, want.cell_styles, "{v}");
         }
     }
 }

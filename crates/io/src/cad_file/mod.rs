@@ -26,12 +26,12 @@ use self::node::{Node, from_node, to_node};
 use crate::{IoError, Result};
 
 /// The version of CADCraft's records this code writes (docs/cad-format.md §3.1).
-pub const FORMAT: &str = "1.1";
+pub const FORMAT: &str = "1.2";
 /// In the `Header` section, after a variable's value: the DXF group code it was read with
 /// (records 1.1).
 const HEADER_CODE: u16 = 2001;
 const MAJOR: u32 = 1;
-const MINOR: u32 = 1;
+const MINOR: u32 = 2;
 /// Target size of one `Objects.N` page; a record is never split across pages.
 const PAGE_TARGET: usize = 64 * 1024;
 /// Previews larger than this are left out, so a preview never outweighs the drawing (a hatched
@@ -196,6 +196,7 @@ pub fn write(d: &Drawing, preview: Option<String>) -> Result<Vec<u8>> {
     out.list("UCS", &d.ucss)?;
     out.list("VIEW", &d.views)?;
     out.list("VPORT", &d.vports)?;
+    out.list("APPID", &d.appids)?;
     out.list("LAYERSTATE", &d.layer_states)?;
     out.list("GROUP", &d.groups)?;
     out.list("PLOTSTYLETABLE", &d.plot_style_tables)?;
@@ -206,6 +207,12 @@ pub fn write(d: &Drawing, preview: Option<String>) -> Result<Vec<u8>> {
         for e in b.entities.iter() {
             out.entity(e, &Owner::Block(&b.name))?;
         }
+    }
+    if let Some(v) = &d.active_vport {
+        out.record("ACTIVE_VPORT", None, &**v)?;
+    }
+    if let Some(m) = &d.model_layout {
+        out.record("MODEL_LAYOUT", None, &**m)?;
     }
     for l in &d.layouts {
         out.record("LAYOUT", None, l)?;
@@ -385,6 +392,9 @@ impl Parts {
             "UCS" => d.ucss.push(obj(b)?),
             "VIEW" => d.views.push(obj(b)?),
             "VPORT" => d.vports.push(obj(b)?),
+            "APPID" => d.appids.push(obj(b)?),
+            "ACTIVE_VPORT" => d.active_vport = Some(Box::new(obj(b)?)),
+            "MODEL_LAYOUT" => d.model_layout = Some(Box::new(obj(b)?)),
             "LAYERSTATE" => d.layer_states.push(obj(b)?),
             "GROUP" => d.groups.push(obj(b)?),
             "PLOTSTYLETABLE" => d.plot_style_tables.push(obj(b)?),

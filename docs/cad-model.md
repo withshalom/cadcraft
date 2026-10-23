@@ -1,6 +1,6 @@
 # CADCraft's drawing model against DWG — the map
 
-> **Status:** S1–S4 done, 2026-10-23 (branch `cad-native`) · **Measurements:** `crates/io/tests/model_map.rs`
+> **Status:** S1–S4 and the field gaps of §4 done, 2026-10-23 (branch `cad-native`) · **Measurements:** `crates/io/tests/model_map.rs`
 > · **Format:** [`cad-format.md`](cad-format.md)
 
 This is the plan for making CADCraft's own drawing model (`cadcraft-doc`) the one model that DWG,
@@ -41,19 +41,25 @@ Now, saved as CADCraft saves a drawing (in its own version):
 | File | Records with the same values | Records with a new handle | Header variables kept |
 |---|---|---|---|
 | R12 DXF (AC1009) | 0 of 63* | – | 133 of 133 |
-| 2000 DXF (AC1015) | 244 of 265 | 0 | 199 of 199 |
-| 2004 DXF (AC1018) | 235 of 256 | 0 | 211 of 211 |
-| 2007 DXF (AC1021) | 226 of 248 | 0 | 251 of 251 |
-| 2010 DXF (AC1024) | 226 of 246 | 0 | 252 of 252 |
-| 2013 DXF (AC1027) | 178 of 198 | 0 | 253 of 253 |
-| 2018 DXF (AC1032) | 174 of 194 | 0 | 253 of 253 |
+| 2000 DXF (AC1015) | 249 of 265 | 0 | 199 of 199 |
+| 2004 DXF (AC1018) | 240 of 256 | 0 | 211 of 211 |
+| 2007 DXF (AC1021) | 235 of 248 | 0 | 251 of 251 |
+| 2010 DXF (AC1024) | 235 of 246 | 0 | 252 of 252 |
+| 2013 DXF (AC1027) | 187 of 198 | 0 | 253 of 253 |
+| 2018 DXF (AC1032) | 183 of 194 | 0 | 253 of 253 |
 
 The first map (2026-10-23) measured the R2000 writer instead: 124 of 194 for the 2018 file, every
 table record and object with a new handle, 107 of 253 header variables.
 
-What still differs is field by field (§4): plot settings of layouts, the active viewport's view,
-the table, multileader and dimension styles, the osnap data of DIMASSOC objects, and three
-undocumented dimension groups (73–75).
+What still differs, in the 2018 file (11 of 194 records), is by design or not data:
+
+- the two dimensions, the named object dictionary, and the table style carry CADCraft's own
+  extension data (exact dimension links, its own dictionary entries, complete cell styles);
+- the DIMSTYLE record: AutoCAD leaves out the groups that hold defaults and CADCraft writes them,
+  and the style's persistent reactors are not kept;
+- four TABLE headers: AutoCAD's record counts in them are hints (a table of 3 records says 1);
+- the active viewport's view centre and height: the view is the editor's, so a save fits the
+  drawing's extents, as before. Everything else in the VPORT record is kept.
 
 \* R12 files have no handles on most records and CADCraft writes them as a later version, so
 nothing matches one to one. R12 is measured for header variables only.
@@ -126,12 +132,12 @@ These cut across every type. DWG needs all of them; DXF and `.cad` benefit too.
 | DWG / DXF type | CADCraft model | In corpus | Status | Gaps |
 |---|---|---|---|---|
 | LAYER | `Layer` | 7 | ✓ | |
-| LTYPE | `Linetype` | 3 | ◐ | one linetype's description and name came back changed |
+| LTYPE | `Linetype` | 3 | ✓ | the built-in dashless linetypes take the name and description the file gave them |
 | STYLE | `TextStyle` | 1 | ✓ | |
-| DIMSTYLE | `DimStyle` | 1 | ◐ | the writer adds groups for defaults (40–48, 71, 72) |
+| DIMSTYLE | `DimStyle` | 1 | ◐ | the writer adds groups for defaults (3, 40–50, 71, 72); persistent reactors not kept |
 | BLOCK_HEADER (BLOCK_RECORD), BLOCK, ENDBLK | `Block` | 4 | ✓ | |
-| VPORT | `VportConfig` | 1 | ◐ | the active view's centre, height, aspect, clipping, grid and view mode come back changed |
-| APPID | written from xdata and the file's list | 4 | ✓ | CADCraft adds its own applications |
+| VPORT | `VportConfig` and `VportSettings` (the lone `*Active` tile: `active_vport`) | 1 | ◐ | every field but the view's centre and height (the editor's view) |
+| APPID | `AppId` (`appids`) | 4 | ✓ | CADCraft adds its own applications |
 | VIEW | `NamedView` | – | · | |
 | UCS | `Ucs` | – | · | |
 | VX_TABLE_RECORD (VX_CONTROL) | – | 1 (R14, 2000) | ✗ | S5 |
@@ -142,13 +148,13 @@ These cut across every type. DWG needs all of them; DXF and `.cad` benefit too.
 |---|---|---|---|---|
 | DICTIONARY, ACDBDICTIONARYWDFLT | written by CADCraft with kept handles, or kept raw | 19 + 1 | ✓ | the named object dictionary also lists CADCraft's own entries; a multiline style key comes back upper case |
 | ACDBPLACEHOLDER | written by CADCraft | 1 | ✓ | |
-| LAYOUT (with its PLOTSETTINGS) | `Layout` | 2 | ◐ | paper name and size, plot type, standard scale, shade plot mode/resolution/DPI, tab order |
+| LAYOUT (with its PLOTSETTINGS) | `Layout` (`page`: `PageSetup` with `PlotSettings` and `PlotRead`; `record`: `LayoutRecord`); the Model layout in `model_layout` | 2 + Model | ✓ | the plot record's own values are kept until the page changes |
 | SCALE | `AnnoScale` | 17 | ✓ | |
 | MLINESTYLE | `MLineStyle` | 1 | ✓ | |
-| MLEADERSTYLE | `MLeaderStyle` | 1 | ◐ | 298 and a block content group |
-| TABLESTYLE | `TableStyle` | 1 | ◐ | cell styles (1, 90, 91 groups) rewritten |
+| MLEADERSTYLE | `MLeaderStyle` (`props`: `MLeaderStyleProps`) | 1 | ✓ | |
+| TABLESTYLE | `TableStyle` (`props`: `TableStyleProps`) | 1 | ✓ | CADCraft adds its complete cell styles as xdata |
 | CELLSTYLEMAP | kept raw, in the table style's extension dictionary | 1 | R ✓ | |
-| DIMASSOC | `Dimension` associativity | 2 | ◐ | osnap point data (72, 73) rewritten |
+| DIMASSOC | `Dimension` associativity (`DimAssoc.read`: `OsnapRead`) | 2 | ✓ | the file's snap data is kept until the link changes |
 | GROUP | `Group` | – | · | |
 | SORTENTSTABLE | draw order of the store | – | · | rebuilt |
 | IMAGEDEF, IMAGEDEF_REACTOR, RASTERVARIABLES | `Image` | – | · | |
@@ -215,3 +221,8 @@ On the corpus only the 2018 files go through BlackCAD both ways. §5 removes bot
 - 2026-10-23: measured through CADCraft's save path; MTEXT defined height, dimension attachment
   and version, block uniform scaling, block record flags, the scale unit flag, the default text
   style.
+- 2026-10-23: the field gaps of §4: plot settings and layout data (also the Model layout), the
+  viewport's view settings, multileader and table style fields, dimension link snap data,
+  arrowhead flips (groups 73–75), the APPID table, built-in linetype names; the named object
+  dictionary is written in key order on a first save; `.cad` records 1.2. MI-201: 183 of 194
+  records (2018) with the same values.

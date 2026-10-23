@@ -628,6 +628,9 @@ pub struct MLeaderStyle {
     pub text_style: String,
     /// New multileaders of this style are annotative.
     pub annotative: bool,
+    /// The rest of the style's record.
+    #[serde(default)]
+    pub props: crate::MLeaderStyleProps,
 }
 
 impl Default for MLeaderStyle {
@@ -641,6 +644,7 @@ impl Default for MLeaderStyle {
             dogleg: 0.36,
             text_style: "Standard".into(),
             annotative: false,
+            props: crate::MLeaderStyleProps::default(),
         }
     }
 }
@@ -668,6 +672,8 @@ pub struct TableStyle {
     /// height and margin imply ([`TableStyle::cell_style`]).
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub cell_styles: Vec<crate::CellStyle>,
+    /// The rest of the style's record.
+    pub props: crate::TableStyleProps,
 }
 
 impl Default for TableStyle {
@@ -680,6 +686,7 @@ impl Default for TableStyle {
             title: true,
             header: true,
             cell_styles: Vec::new(),
+            props: crate::TableStyleProps::default(),
         }
     }
 }
@@ -825,6 +832,11 @@ pub struct PageSetup {
     /// The layout's paper units are millimetres (plot paper units 1 in DXF) whatever the
     /// drawing's MEASUREMENT says; otherwise paper units follow MEASUREMENT (#1058).
     pub paper_mm: bool,
+    /// The rest of the plot settings record.
+    pub settings: crate::PlotSettings,
+    /// The record's values as the file held them, where this page keeps its own form of them.
+    #[serde(skip_serializing_if = "crate::AsRead::is_none")]
+    pub read: crate::AsRead<crate::PlotRead>,
 }
 
 impl Default for PageSetup {
@@ -846,6 +858,8 @@ impl Default for PageSetup {
             show_plot_styles: false,
             plot_transparency: false,
             paper_mm: false,
+            settings: crate::PlotSettings::default(),
+            read: crate::AsRead::default(),
         }
     }
 }
@@ -871,6 +885,9 @@ pub struct Layout {
     /// Saved paper-space view (centre, height).
     #[serde(default)]
     pub view: Option<(Vec2, f64)>,
+    /// The layout's own data: limits, extents, insertion base, UCS.
+    #[serde(default)]
+    pub record: crate::LayoutRecord,
 }
 
 impl Layout {
@@ -885,6 +902,7 @@ impl Layout {
             page: PageSetup::default(),
             entities: EntityStore::new(),
             view: None,
+            record: crate::LayoutRecord::default(),
         }
     }
 }
@@ -915,7 +933,7 @@ pub struct NamedView {
 
 /// One tiled model space viewport of a [`VportConfig`] (a VPORT table record): its corners as
 /// fractions of the drawing area (0,0 lower left to 1,1 upper right) and its view.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct VportTile {
     /// The handle it was read with (0: none yet): written back, so other objects and other
@@ -929,6 +947,9 @@ pub struct VportTile {
     /// Width / height of the tile on screen when it was saved (0: unknown).
     #[serde(default)]
     pub aspect: f64,
+    /// The rest of the record: view direction, clipping, grid and snap modes, UCS, lighting.
+    #[serde(default)]
+    pub settings: crate::VportSettings,
 }
 
 /// A model space viewport configuration (VPORTS): `*Active` is the one shown, other names are

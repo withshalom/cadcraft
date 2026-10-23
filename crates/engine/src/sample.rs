@@ -16,6 +16,8 @@ fn on(layer: &str) -> Common {
 
 fn dim(kind: DimKind, p13: Vec2, p14: Vec2, defpt: Vec2) -> EntityKind {
     EntityKind::Dimension(Dimension {
+        flag_73: Default::default(),
+        flip_arrows: Default::default(),
         attachment: Default::default(),
         kind,
         defpt: v3(defpt),
@@ -167,6 +169,8 @@ pub fn bracket() -> Drawing {
     add(
         on("Dimensions"),
         EntityKind::Dimension(Dimension {
+            flag_73: Default::default(),
+            flip_arrows: Default::default(),
             attachment: Default::default(),
             kind: DimKind::Diameter,
             defpt: v3(c + Vec2::from_angle(0.8) * 1.5),
@@ -189,6 +193,8 @@ pub fn bracket() -> Drawing {
     add(
         on("Dimensions"),
         EntityKind::Dimension(Dimension {
+            flag_73: Default::default(),
+            flip_arrows: Default::default(),
             attachment: Default::default(),
             kind: DimKind::Radius,
             defpt: v3(Vec2::new(8.0, 2.0)),

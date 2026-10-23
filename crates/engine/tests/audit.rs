@@ -93,7 +93,7 @@ fn corrupt(d: &mut Drawing) -> (Handle, Handle) {
     let dim = d.model.iter().find(|e| matches!(e.kind, EntityKind::Dimension(_))).map(|e| e.handle).unwrap();
     d.modify_entity(dim, |e| {
         if let EntityKind::Dimension(dm) = &mut e.kind {
-            dm.assoc.push(DimAssoc { point: "p13".into(), handle: Handle(0xBEEF), snap: AssocSnap::Start });
+            dm.assoc.push(DimAssoc { read: Default::default(), point: "p13".into(), handle: Handle(0xBEEF), snap: AssocSnap::Start });
         }
     })
     .unwrap();

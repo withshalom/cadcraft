@@ -15,6 +15,7 @@ mod header;
 pub mod library;
 mod plotstyle;
 mod plotter;
+mod records;
 mod refedit;
 mod store;
 mod tables;
@@ -31,6 +32,7 @@ pub use gdt::*;
 pub use header::{HVal, Header, POINT_2D, POINT_3D};
 pub use plotstyle::*;
 pub use plotter::*;
+pub use records::*;
 pub use refedit::{RefEdit, WorkItem};
 pub use store::EntityStore;
 pub use tables::*;
@@ -113,6 +115,15 @@ pub struct Drawing {
     pub parametric: Parametric,
     /// The annotation scale list (SCALELISTEDIT).
     pub scales: Vec<AnnoScale>,
+    /// Registered applications (the APPID table) as the file had them; the ones whose extended
+    /// data the drawing carries are added when it is written.
+    pub appids: Vec<AppId>,
+    /// The Model layout object's page setup and layout data, when a file had them (model space's
+    /// entities are [`Drawing::model`]).
+    pub model_layout: Option<Box<Layout>>,
+    /// The one `*Active` model space viewport a file held (no tiling): its handle, window shape
+    /// and view settings. The view itself is the editor's, so only these are kept.
+    pub active_vport: Option<Box<VportTile>>,
     /// Next free handle.
     pub handseed: u64,
     /// Objects hidden for this session by ISOLATEOBJECTS / HIDEOBJECTS. Never written to a file:
@@ -180,6 +191,9 @@ impl Drawing {
             constraints: Vec::new(),
             parametric: Parametric::default(),
             scales: imperial_scales(),
+            appids: Vec::new(),
+            model_layout: None,
+            active_vport: None,
             handseed: 0x100,
             hidden_objects: BTreeSet::new(),
             read_notes: Vec::new(),
