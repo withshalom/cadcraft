@@ -71,10 +71,10 @@ pub fn read(bytes: &[u8], name: &str) -> Result<Drawing> {
     }
 }
 
-/// A DWG file through the DWG bridge: BlackCAD's conversion when it carries the file over whole,
+/// A DWG file through the DWG bridge: the open engine's conversion when it carries the file over whole,
 /// otherwise acadrust's (`cadcraft_dwg::convert_dwg`). Should the DXF reader refuse what
-/// BlackCAD wrote, the file is converted again by acadrust. A drawing BlackCAD converted keeps
-/// the DWG's own version in `$ACADVER`, which saving uses: BlackCAD's DXF is always the 2018
+/// the open engine wrote, the file is converted again by acadrust. A drawing the open engine converted keeps
+/// the DWG's own version in `$ACADVER`, which saving uses: the open engine's DXF is always the 2018
 /// format, where acadrust's declares the file's version.
 fn read_dwg(bytes: &[u8]) -> Result<Drawing> {
     use cadcraft_dwg::{Engine, Limits};
@@ -82,13 +82,13 @@ fn read_dwg(bytes: &[u8]) -> Result<Drawing> {
     let c = cadcraft_dwg::convert_dwg(bytes, Limits::DEFAULT).map_err(IoError::Format)?;
     let (mut d, c) = match dxf_read::read(&c.dxf) {
         Ok(d) => (d, c),
-        Err(e) if c.engine == Engine::BlackCad => match cadcraft_dwg::convert_dwg_with(Engine::Acadrust, bytes, Limits::DEFAULT) {
+        Err(e) if c.engine == Engine::CadCrates => match cadcraft_dwg::convert_dwg_with(Engine::Acadrust, bytes, Limits::DEFAULT) {
             Ok(again) => (dxf_read::read(&again.dxf).map_err(in_dxf)?, again),
             Err(_) => return Err(in_dxf(e)),
         },
         Err(e) => return Err(in_dxf(e)),
     };
-    if c.engine == Engine::BlackCad
+    if c.engine == Engine::CadCrates
         && let Some(v) = cadcraft_dwg::version(bytes)
     {
         d.header.set("ACADVER", cadcraft_doc::HVal::Str(v));

@@ -36,7 +36,7 @@ log = "0.4"
 chrono = { version = "0.4.45", default-features = false, features = ["std"] }
 rayon = "1"
 
-# DWG: BlackCAD's open DWG and DXF readers and writers (MIT OR Apache-2.0, std only), the first
+# DWG: WithShalom's open DWG and DXF readers and writers (MIT OR Apache-2.0, std only), the first
 # engine crates/dwg tries; acadrust (crates/dwg, native only) is the second.
 cad-dwg = { git = "https://github.com/withshalom/CAD", rev = "6cab81b83e48ad7e3e75f84fd43d2e2d62ee9ba5" }
 cad-dxf = { git = "https://github.com/withshalom/CAD", rev = "6cab81b83e48ad7e3e75f84fd43d2e2d62ee9ba5" }
