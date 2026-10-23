@@ -46,7 +46,7 @@ bridge repairs two acadrust gaps in 2010+ DWG: merged table cells and table-styl
 suppression.
 
 On the `dwg-fidelity` branch (the open engine 0.17.0), the open engine both opens and saves real 2018 files
-whole: the MI-201 corpus round trip (`crates/io/tests/dwg_corpus.rs`) keeps every object
+whole: the MI-201 corpus round trip (`crates/io/tests/it/dwg_corpus.rs`) keeps every object
 CADCraft sees, and the saved file holds AutoCAD's objects plus CADCraft's own four. Getting there
 fixed four things in the open engine that CADCraft's tests caught once the open engine wrote the saves (table
 and multileader styles and dimension associations as CADCraft writes them, attribute lock
@@ -60,7 +60,7 @@ extended records.
 From the open engine 0.13.0 to 0.15.0 its drawing model also holds geometric tolerances, raster images
 and wipeouts (with their image definitions, reactors and raster variables) and multilines, which
 it kept only as DWG records before and dropped from DXF. Drawings with them now open and save
-through the open engine; `crates/io/tests/cad_crates_round_trips.rs` checks
+through the open engine; `crates/io/tests/it/cad_crates_round_trips.rs` checks
 upstream fixes (the plot window corners of #1667) through the open engine's DWG too.
 
 | DWG version | Code | AutoCAD 2027 | CADCraft read | CADCraft write | Tested how |
@@ -160,7 +160,7 @@ external validator runs in CI (ezdxf's audit was run by hand once, 2026-10-06). 
 a licensed real-file corpus with an open → save → re-open → compare test per file, and checking
 our output in AutoCAD black-box.
 
-On the `dwg-fidelity` branch, `crates/io/tests/dwg_corpus.rs` is that test for DWG: with
+On the `dwg-fidelity` branch, `crates/io/tests/it/dwg_corpus.rs` is that test for DWG: with
 `MI201_CORPUS` naming a folder of DWG files (in CI, the MI-201 corpus, one part saved by
 AutoCAD from R14 to 2018, cloned at run time and never committed here), it opens each file, saves
 it as 2018 DWG, opens that again, and reports what changed, in CADCraft's document and in the
