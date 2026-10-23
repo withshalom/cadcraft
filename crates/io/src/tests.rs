@@ -44,6 +44,7 @@ fn sample() -> Drawing {
         &Space::Model,
         c("0"),
         EntityKind::MText(MText {
+            defined_height: Default::default(),
             insert: Vec3::new(5.0, 5.0, 0.0),
             height: 0.2,
             width: 3.0,
@@ -79,6 +80,7 @@ fn sample() -> Drawing {
         &Space::Model,
         c("0"),
         EntityKind::Dimension(Dimension {
+            attachment: Default::default(),
             kind: DimKind::Linear { rotation: 0.0 },
             defpt: Vec3::new(0.0, -1.0, 0.0),
             text_mid: Vec3::ZERO,
@@ -598,6 +600,7 @@ fn dxf_roundtrips_page_setup() {
 
 fn dim(kind: DimKind, p13: Vec3, p14: Vec3) -> Dimension {
     Dimension {
+        attachment: Default::default(),
         kind,
         defpt: Vec3::new(p13.x, p13.y - 2.0, 0.0),
         text_mid: Vec3::ZERO,
@@ -1450,6 +1453,7 @@ fn intl_sample() -> Drawing {
         &Space::Model,
         on.clone(),
         EntityKind::MText(MText {
+            defined_height: Default::default(),
             insert: Vec3::new(5.0, 5.0, 0.0),
             height: 2.5,
             width: 30.0,
@@ -1691,6 +1695,7 @@ fn dwg_roundtrip_keeps_extension_data() {
 fn mleader_is_written_as_multileader() {
     let mut d = Drawing::new_metric();
     let text = cadcraft_doc::MText {
+        defined_height: Default::default(),
         insert: Vec3::new(12.0, 5.0, 0.0),
         height: 2.5,
         width: 0.0,

@@ -121,6 +121,7 @@ fn style(s: &Session) -> String {
 
 fn dim(s: &Session, kind: DimKind, defpt: Vec2, p13: Vec2, p14: Vec2, p15: Vec2, p16: Vec2, text: &str) -> EntityKind {
     EntityKind::Dimension(Dimension {
+        attachment: Default::default(),
         kind,
         defpt: v3(defpt),
         text_mid: Vec3::ZERO,
@@ -439,6 +440,7 @@ fn mleader_kind(s: &Session, pts: &[Vec2], text: &str, landing: bool) -> Option<
         landing: v3(*landing_pt),
         dogleg,
         text: (!text.is_empty()).then(|| MText {
+            defined_height: Default::default(),
             insert: v3(tpos),
             height: th,
             width: 0.0,
@@ -486,6 +488,7 @@ fn run_leader(s: &mut Session, p: &Value) -> Result<Value> {
         let th = s.doc()?.dim_style(&style(s)).map(|d| d.text_height).unwrap_or(0.18);
         out.push(
             s.add_entity(EntityKind::MText(MText {
+                defined_height: Default::default(),
                 insert: v3(*last + Vec2::new(th * 0.5, th * 0.5)),
                 height: th,
                 width: 0.0,

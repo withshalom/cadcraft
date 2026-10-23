@@ -7,6 +7,7 @@ use cadcraft_render::dimension_geometry;
 
 fn linear(len: f64) -> Dimension {
     Dimension {
+        attachment: Default::default(),
         kind: DimKind::Linear { rotation: 0.0 },
         defpt: Vec3::new(0.0, 5.0, 0.0),
         text_mid: Vec3::ZERO,

@@ -674,7 +674,9 @@ fn text_tags(w: &mut W, d: &Drawing, t: &Text, attrib: Option<(&Attrib, Version)
     if t.oblique != 0.0 {
         w.f(51, t.oblique.to_degrees());
     }
-    w.s(7, &t.style);
+    if !t.style.trim().eq_ignore_ascii_case("Standard") {
+        w.s(7, &t.style);
+    }
     let h = match t.halign {
         HAlign::Left => 0,
         HAlign::Center => 1,
@@ -926,6 +928,10 @@ fn entity(w: &mut W, d: &Drawing, e: &Entity, owner: &str, paper: bool, cx: &Ctx
             w.p(10, t.insert);
             w.f(40, t.height);
             w.f(41, t.width);
+            // Defined annotation height (DXF 2010 and later).
+            if cx.target >= Version::R2010 {
+                w.f(46, if t.defined_height.is_finite() { t.defined_height.max(0.0) } else { 0.0 });
+            }
             w.i(71, i64::from(t.attach));
             w.i(72, 1);
             // Long contents go in 250-char 3-chunks, the remainder in 1.
@@ -938,7 +944,10 @@ fn entity(w: &mut W, d: &Drawing, e: &Entity, owner: &str, paper: bool, cx: &Ctx
             if n == 0 {
                 w.s(1, "");
             }
-            w.s(7, &t.style);
+            // The DXF default style is STANDARD: written only when it is another (as AutoCAD does).
+            if !t.style.trim().eq_ignore_ascii_case("Standard") {
+                w.s(7, &t.style);
+            }
             if t.rotation != 0.0 {
                 w.f(50, t.rotation.to_degrees());
             }
@@ -995,6 +1004,10 @@ fn entity(w: &mut W, d: &Drawing, e: &Entity, owner: &str, paper: bool, cx: &Ctx
         EntityKind::Dimension(dm) => {
             w.s(0, "DIMENSION");
             common_x(w, e, owner, paper, "AcDbDimension", cx.assoc.get(&e.handle));
+            // The subclass's version (DXF 2010 and later).
+            if cx.target >= Version::R2010 {
+                w.i(280, 0);
+            }
             let bname = cx.dim_blocks.get(&e.handle).cloned().or_else(|| dm.block.clone()).unwrap_or_default();
             w.s(2, bname);
             w.p(10, dm.defpt);
@@ -1013,6 +1026,9 @@ fn entity(w: &mut W, d: &Drawing, e: &Entity, owner: &str, paper: bool, cx: &Ctx
                 DimKind::ArcLength => 1,
             };
             w.i(70, ty | 32 | if dm.user_text_pos { 128 } else { 0 });
+            if dm.attachment != 0 {
+                w.i(71, i64::from(dm.attachment));
+            }
             // The actual measurement (read-only in DXF): AutoLISP's entget shows it.
             w.f(42, g.measurement);
             if !dm.text.is_empty() {
@@ -1027,7 +1043,10 @@ fn entity(w: &mut W, d: &Drawing, e: &Entity, owner: &str, paper: bool, cx: &Ctx
                     w.s(100, "AcDbAlignedDimension");
                     w.p(13, dm.p13);
                     w.p(14, dm.p14);
-                    w.f(50, rotation.to_degrees());
+                    // 0 is the default (a horizontal dimension), left out as AutoCAD does.
+                    if rotation != 0.0 {
+                        w.f(50, rotation.to_degrees());
+                    }
                     oblique_52(w, dm, rotation);
                     w.s(100, "AcDbRotatedDimension");
                 }
@@ -1518,6 +1537,7 @@ fn dim_block_entities(d: &Drawing, dm: &Dimension, layer: &str) -> Vec<Entity> {
             handle: Handle(0),
             common: text_c,
             kind: EntityKind::MText(MText {
+                defined_height: Default::default(),
                 insert: g.text_pos.to3(0.0),
                 height: g.text_height,
                 width: 0.0,
@@ -1572,6 +1592,7 @@ pub(crate) fn table_block_entities(d: &Drawing, t: &Table, layer: &str) -> Vec<E
                 handle: Handle(0),
                 common: Common { color: cell.color, ..c.clone() },
                 kind: EntityKind::MText(MText {
+                    defined_height: Default::default(),
                     insert: cell.at.to3(0.0),
                     height: cell.height,
                     width: 0.0,
@@ -2158,7 +2179,8 @@ fn tags_for(d: &Drawing, version: Version, target: Version) -> Vec<Tag> {
         w.s(3, &lt.description);
         w.i(72, 65);
         w.i(73, lt.pattern.len() as i64);
-        w.f(40, lt.pattern_length());
+        // + 0.0 turns -0.0 (an empty pattern's sum) into 0.0.
+        w.f(40, lt.pattern_length() + 0.0);
         for el in &lt.pattern {
             w.f(49, el.length);
             // 74: 2 = text, 4 = shape, + 1 when the rotation is absolute (DXF Reference, LTYPE).
@@ -2402,14 +2424,20 @@ fn tags_for(d: &Drawing, version: Version, target: Version) -> Vec<Tag> {
         w.s(100, "AcDbBlockTableRecord");
         w.s(2, name);
         w.s(340, layout.unwrap_or("0"));
-        // User blocks: insertion units (70) and explodability (280).
+        // Insertion units (70), explodability (280) and uniform scaling (281); spaces and
+        // generated blocks as AutoCAD writes them.
         if let Some(b) = blk {
             w.i(70, i64::from(b.units));
             w.i(280, i64::from(b.explodable));
+            w.i(281, i64::from(b.scale_uniformly));
             if let Some(a) = &b.array {
                 w.s(1001, dxf_ext::APP);
                 w.xdata(dxf_ext::array_xdata(a));
             }
+        } else {
+            w.i(70, 0);
+            w.i(280, 1);
+            w.i(281, 0);
         }
     };
     br_rec(&mut w, &ms_br, "*Model_Space", Some(&model_layout), None);
@@ -2994,7 +3022,7 @@ fn scale_list(w: &mut W, scales: &[(&cadcraft_doc::AnnoScale, String)], dict: &s
         w.s(300, dxf_ext::xdata_str(&s.name));
         w.f(140, s.paper_units);
         w.f(141, s.drawing_units);
-        w.i(290, i64::from(cadcraft_doc::same_factor(s.factor(), 1.0)));
+        w.i(290, i64::from(s.unit_scale.unwrap_or_else(|| cadcraft_doc::same_factor(s.factor(), 1.0))));
     }
 }
 

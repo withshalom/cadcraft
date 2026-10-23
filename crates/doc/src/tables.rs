@@ -733,6 +733,9 @@ pub struct Block {
     pub xref_path: Option<String>,
     #[serde(default)]
     pub explodable: bool,
+    /// References to it scale the same in X, Y and Z (BLOCK_RECORD group 281).
+    #[serde(default)]
+    pub scale_uniformly: bool,
     #[serde(default)]
     pub units: u8,
     /// The parameters of an associative array when this is an array block.
@@ -772,6 +775,7 @@ impl XrefStatus {
 impl Block {
     pub fn new(name: &str) -> Self {
         Block {
+            scale_uniformly: Default::default(),
             begin_handle: Default::default(),
             end_handle: Default::default(),
             handle: Default::default(),

@@ -297,6 +297,10 @@ pub use helix::*;
 pub struct MText {
     pub insert: Vec3,
     pub height: f64,
+    /// The defined annotation height (DXF group 46, AutoCAD 2011 and later): the height of the
+    /// text frame when it was set by hand, 0 when it follows the text.
+    #[serde(default)]
+    pub defined_height: f64,
     /// Reference rectangle width (0 = no wrapping).
     #[serde(default)]
     pub width: f64,
@@ -574,6 +578,10 @@ pub struct Dimension {
     pub kind: DimKind,
     pub defpt: Vec3,
     pub text_mid: Vec3,
+    /// The text's attachment point as read (DXF group 71: 1 top left … 9 bottom right), 0 when
+    /// not known (made here).
+    #[serde(default)]
+    pub attachment: u8,
     #[serde(default)]
     pub p13: Vec3,
     #[serde(default)]
@@ -1303,6 +1311,7 @@ impl EntityKind {
             EntityKind::MText(t) => {
                 t3(&mut t.insert);
                 t.height *= s;
+                t.defined_height *= s;
                 t.width *= s;
                 if let Some(c) = &mut t.columns {
                     c.scale(s);
@@ -1351,6 +1360,7 @@ impl EntityKind {
                 if let Some(t) = &mut ml.text {
                     t3(&mut t.insert);
                     t.height *= s;
+                    t.defined_height *= s;
                     t.width *= s;
                     if let Some(c) = &mut t.columns {
                         c.scale(s);

@@ -164,6 +164,7 @@ fn mtext_from(tags: &[Tag], c: &Common) -> MText {
     MText {
         insert: t.p(10),
         height: t.fd(40, 0.2).max(1e-9),
+        defined_height: own.f(46).filter(|h| h.is_finite() && *h >= 0.0).unwrap_or(0.0),
         width: match &columns {
             Some((_, w)) if t.fd(41, 0.0) <= 0.0 => *w,
             _ => t.fd(41, 0.0).max(0.0),
@@ -441,6 +442,7 @@ fn entity_with_table_budget(kind: &str, tags: &[Tag], table_cells_left: &mut usi
                 defpt: t.p(10),
                 // The text midpoint is the one OCS point of a DIMENSION.
                 text_mid: if c.extrusion.z < 0.0 { ocs(&c, t.p(11)) } else { t.p(11) },
+                attachment: t.i(71).and_then(|v| u8::try_from(v).ok()).filter(|v| (1..=9).contains(v)).unwrap_or(0),
                 p13: t.p(13),
                 p14: t.p(14),
                 p15: t.p(15),
@@ -979,7 +981,7 @@ struct Rx {
     /// LTYPE record handle (upper case) → linetype name (DIMLTYPE, DIMLTEX1, DIMLTEX2).
     ltypes: HashMap<String, String>,
     /// Upper-case block name → (insertion units, explodable) from its BLOCK_RECORD.
-    block_props: HashMap<String, (u8, bool)>,
+    block_props: HashMap<String, (u8, bool, bool)>,
     /// Upper-case names of anonymous `*T` blocks drawn by ACAD_TABLE entities.
     table_blocks: std::collections::HashSet<String>,
     /// Upper-case block names used by INSERTs.
@@ -1436,7 +1438,7 @@ fn tables(tags: &[Tag], d: &mut Drawing, rx: &mut Rx) {
             }
             "BLOCK_RECORD" => {
                 let units = t.i(70).and_then(|u| u8::try_from(u).ok()).unwrap_or(0);
-                rx.block_props.insert(n.to_ascii_uppercase(), (units, t.i(280).unwrap_or(1) != 0));
+                rx.block_props.insert(n.to_ascii_uppercase(), (units, t.i(280).unwrap_or(1) != 0, t.i(281).unwrap_or(0) != 0));
                 if let Some(a) = crate::dxf_ext::read_array(tg) {
                     rx.block_arrays.insert(n.to_ascii_uppercase(), a);
                 }
@@ -1860,8 +1862,8 @@ fn read_budgeted(bytes: &[u8], mut table_cells_left: usize) -> Result<Drawing> {
         (b.begin_handle, b.end_handle) = (begin, end);
         b.base = base;
         b.description = description;
-        if let Some(&(units, explodable)) = rx.block_props.get(&up) {
-            (b.units, b.explodable) = (units, explodable);
+        if let Some(&(units, explodable, uniform)) = rx.block_props.get(&up) {
+            (b.units, b.explodable, b.scale_uniformly) = (units, explodable, uniform);
         }
         if xref & 4 != 0 {
             b.xref_path = Some(String::new());

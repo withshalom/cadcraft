@@ -6,8 +6,8 @@
 //! files are AutoCAD's, so they are never committed here; without the variable the test does
 //! nothing. With `CADCRAFT_MODEL_MAP=path` it also writes the report to that file.
 //!
-//! For each DXF it reads the file into CADCraft's model, writes it back as DXF, and compares the
-//! two files record by record (matched by handle), by section and type:
+//! For each DXF it reads the file into CADCraft's model, saves it as DXF in its own version (as
+//! CADCraft saves a drawing), and compares the two files record by record (matched by handle), by section and type:
 //! - how CADCraft holds the type: modelled, or kept as raw DXF groups (unmodelled objects,
 //!   `Unknown` entities);
 //! - records the same after the round trip, changed, or missing;
@@ -25,7 +25,12 @@ use std::fmt::Write as _;
 
 use cadcraft_doc::{Drawing, EntityKind};
 use cadcraft_dxf::{Kind, Tag, kind_of, records, sections};
-use cadcraft_io::{cad_file, read_dxf, write_dxf};
+use cadcraft_io::{cad_file, read_dxf};
+
+/// The drawing saved as DXF the way CADCraft saves it: in its own version.
+fn save_dxf(d: &Drawing) -> String {
+    String::from_utf8_lossy(&cadcraft_io::write(d, "drawing.dxf").unwrap_or_default()).into_owned()
+}
 
 /// A group as text, with reals rounded so formatting differences don't count as changes.
 fn norm(t: &Tag) -> (i32, String) {
@@ -149,12 +154,12 @@ fn map_dxf(path: &std::path::Path, out: &mut String) -> Result<(), String> {
         String::from_utf8_lossy(&bytes).into_owned()
     };
     let d = read_dxf(&bytes).map_err(|e| format!("CADCraft doesn't read it: {e}"))?;
-    let back = write_dxf(&d);
+    let back = save_dxf(&d);
 
     // `.cad` must hold everything the model holds.
     let cad = cad_file::write(&d, None).map_err(|e| format!(".cad write: {e}"))?;
     let d2 = cad_file::read(&cad).map_err(|e| format!(".cad read: {e}"))?;
-    let back2 = write_dxf(&d2);
+    let back2 = save_dxf(&d2);
     if back2 != back {
         return Err(".cad round trip changes the drawing (the DXF written after it differs)".into());
     }

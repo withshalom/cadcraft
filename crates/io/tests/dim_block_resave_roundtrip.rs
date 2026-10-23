@@ -11,6 +11,7 @@ use cadcraft_geom::Vec3;
 
 fn linear(a: [f64; 2], b: [f64; 2], at: [f64; 2]) -> Dimension {
     Dimension {
+        attachment: Default::default(),
         kind: DimKind::Linear { rotation: 0.0 },
         defpt: Vec3::new(at[0], at[1], 0.0),
         text_mid: Vec3::ZERO,

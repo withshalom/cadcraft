@@ -36,21 +36,24 @@ For DWG it lists the object types each file holds.
 
 ### 2.1 Results (MI-201, one part saved in every version)
 
-Before → after S1–S4:
+Now, saved as CADCraft saves a drawing (in its own version):
 
 | File | Records with the same values | Records with a new handle | Header variables kept |
 |---|---|---|---|
-| R12 DXF (AC1009) | 0 of 63* | – | 72 → 133 of 133 |
-| 2000 DXF (AC1015) | 170 → 236 of 265 | all → 0 | 103 → 199 of 199 |
-| 2004 DXF (AC1018) | 164 → 227 of 256 | all → 0 | 103 → 211 of 211 |
-| 2007 DXF (AC1021) | 162 → 215 of 248 | all → 0 | 107 → 251 of 251 |
-| 2010 DXF (AC1024) | 161 → 213 of 246 | all → 0 | 107 → 252 of 252 |
-| 2013 DXF (AC1027) | 123 → 165 of 198 | all → 0 | 107 → 253 of 253 |
-| 2018 DXF (AC1032) | 124 → 161 of 194 | 138 → 0 | 107 → 253 of 253 |
+| R12 DXF (AC1009) | 0 of 63* | – | 133 of 133 |
+| 2000 DXF (AC1015) | 244 of 265 | 0 | 199 of 199 |
+| 2004 DXF (AC1018) | 235 of 256 | 0 | 211 of 211 |
+| 2007 DXF (AC1021) | 226 of 248 | 0 | 251 of 251 |
+| 2010 DXF (AC1024) | 226 of 246 | 0 | 252 of 252 |
+| 2013 DXF (AC1027) | 178 of 198 | 0 | 253 of 253 |
+| 2018 DXF (AC1032) | 174 of 194 | 0 | 253 of 253 |
 
-What still differs is field by field (§4): dimension and multiline text fields, plot settings of
-layouts, block record flags, the active viewport's view, the table and multileader styles, and
-the osnap data of DIMASSOC objects.
+The first map (2026-10-23) measured the R2000 writer instead: 124 of 194 for the 2018 file, every
+table record and object with a new handle, 107 of 253 header variables.
+
+What still differs is field by field (§4): plot settings of layouts, the active viewport's view,
+the table, multileader and dimension styles, the osnap data of DIMASSOC objects, and three
+undocumented dimension groups (73–75).
 
 \* R12 files have no handles on most records and CADCraft writes them as a later version, so
 nothing matches one to one. R12 is measured for header variables only.
@@ -91,9 +94,9 @@ These cut across every type. DWG needs all of them; DXF and `.cad` benefit too.
 | CIRCLE | `Circle` | 4 | ✓ | |
 | POINT | `Point` | 6 | ✓ | |
 | SOLID, TRACE | `Solid`, `Trace` | 4 | ✓ | |
-| TEXT | `Text` | 8 | ✓ | writes the style (group 7) even when it is the default: harmless |
-| MTEXT | `MText` | 2 | ◐ | defined annotation height (46) |
-| DIMENSION (all seven DWG types) | `Dimension` | 2 linear | ◐ | 71 (text attachment), 73–75, 280 (dimension version) lost; style overrides written as xdata rather than as read |
+| TEXT | `Text` | 8 | ✓ | |
+| MTEXT | `MText` | 2 | ✓ | |
+| DIMENSION (all seven DWG types) | `Dimension` | 2 linear | ◐ | 73–75 (not in the DXF reference) lost; CADCraft adds its own associativity xdata |
 | INSERT, MINSERT, ATTRIB | `Insert` | – | · | |
 | ATTDEF | `AttDef` | – | · | |
 | LWPOLYLINE | `LwPolyline` | – | · | |
@@ -126,7 +129,7 @@ These cut across every type. DWG needs all of them; DXF and `.cad` benefit too.
 | LTYPE | `Linetype` | 3 | ◐ | one linetype's description and name came back changed |
 | STYLE | `TextStyle` | 1 | ✓ | |
 | DIMSTYLE | `DimStyle` | 1 | ◐ | the writer adds groups for defaults (40–48, 71, 72) |
-| BLOCK_HEADER (BLOCK_RECORD), BLOCK, ENDBLK | `Block` | 4 | ◐ | insertion units (70), explodable (280), scale uniformly (281) |
+| BLOCK_HEADER (BLOCK_RECORD), BLOCK, ENDBLK | `Block` | 4 | ✓ | |
 | VPORT | `VportConfig` | 1 | ◐ | the active view's centre, height, aspect, clipping, grid and view mode come back changed |
 | APPID | written from xdata and the file's list | 4 | ✓ | CADCraft adds its own applications |
 | VIEW | `NamedView` | – | · | |
@@ -140,7 +143,7 @@ These cut across every type. DWG needs all of them; DXF and `.cad` benefit too.
 | DICTIONARY, ACDBDICTIONARYWDFLT | written by CADCraft with kept handles, or kept raw | 19 + 1 | ✓ | the named object dictionary also lists CADCraft's own entries; a multiline style key comes back upper case |
 | ACDBPLACEHOLDER | written by CADCraft | 1 | ✓ | |
 | LAYOUT (with its PLOTSETTINGS) | `Layout` | 2 | ◐ | paper name and size, plot type, standard scale, shade plot mode/resolution/DPI, tab order |
-| SCALE | `AnnoScale` | 17 | ◐ | one flag (290) |
+| SCALE | `AnnoScale` | 17 | ✓ | |
 | MLINESTYLE | `MLineStyle` | 1 | ✓ | |
 | MLEADERSTYLE | `MLeaderStyle` | 1 | ◐ | 298 and a block content group |
 | TABLESTYLE | `TableStyle` | 1 | ◐ | cell styles (1, 90, 91 groups) rewritten |
@@ -209,3 +212,6 @@ On the corpus only the 2018 files go through BlackCAD both ways. §5 removes bot
 
 - 2026-10-23: first map, from the MI-201 corpus and the reader's code.
 - 2026-10-23: S1–S4 done: kept handles, header group codes, the dictionary tree, reactors.
+- 2026-10-23: measured through CADCraft's save path; MTEXT defined height, dimension attachment
+  and version, block uniform scaling, block record flags, the scale unit flag, the default text
+  style.
