@@ -1,4 +1,4 @@
-# The cad-native branch: CADCraft's own high-fidelity native format, built on dwg-native (which it
+# The cad-native branch: CADCraft's own high-fidelity native format, built on dwg-fidelity (which it
 # pulls from). Lint, tests and the web check of the crates the branch changes, and a round trip of
 # BlackCAD's MI-201 corpus
 # (real AutoCAD files, cloned from withshalom/CAD at run time, never committed here). Failures and

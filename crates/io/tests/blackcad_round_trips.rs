@@ -1,4 +1,4 @@
-//! What CADCraft's own fixes keep when BlackCAD writes the file (dwg-native branch): checks of
+//! What CADCraft's own fixes keep when BlackCAD writes the file (dwg-fidelity branch): checks of
 //! upstream fixes that DXF tests alone cover, run through DWG and BlackCAD's `.blc` as well.
 
 use cadcraft_doc::{Drawing, Layout, PageSetup};
