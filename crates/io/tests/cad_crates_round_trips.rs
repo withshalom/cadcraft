@@ -1,5 +1,5 @@
-//! What CADCraft's own fixes keep when BlackCAD writes the DWG: fixes that DXF tests alone cover,
-//! checked again through a 2018 DWG that BlackCAD's writer must write.
+//! What CADCraft's own fixes keep when the open engine writes the DWG: fixes that DXF tests alone cover,
+//! checked again through a 2018 DWG that the open engine's writer must write.
 
 use cadcraft_doc::{Drawing, Layout, PageSetup};
 use cadcraft_io::{Version, read, write_dwg_noted};
@@ -24,11 +24,11 @@ fn window_of(d: &Drawing) -> (String, [f64; 4]) {
     (page.plot_area.clone(), page.plot_window)
 }
 
-/// #1667 (plot window corners kept in DXF), through a 2018 DWG that BlackCAD writes.
+/// #1667 (plot window corners kept in DXF), through a 2018 DWG that the open engine writes.
 #[test]
-fn plot_window_corners_round_trip_through_blackcads_dwg() {
+fn plot_window_corners_round_trip_through_cad_cratess_dwg() {
     let w = write_dwg_noted(&windowed(), Version::R2018).unwrap();
-    assert_eq!(w.engine, cadcraft_dwg::Engine::BlackCad, "{:?}", w.notes);
+    assert_eq!(w.engine, cadcraft_dwg::Engine::CadCrates, "{:?}", w.notes);
     let back = read(&w.dwg, "win.dwg").unwrap();
     assert_eq!(window_of(&back), ("window".into(), [0.0, -297.0, 420.0, 0.0]));
 }

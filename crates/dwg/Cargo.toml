@@ -1,6 +1,6 @@
 [package]
 name = "cadcraft-dwg"
-description = "CADCraft DWG bridge: converts DWG to and from DXF bytes, with BlackCAD's open DWG crates (MIT OR Apache-2.0) first and the acadrust crate (MPL-2.0, used unmodified) second"
+description = "CADCraft DWG bridge: converts DWG to and from DXF bytes, with WithShalom's open DWG crates (MIT OR Apache-2.0) first and the acadrust crate (MPL-2.0, used unmodified) second"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

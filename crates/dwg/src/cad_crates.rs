@@ -1,4 +1,4 @@
-//! DWG through BlackCAD's open DWG and DXF crates (`cad-dwg`, `cad-dxf`, MIT OR Apache-2.0,
+//! DWG through WithShalom's open DWG and DXF crates (`cad-dwg`, `cad-dxf`, MIT OR Apache-2.0,
 //! <https://github.com/withshalom/CAD>): the engine this crate tries first. They read DWG from R13
 //! to 2018 and later except 2007 (AC1021), write AutoCAD 2018 (AC1032) DWG, and count what a
 //! conversion leaves out. They use the standard library alone, so they also run in the web build.
@@ -26,24 +26,24 @@ pub(crate) enum Outcome {
 pub(crate) enum Failure {
     /// The DXF rendition passed `Limits::max_dxf_bytes`: the same for any engine.
     Limit(String),
-    /// BlackCAD can't convert this file (a version it doesn't read, damage, a fault).
+    /// the open engine can't convert this file (a version it doesn't read, damage, a fault).
     Failed(String),
 }
 
-/// The program name and version BlackCAD's writer records in the DWG files CADCraft saves.
+/// The program name and version the open engine's writer records in the DWG files CADCraft saves.
 pub(crate) const APP_NAME: &str = "CADCraft";
 pub(crate) const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// Read DWG bytes into an ASCII DXF (AutoCAD 2018 format).
 pub(crate) fn dwg_to_dxf(bytes: &[u8], limits: Limits) -> Result<Outcome, Failure> {
     let d = catch_unwind(|| cad_dwg::read_bytes(bytes))
-        .map_err(|_| Failure::Failed("BlackCAD's DWG reader failed on this file".into()))?
+        .map_err(|_| Failure::Failed("The open engine's DWG reader failed on this file".into()))?
         .map_err(|e| Failure::Failed(format!("DWG: {e}")))?;
     // Written within the limit: the DXF stops being built as soon as it would pass it, so a
     // damaged file can't make the conversion take more memory than the limit first.
     let out =
         catch_unwind(AssertUnwindSafe(|| cad_dxf::to_bytes_within(&d, DxfFormat::Ascii, &cad_dxf::WriteOptions::default(), limits.max_dxf_bytes)))
-            .map_err(|_| Failure::Failed("BlackCAD's DWG→DXF conversion failed on this file".into()))?
+            .map_err(|_| Failure::Failed("The open engine's DWG→DXF conversion failed on this file".into()))?
             .map_err(|_| {
                 Failure::Limit(format!(
                     "DWG: converting this {} file produced more than {} of drawing data (the limit); \
@@ -62,11 +62,11 @@ pub(crate) fn dwg_to_dxf(bytes: &[u8], limits: Limits) -> Result<Outcome, Failur
 /// Convert DXF bytes into an AutoCAD 2018 (AC1032) DWG file.
 pub(crate) fn dxf_to_dwg(dxf: &[u8]) -> Result<Outcome, Failure> {
     let d = catch_unwind(|| cad_dxf::read_bytes(dxf))
-        .map_err(|_| Failure::Failed("BlackCAD's DXF reader failed on this drawing".into()))?
+        .map_err(|_| Failure::Failed("The open engine's DXF reader failed on this drawing".into()))?
         .map_err(|e| Failure::Failed(format!("DXF: {e}")))?;
     let opts = cad_dwg::write::WriteOptions { app_name: APP_NAME, app_version: APP_VERSION, ..Default::default() };
     let out = catch_unwind(AssertUnwindSafe(|| cad_dwg::write::to_bytes_with(&d, &opts)))
-        .map_err(|_| Failure::Failed("BlackCAD's DWG writer failed on this drawing".into()))?
+        .map_err(|_| Failure::Failed("The open engine's DWG writer failed on this drawing".into()))?
         .map_err(|e| Failure::Failed(format!("DWG write: {e}")))?;
     let mut losses = warnings(&d, "DXF");
     if let Some(note) = left_out_note(&out.left_out, "DWG", "couldn't be written to the DWG") {

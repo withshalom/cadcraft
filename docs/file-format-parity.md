@@ -1,6 +1,6 @@
 # File-format parity
 
-> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-22 · **Change:** minor (DWG through BlackCAD's open DWG crates first, acadrust second) · **Target:** Autodesk AutoCAD 2027
+> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-22 · **Change:** minor (DWG through WithShalom's open DWG crates first, acadrust second) · **Target:** Autodesk AutoCAD 2027
 
 Every format AutoCAD 2027 reads or writes, with CADCraft's support, fidelity and tests. Work
 items are in [gaps.md](gaps.md#file-formats); the weighted score feeds
@@ -35,39 +35,39 @@ and reading that DXF; it saves by writing its own R2000 DXF and converting it to
 chosen version (#421): SAVEAS `version`, else the drawing's own version (the file's `$ACADVER`,
 2018 for a new drawing), at least 2004 unless 2000 is asked for.
 
-Two engines do the conversion (`crates/dwg`). BlackCAD's open DWG and DXF crates (`cad-dwg`,
+Two engines do the conversion (`crates/dwg`). WithShalom's open DWG and DXF crates (`cad-dwg`,
 `cad-dxf`, MIT OR Apache-2.0) go first: they read R13–2018 except 2007, write 2018, and count
 what a conversion would leave out. Their result is used when it carries everything over;
-otherwise the `acadrust` 0.6.4 crate converts the file, and BlackCAD's partial result, with
-notes on what it left out, is used only when acadrust can't. Today BlackCAD carries over whole
+otherwise the `acadrust` 0.6.4 crate converts the file, and the open engine's partial result, with
+notes on what it left out, is used only when acadrust can't. Today the open engine carries over whole
 mainly 2018 files of what it models: it keeps some objects of older files only as DWG records
 (style objects before 2013, extended records before 2007), so those still go to acadrust. The
 bridge repairs two acadrust gaps in 2010+ DWG: merged table cells and table-style title/header
 suppression.
 
-With BlackCAD 0.18.0, BlackCAD both opens and saves real 2018 files whole: the round trip of an
+With the open engine 0.18.0, the open engine both opens and saves real 2018 files whole: the round trip of an
 AutoCAD-saved corpus (`crates/io/tests/dwg_corpus.rs`, below) keeps every object CADCraft sees, and
 the saved file holds AutoCAD's objects plus CADCraft's own four. Its model also holds geometric
 tolerances, raster images and wipeouts (with their image definitions, reactors and raster
-variables) and multilines. The bridge reports which engine wrote a DWG and why BlackCAD stepped
+variables) and multilines. The bridge reports which engine wrote a DWG and why the open engine stepped
 aside (`dxf_to_dwg_written`, `io::write_dwg_noted`). Older versions are still opened by acadrust
-(BlackCAD keeps some of their objects only as DWG records), and the style objects acadrust's
-conversion gives (materials, visual, section and detail view styles) are not written by BlackCAD,
-so those saves still go to acadrust. `crates/io/tests/blackcad_round_trips.rs` checks the plot
-window corners of #1667 through BlackCAD's DWG too.
+(the open engine keeps some of their objects only as DWG records), and the style objects acadrust's
+conversion gives (materials, visual, section and detail view styles) are not written by the open engine,
+so those saves still go to acadrust. `crates/io/tests/cad_crates_round_trips.rs` checks the plot
+window corners of #1667 through the open engine's DWG too.
 
 | DWG version | Code | AutoCAD 2027 | CADCraft read | CADCraft write | Tested how |
 |---|---|---|---|---|---|
 | R1.0–R2.6, R9, R10, R11/R12 | MC0.0–AC1009 | read | **no** (`is_dwg` accepts only `AC10xx` magic; acadrust doesn't target pre-R13) | no | — |
-| R13 | AC1012 | read | BlackCAD (whole files only) or acadrust; untested | no | none |
-| R14 | AC1014 | read, write | BlackCAD (whole files only) or acadrust; untested here (BlackCAD checks it against a real AutoCAD file) | **no** | none |
+| R13 | AC1012 | read | the open engine (whole files only) or acadrust; untested | no | none |
+| R14 | AC1014 | read, write | the open engine (whole files only) or acadrust; untested here (the open engine checks it against a real AutoCAD file) | **no** | none |
 | 2000–2002 | AC1015 | read, write | yes via bridge | yes, when asked for (no true colours, transparency or table styles: the format has none) | synthetic round trips (`dwg_at_every_version_reads_back`, `dwg_roundtrip_keeps_non_ascii_text`) |
 | 2004–2006 | AC1018 | read, write | via bridge | yes | `dwg_at_every_version_reads_back`, `dwg_roundtrip_keeps_extension_data` |
 | 2007–2009 | AC1021 | read, write | via bridge | yes | `dwg_at_every_version_reads_back` |
 | 2010–2012 | AC1024 | read, write | via bridge | yes | `dwg_at_every_version_reads_back`, `ac1024_dwg_with_many_entities_opens` |
 | 2013–2017 | AC1027 | read, write | via bridge | yes | `dwg_at_every_version_reads_back` |
-| 2018–2027 | AC1032 | read, write (default) | via bridge: BlackCAD first; AutoCAD-saved 2018 files open and save through BlackCAD whole | yes (default for new drawings): BlackCAD writes it when it carries the drawing over whole | `dwg_at_every_version_reads_back` (synthetic), `blackcad_writes_and_reads_2018_whole`, `corpus_dwg_round_trips` (real files, with `BLACKCAD_CORPUS`) |
-| Web build | — | — | BlackCAD's whole conversions (R13–2018 except 2007) | 2018, when BlackCAD carries the drawing over whole | `blackcad_writes_and_reads_2018_whole` (host) |
+| 2018–2027 | AC1032 | read, write (default) | via bridge: the open engine first; AutoCAD-saved 2018 files open and save through the open engine whole | yes (default for new drawings): the open engine writes it when it carries the drawing over whole | `dwg_at_every_version_reads_back` (synthetic), `cad_crates_writes_and_reads_2018_whole`, `corpus_dwg_round_trips` (real files, with `MI201_CORPUS`) |
+| Web build | — | — | the open engine's whole conversions (R13–2018 except 2007) | 2018, when the open engine carries the drawing over whole | `cad_crates_writes_and_reads_2018_whole` (host) |
 
 Everything lost in the DXF read/write paths below is also lost through DWG, plus whatever
 `acadrust`'s own DXF output omits (proxy objects, ACIS data, custom objects: not measured). User
@@ -153,8 +153,8 @@ external validator runs in CI (ezdxf's audit was run by hand once, 2026-10-06). 
 a licensed real-file corpus with an open → save → re-open → compare test per file, and checking
 our output in AutoCAD black-box.
 
-`crates/io/tests/dwg_corpus.rs` is that test for DWG: with `BLACKCAD_CORPUS` naming a folder of
-DWG files (for example BlackCAD's MI-201 corpus, one part saved by AutoCAD from R14 to 2018, never
+`crates/io/tests/dwg_corpus.rs` is that test for DWG: with `MI201_CORPUS` naming a folder of
+DWG files (for example the MI-201 corpus, one part saved by AutoCAD from R14 to 2018, never
 committed here), it opens each file, saves it as 2018 DWG, opens that again, and reports what
 changed, in CADCraft's document and in the DWG's objects.
 
@@ -162,7 +162,7 @@ changed, in CADCraft's document and in the DWG's objects.
 
 | Date | Change | Summary |
 |---|---|---|
-| 2026-10-22 | minor | DWG: BlackCAD's open DWG and DXF crates (MIT OR Apache-2.0, 0.18.0) convert first and are used when they carry the drawing over whole; acadrust converts the rest. The web build reads and writes DWG through BlackCAD. A real-file DWG round-trip test (`dwg_corpus.rs`) |
+| 2026-10-22 | minor | DWG: WithShalom's open DWG and DXF crates (MIT OR Apache-2.0, 0.18.0) convert first and are used when they carry the drawing over whole; acadrust converts the rest. The web build reads and writes DWG through the open engine. A real-file DWG round-trip test (`dwg_corpus.rs`) |
 | 2026-10-17 | minor | DWG read: DGN line style components no line style definition reaches are left out before the DXF bridge, with a read note; an 83 MB site plan with 888,483 of them (1.2 GB of DXF, over the limit) now opens (#1482) |
 | 2026-10-12 | minor | PDF output: object transparency plotted as PDF alpha (`/ExtGState` `/ca` `/CA`) when the page setup's or the plot's "Plot transparency" is on; PNG plots blend it, SVG uses `opacity`; plots without it are unchanged byte for byte |
 | 2026-10-12 | minor | DXF/DWG save: the Model layout's plot settings are written as CADCraft plots model space, drawing extents scaled to fit (PLOTSETTINGS 74 = 1, 75 = 0), instead of plot type 5 "Layout information", which other programs' Plot dialogs can't use for model space |

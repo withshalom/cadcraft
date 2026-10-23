@@ -4,16 +4,16 @@
 //! model; saving goes the other way. Two engines do the conversion, behind this byte-level API so
 //! that nothing else in CADCraft depends on their types:
 //!
-//! 1. **BlackCAD's open DWG and DXF crates** (`cad-dwg`, `cad-dxf`, MIT OR Apache-2.0), tried
+//! 1. **WithShalom's open DWG and DXF crates** (`cad-dwg`, `cad-dxf`, MIT OR Apache-2.0), tried
 //!    first. They read DWG from R13 to 2018 and later except 2007 (AC1021), write AutoCAD 2018
 //!    (AC1032) DWG, and count what a conversion leaves out. They use the standard library alone,
 //!    so the web build reads and writes DWG with them too.
 //! 2. **The `acadrust` crate** (MPL-2.0, used unmodified as a dependency; native targets only, as
-//!    it memory-maps files), for whatever BlackCAD doesn't convert whole: a version it doesn't
+//!    it memory-maps files), for whatever the open engine doesn't convert whole: a version it doesn't
 //!    read or write, a file it can't read, or one it would carry over only in part.
 //!
-//! So a conversion never loses what acadrust would have kept: BlackCAD's result is used when it
-//! is complete, acadrust's otherwise, and BlackCAD's partial one (with notes on what it left
+//! So a conversion never loses what acadrust would have kept: the open engine's result is used when it
+//! is complete, acadrust's otherwise, and the open engine's partial one (with notes on what it left
 //! out) only when acadrust can't convert the file at all.
 //!
 //! # Guardrails around the third-party decoder (acadrust)
@@ -37,7 +37,7 @@
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 #![forbid(unsafe_code)]
 
-mod blackcad;
+mod cad_crates;
 
 #[cfg(not(target_arch = "wasm32"))]
 mod acadrust_bridge;
@@ -46,8 +46,8 @@ mod acadrust_bridge;
 pub const VERSIONS: &[(&str, &str)] =
     &[("AC1015", "2000"), ("AC1018", "2004"), ("AC1021", "2007"), ("AC1024", "2010"), ("AC1027", "2013"), ("AC1032", "2018")];
 
-/// The version BlackCAD's writer writes; the others are acadrust's.
-const BLACKCAD_WRITES: &str = "AC1032";
+/// The version the open engine's writer writes; the others are acadrust's.
+const CAD_CRATES_WRITES: &str = "AC1032";
 
 /// True when the bytes look like a DWG file (`AC10xx` magic).
 pub fn is_dwg(bytes: &[u8]) -> bool {
@@ -85,9 +85,9 @@ fn mb(n: u64) -> String {
 /// The DWG engines, in the order they're tried.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Engine {
-    /// BlackCAD's open DWG and DXF crates: tried first, on every target.
-    BlackCad,
-    /// acadrust: for what BlackCAD doesn't convert whole (native builds).
+    /// WithShalom's open DWG and DXF crates: tried first, on every target.
+    CadCrates,
+    /// acadrust: for what the open engine doesn't convert whole (native builds).
     Acadrust,
 }
 
@@ -120,24 +120,24 @@ pub fn dwg_to_dxf_noted(bytes: &[u8], limits: Limits) -> Result<(Vec<u8>, Vec<St
     convert_dwg(bytes, limits).map(|c| (c.dxf, c.notes))
 }
 
-/// [`dwg_to_dxf_noted`], also saying which engine converted the file: BlackCAD when it converts
-/// it whole, otherwise acadrust (native builds), otherwise BlackCAD's partial conversion with
-/// its notes. The error, when neither converts the file, is acadrust's (BlackCAD's in the web
+/// [`dwg_to_dxf_noted`], also saying which engine converted the file: the open engine when it converts
+/// it whole, otherwise acadrust (native builds), otherwise the open engine's partial conversion with
+/// its notes. The error, when neither converts the file, is acadrust's (the open engine's in the web
 /// build).
 pub fn convert_dwg(bytes: &[u8], limits: Limits) -> Result<Converted, String> {
     if bytes.len() > limits.max_dwg_bytes {
         return Err(too_large(bytes, limits));
     }
-    let (partial, blackcad_error) = match blackcad::dwg_to_dxf(bytes, limits) {
-        Ok(blackcad::Outcome::Whole(dxf)) => return Ok(Converted { dxf, notes: Vec::new(), engine: Engine::BlackCad }),
-        Err(blackcad::Failure::Limit(e)) => return Err(e),
-        Ok(blackcad::Outcome::Partial(dxf, notes)) => (Some((dxf, notes)), None),
-        Err(blackcad::Failure::Failed(e)) => (None, Some(e)),
+    let (partial, cad_crates_error) = match cad_crates::dwg_to_dxf(bytes, limits) {
+        Ok(cad_crates::Outcome::Whole(dxf)) => return Ok(Converted { dxf, notes: Vec::new(), engine: Engine::CadCrates }),
+        Err(cad_crates::Failure::Limit(e)) => return Err(e),
+        Ok(cad_crates::Outcome::Partial(dxf, notes)) => (Some((dxf, notes)), None),
+        Err(cad_crates::Failure::Failed(e)) => (None, Some(e)),
     };
     match (acadrust_dwg_to_dxf(bytes, limits), partial) {
         (Ok((dxf, notes)), _) => Ok(Converted { dxf, notes, engine: Engine::Acadrust }),
-        (Err(_), Some((dxf, notes))) => Ok(Converted { dxf, notes, engine: Engine::BlackCad }),
-        (Err(e), None) => Err(if cfg!(target_arch = "wasm32") { blackcad_error.unwrap_or(e) } else { e }),
+        (Err(_), Some((dxf, notes))) => Ok(Converted { dxf, notes, engine: Engine::CadCrates }),
+        (Err(e), None) => Err(if cfg!(target_arch = "wasm32") { cad_crates_error.unwrap_or(e) } else { e }),
     }
 }
 
@@ -147,10 +147,10 @@ pub fn convert_dwg_with(engine: Engine, bytes: &[u8], limits: Limits) -> Result<
         return Err(too_large(bytes, limits));
     }
     match engine {
-        Engine::BlackCad => match blackcad::dwg_to_dxf(bytes, limits) {
-            Ok(blackcad::Outcome::Whole(dxf)) => Ok(Converted { dxf, notes: Vec::new(), engine }),
-            Ok(blackcad::Outcome::Partial(dxf, notes)) => Ok(Converted { dxf, notes, engine }),
-            Err(blackcad::Failure::Limit(e) | blackcad::Failure::Failed(e)) => Err(e),
+        Engine::CadCrates => match cad_crates::dwg_to_dxf(bytes, limits) {
+            Ok(cad_crates::Outcome::Whole(dxf)) => Ok(Converted { dxf, notes: Vec::new(), engine }),
+            Ok(cad_crates::Outcome::Partial(dxf, notes)) => Ok(Converted { dxf, notes, engine }),
+            Err(cad_crates::Failure::Limit(e) | cad_crates::Failure::Failed(e)) => Err(e),
         },
         Engine::Acadrust => acadrust_dwg_to_dxf(bytes, limits).map(|(dxf, notes)| Converted { dxf, notes, engine }),
     }
@@ -162,14 +162,14 @@ fn too_large(bytes: &[u8], limits: Limits) -> String {
 }
 
 /// Convert DXF bytes into a DWG file of the DXF's version, and at least AutoCAD 2004
-/// (AC1018). A 2018 DXF is written by BlackCAD when it carries the drawing over whole.
+/// (AC1018). A 2018 DXF is written by the open engine when it carries the drawing over whole.
 pub fn dxf_to_dwg(dxf: &[u8]) -> Result<Vec<u8>, String> {
-    let blackcad = declared_version(dxf).is_some_and(|v| v == BLACKCAD_WRITES);
-    write_dwg(dxf, blackcad, None).map(|w| w.dwg)
+    let cad_crates = declared_version(dxf).is_some_and(|v| v == CAD_CRATES_WRITES);
+    write_dwg(dxf, cad_crates, None).map(|w| w.dwg)
 }
 
 /// Convert DXF bytes into a DWG file of `version`, a code from [`VERSIONS`] ("AC1032"),
-/// whatever version the DXF declares. 2018 (AC1032) is written by BlackCAD when it carries the
+/// whatever version the DXF declares. 2018 (AC1032) is written by the open engine when it carries the
 /// drawing over whole, every other version by acadrust.
 pub fn dxf_to_dwg_as(dxf: &[u8], version: &str) -> Result<Vec<u8>, String> {
     dxf_to_dwg_written(dxf, version).map(|w| w.dwg)
@@ -182,40 +182,40 @@ pub struct Written {
     pub dwg: Vec<u8>,
     /// The engine that wrote it.
     pub engine: Engine,
-    /// When acadrust wrote a version BlackCAD writes: why BlackCAD didn't (what its writer would
-    /// have left out, or its error), one note each. Empty when BlackCAD wrote the file.
+    /// When acadrust wrote a version the open engine writes: why the open engine didn't (what its writer would
+    /// have left out, or its error), one note each. Empty when the open engine wrote the file.
     pub notes: Vec<String>,
 }
 
 /// [`dxf_to_dwg_as`], also saying which engine wrote the file and, when it was acadrust, why
-/// BlackCAD didn't.
+/// the open engine didn't.
 pub fn dxf_to_dwg_written(dxf: &[u8], version: &str) -> Result<Written, String> {
     let code = version.trim().to_ascii_uppercase();
     if !VERSIONS.iter().any(|(c, _)| *c == code) {
         return Err(unsupported(version));
     }
-    write_dwg(dxf, code == BLACKCAD_WRITES, Some(&code))
+    write_dwg(dxf, code == CAD_CRATES_WRITES, Some(&code))
 }
 
-/// BlackCAD first when it writes the version asked for, then acadrust. When acadrust can't
-/// write the drawing either, the error says what BlackCAD would have left out.
-fn write_dwg(dxf: &[u8], blackcad: bool, version: Option<&str>) -> Result<Written, String> {
+/// the open engine first when it writes the version asked for, then acadrust. When acadrust can't
+/// write the drawing either, the error says what the open engine would have left out.
+fn write_dwg(dxf: &[u8], cad_crates: bool, version: Option<&str>) -> Result<Written, String> {
     let mut left_out = None;
     let mut notes = Vec::new();
-    if blackcad {
-        match blackcad::dxf_to_dwg(dxf) {
-            Ok(blackcad::Outcome::Whole(dwg)) => return Ok(Written { dwg, engine: Engine::BlackCad, notes }),
-            Ok(blackcad::Outcome::Partial(_, lost)) => {
+    if cad_crates {
+        match cad_crates::dxf_to_dwg(dxf) {
+            Ok(cad_crates::Outcome::Whole(dwg)) => return Ok(Written { dwg, engine: Engine::CadCrates, notes }),
+            Ok(cad_crates::Outcome::Partial(_, lost)) => {
                 notes.clone_from(&lost);
                 left_out = Some(lost);
             }
-            Err(blackcad::Failure::Limit(e) | blackcad::Failure::Failed(e)) => notes.push(e),
+            Err(cad_crates::Failure::Limit(e) | cad_crates::Failure::Failed(e)) => notes.push(e),
         }
     }
     match acadrust_dxf_to_dwg(dxf, version) {
         Ok(dwg) => Ok(Written { dwg, engine: Engine::Acadrust, notes }),
         Err(e) => Err(match left_out {
-            Some(lost) => format!("{e} (BlackCAD's DWG writer would have left out: {})", lost.join("; ")),
+            Some(lost) => format!("{e} (the open engine's DWG writer would have left out: {})", lost.join("; ")),
             None => e,
         }),
     }
@@ -280,7 +280,7 @@ mod tests {
     /// A DXF with ROMANS as `$TEXTSTYLE` gives a DWG whose current text style is ROMANS, not
     /// Standard: the DXF names the style, and the handle read with it was Standard's (#1650).
     /// The repair is acadrust's, so acadrust's bridge writes the DWG here (2013 and 2018), and the
-    /// default path (BlackCAD's writer for 2018) must keep it too; acadrust reads every one back.
+    /// default path (the open engine's writer for 2018) must keep it too; acadrust reads every one back.
     #[cfg(not(target_arch = "wasm32"))]
     #[test]
     fn current_text_style_reaches_the_dwg() {
@@ -289,11 +289,11 @@ mod tests {
         let style = format!("{style} 40\n0\n 41\n1\n 50\n0\n 71\n0\n 42\n2.5\n  3\nromans.shx\n  4\n\n");
         let dxf = format!("{header}  0\nSECTION\n  2\nTABLES\n  0\nTABLE\n  2\nSTYLE\n 70\n1\n{style}  0\nENDTAB\n  0\nENDSEC\n  0\nEOF\n");
         let written = dxf_to_dwg_written(dxf.as_bytes(), "AC1032").unwrap();
-        assert_eq!(written.engine, Engine::BlackCad, "{:?}", written.notes);
+        assert_eq!(written.engine, Engine::CadCrates, "{:?}", written.notes);
         let dwgs = [
             ("acadrust 2018", acadrust_bridge::dxf_to_dwg(dxf.as_bytes()).unwrap()),
             ("acadrust 2013", acadrust_bridge::dxf_to_dwg_as(dxf.as_bytes(), "AC1027").unwrap()),
-            ("default (BlackCAD) 2018", written.dwg),
+            ("default (the open engine) 2018", written.dwg),
         ];
         for (how, dwg) in dwgs {
             let doc = acadrust::DwgReader::from_stream(std::io::Cursor::new(&dwg)).read().unwrap();
@@ -323,23 +323,23 @@ mod tests {
         lines.chunks(2).filter_map(|p| Some((p.first()?.to_string(), p.get(1)?.to_string()))).collect()
     }
 
-    /// BlackCAD writes the 2018 DWG of a drawing it carries over whole and reads it back whole,
+    /// the open engine writes the 2018 DWG of a drawing it carries over whole and reads it back whole,
     /// on its engine alone (so in the web build as well), naming CADCraft as the program that
     /// saved it.
     #[test]
-    fn blackcad_writes_and_reads_2018_whole() {
+    fn cad_crates_writes_and_reads_2018_whole() {
         let dwg = dxf_to_dwg(simple_dxf().as_bytes()).unwrap();
         assert_eq!(version(&dwg).as_deref(), Some("AC1032"));
         let name: Vec<u8> = "CADCraft".encode_utf16().flat_map(u16::to_le_bytes).collect();
         assert!(dwg.windows(name.len()).any(|w| w == name), "the file doesn't name CADCraft");
         let c = convert_dwg(&dwg, Limits::DEFAULT).unwrap();
-        assert_eq!((c.engine, c.notes.as_slice()), (Engine::BlackCad, &[] as &[String]));
+        assert_eq!((c.engine, c.notes.as_slice()), (Engine::CadCrates, &[] as &[String]));
         let pairs = pairs(&String::from_utf8(c.dxf).unwrap());
         let has = |code: &str, value: &str| pairs.iter().any(|(c, v)| c == code && v == value);
         assert!(has("0", "LINE") && has("0", "CIRCLE") && has("8", "HOLES"), "{pairs:?}");
         assert!(has("40", "5.0") || has("40", "5"), "the circle's radius");
-        // The same through BlackCAD alone, and for the version asked for by name.
-        assert_eq!(convert_dwg_with(Engine::BlackCad, &dwg, Limits::DEFAULT).unwrap().engine, Engine::BlackCad);
+        // The same through the open engine alone, and for the version asked for by name.
+        assert_eq!(convert_dwg_with(Engine::CadCrates, &dwg, Limits::DEFAULT).unwrap().engine, Engine::CadCrates);
         assert_eq!(version(&dxf_to_dwg_as(simple_dxf().as_bytes(), "ac1032").unwrap()).as_deref(), Some("AC1032"));
     }
 
@@ -354,21 +354,21 @@ mod tests {
         assert!(e.contains("produced more than 0.0 MB of drawing data (the limit)"), "{e}");
     }
 
-    /// BlackCAD's DXF is written within the DXF limit (cad-dxf's `to_bytes_within`): a limit of
+    /// the open engine's DXF is written within the DXF limit (cad-dxf's `to_bytes_within`): a limit of
     /// exactly its size passes, one byte less stops the conversion as the limit, while writing,
     /// instead of after the whole DXF was built (a damaged file can't take more memory first).
     #[test]
-    fn blackcads_dxf_is_written_within_the_limit() {
+    fn cad_cratess_dxf_is_written_within_the_limit() {
         let dwg = dxf_to_dwg(simple_dxf().as_bytes()).unwrap();
-        let whole = match blackcad::dwg_to_dxf(&dwg, Limits::DEFAULT) {
-            Ok(blackcad::Outcome::Whole(dxf)) => dxf,
+        let whole = match cad_crates::dwg_to_dxf(&dwg, Limits::DEFAULT) {
+            Ok(cad_crates::Outcome::Whole(dxf)) => dxf,
             _ => Vec::new(),
         };
-        assert!(!whole.is_empty(), "BlackCAD converts the file whole");
+        assert!(!whole.is_empty(), "The open engine converts the file whole");
         let exact = Limits { max_dxf_bytes: whole.len(), ..Limits::DEFAULT };
-        assert!(matches!(blackcad::dwg_to_dxf(&dwg, exact), Ok(blackcad::Outcome::Whole(d)) if d == whole));
+        assert!(matches!(cad_crates::dwg_to_dxf(&dwg, exact), Ok(cad_crates::Outcome::Whole(d)) if d == whole));
         let short = Limits { max_dxf_bytes: whole.len() - 1, ..Limits::DEFAULT };
-        assert!(matches!(blackcad::dwg_to_dxf(&dwg, short), Err(blackcad::Failure::Limit(_))));
+        assert!(matches!(cad_crates::dwg_to_dxf(&dwg, short), Err(cad_crates::Failure::Limit(_))));
     }
 
     #[test]
@@ -378,7 +378,7 @@ mod tests {
         assert!(dxf_to_dwg_as(simple_dxf().as_bytes(), "AC1099").unwrap_err().contains("can't be written"));
     }
 
-    /// Versions BlackCAD doesn't write are acadrust's, and a 2007 DWG, which BlackCAD doesn't
+    /// Versions the open engine doesn't write are acadrust's, and a 2007 DWG, which the open engine doesn't
     /// read, is read by acadrust.
     #[cfg(not(target_arch = "wasm32"))]
     #[test]
@@ -388,7 +388,7 @@ mod tests {
         let dwg = dxf_to_dwg_as(simple_dxf().as_bytes(), "AC1021").unwrap();
         assert_eq!(version(&dwg).as_deref(), Some("AC1021"));
         assert_eq!(convert_dwg(&dwg, Limits::DEFAULT).unwrap().engine, Engine::Acadrust);
-        assert!(convert_dwg_with(Engine::BlackCad, &dwg, Limits::DEFAULT).is_err());
+        assert!(convert_dwg_with(Engine::CadCrates, &dwg, Limits::DEFAULT).is_err());
     }
 
     #[cfg(not(target_arch = "wasm32"))]
