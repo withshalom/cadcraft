@@ -1,12 +1,13 @@
-# The dwg-native branch: DWG as CADCraft's own format, through BlackCAD's open crates. Lint, tests
+# The dwg-fidelity branch: CADCraft holds DWG files with more fidelity, through BlackCAD's open
+# crates; CADCraft's model and behaviour stay as they are. Lint, tests
 # and the web check of the crates the branch changes, and a round trip of BlackCAD's MI-201 corpus
 # (real AutoCAD files, cloned from withshalom/CAD at run time, never committed here). Failures and
 # the corpus report are posted as annotations. `full: true` also runs `cargo xtask ci`.
-name: dwg-native
+name: dwg-fidelity
 
 on:
   push:
-    branches: [dwg-native]
+    branches: [dwg-fidelity]
   workflow_dispatch:
     inputs:
       full:
@@ -18,7 +19,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: dwg-native-${{ github.ref }}
+  group: dwg-fidelity-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
