@@ -159,8 +159,8 @@ impl Drawing {
             foreign: std::sync::Arc::default(),
             layers: vec![Layer::default(), Layer { name: "Defpoints".into(), plot: false, ..Layer::default() }],
             linetypes: vec![
-                Linetype { name: "ByBlock".into(), description: String::new(), pattern: Vec::new() },
-                Linetype { name: "ByLayer".into(), description: String::new(), pattern: Vec::new() },
+                Linetype { handle: Default::default(), name: "ByBlock".into(), description: String::new(), pattern: Vec::new() },
+                Linetype { handle: Default::default(), name: "ByLayer".into(), description: String::new(), pattern: Vec::new() },
                 Linetype::continuous(),
             ],
             text_styles: vec![TextStyle::default()],
@@ -195,6 +195,29 @@ impl Drawing {
         h
     }
     /// Make sure future handles don't collide with `h` (after loading a file).
+    /// Every handle the drawing keeps for its tables, blocks, layouts, styles and kept objects
+    /// (docs/cad-model.md, S1): written back to the same objects.
+    pub fn kept_handles(&self) -> std::collections::HashSet<u64> {
+        let mut out: std::collections::HashSet<u64> = self.foreign.handles.values().map(|h| h.0).collect();
+        out.extend(self.foreign.objects.iter().map(|o| o.handle.0));
+        out.extend(self.layers.iter().map(|x| x.handle.0.0));
+        out.extend(self.linetypes.iter().map(|x| x.handle.0.0));
+        out.extend(self.text_styles.iter().map(|x| x.handle.0.0));
+        out.extend(self.dim_styles.iter().map(|x| x.handle.0.0));
+        out.extend(self.mleader_styles.iter().map(|x| x.handle.0.0));
+        out.extend(self.table_styles.iter().map(|x| x.handle.0.0));
+        out.extend(self.mline_styles.iter().map(|x| x.handle.0.0));
+        out.extend(self.views.iter().map(|x| x.handle.0.0));
+        out.extend(self.ucss.iter().map(|x| x.handle.0.0));
+        out.extend(self.groups.iter().map(|x| x.handle.0.0));
+        out.extend(self.scales.iter().map(|x| x.handle.0.0));
+        out.extend(self.vports.iter().flat_map(|v| v.tiles.iter().map(|t| t.handle.0.0)));
+        out.extend(self.blocks.values().flat_map(|b| [b.handle.0.0, b.begin_handle.0.0, b.end_handle.0.0]));
+        out.extend(self.layouts.iter().flat_map(|l| [l.handle.0.0, l.block_handle.0.0, l.begin_handle.0.0, l.end_handle.0.0]));
+        out.remove(&0);
+        out
+    }
+
     pub fn bump_handseed(&mut self, h: Handle) {
         if h.0 >= self.handseed {
             self.handseed = h.0.saturating_add(1);

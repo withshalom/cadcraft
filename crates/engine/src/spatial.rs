@@ -287,6 +287,9 @@ mod tests {
     fn drawing(seed: u64, n: usize) -> Drawing {
         let mut d = Drawing::new_imperial();
         let mut blk = Block {
+            begin_handle: Default::default(),
+            end_handle: Default::default(),
+            handle: Default::default(),
             xref_overlay: false,
             xref_status: Default::default(),
             name: "B".into(),

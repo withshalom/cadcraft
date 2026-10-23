@@ -285,6 +285,9 @@ fn write_foreign(out: &mut Out, f: &Foreign) -> Result<()> {
     if !f.data_store.is_empty() {
         out.record("FOREIGN_DATASTORE", None, &FTags { tags: f.data_store.clone() })?;
     }
+    for ((table, name), h) in &f.handles {
+        out.record("FOREIGN_HANDLE", None, &FTarget { handle: *h, table: table.clone(), name: name.clone() })?;
+    }
     Ok(())
 }
 
@@ -418,6 +421,10 @@ impl Parts {
                 self.foreign.targets.insert(t.handle, (t.table, t.name));
             }
             "FOREIGN_DATASTORE" => self.foreign.data_store = obj::<FTags>(b)?.tags,
+            "FOREIGN_HANDLE" => {
+                let t: FTarget = obj(b)?;
+                self.foreign.handles.insert((t.table, t.name), t.handle);
+            }
             other => return Err(format!("a record of kind {other} this version doesn't know, left out")),
         }
         Ok(())

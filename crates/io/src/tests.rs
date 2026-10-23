@@ -1397,6 +1397,7 @@ fn table_block_is_relative_to_the_insertion_point() {
 fn text_style_flags_roundtrip() {
     let mut d = Drawing::new_imperial();
     let st = TextStyle {
+        handle: Default::default(),
         name: "Mirror".into(),
         font: "romans.shx".into(),
         big_font: "bigfont.shx".into(),

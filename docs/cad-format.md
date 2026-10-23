@@ -239,6 +239,7 @@ the drawing).
 | entities of that layout | in draw order | envelope `5` and `410` |
 | entities of model space | in draw order | envelope `5` |
 | `FOREIGN_CLASS`, `FOREIGN_OBJECT`, `FOREIGN_DICTIONARY`, `FOREIGN_EXTRA`, `FOREIGN_RECORD_EXTRA`, `FOREIGN_TARGET`, `FOREIGN_DATASTORE` | kept foreign data | its DXF groups as raw groups (§5), handles as HANDLE |
+| `FOREIGN_HANDLE` (records 1.1) | the handle a role had in the file read: a table, a record, a block's BLOCK or ENDBLK, the named object dictionary and its entries | `handle`, `table` (the role's kind), `name` |
 
 An entity record's kind is its DXF type name (`LINE`, `LWPOLYLINE`, `ACAD_TABLE`…), for people
 and tools reading the file; the body's `kind.type` field is what the reader uses.
@@ -335,4 +336,4 @@ open, on which machine, in which program, since when, and a heartbeat.
 | Date | Change |
 |---|---|
 | 2026-10-22 | Records 1.0: the model map, the format, notes, and the `.cdl` lock |
-| 2026-10-23 | Records 1.1: header variables keep their DXF group codes (`2001` tag) |
+| 2026-10-23 | Records 1.1: header variables keep their DXF group codes (`2001` tag); tables, blocks, layouts and styles keep their handles (`handle` fields, `FOREIGN_HANDLE` records) |

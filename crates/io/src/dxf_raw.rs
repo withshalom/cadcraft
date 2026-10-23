@@ -404,6 +404,14 @@ pub(crate) fn read(secs: &[Section], d: &mut Drawing) {
         }
     }
     let mut f = Foreign::default();
+    // The handle of every role (docs/cad-model.md, S1); the lowest when two records share one.
+    for (h, k) in &ids {
+        if let Some(hh) = handle(h)
+            && f.handles.len() < MAX_OBJECTS
+        {
+            f.handles.entry(k.clone()).and_modify(|x| *x = (*x).min(hh)).or_insert(hh);
+        }
+    }
     let mut kept: HashSet<String> = HashSet::new();
     for (i, (kind, _, t)) in objects.iter().enumerate() {
         if memo.get(&i) != Some(&true) || f.objects.len() >= MAX_OBJECTS {
@@ -841,11 +849,21 @@ pub(crate) fn finish(tags: &mut Vec<Tag>, d: &Drawing) {
             alive_memo.insert(p, verdict);
         }
     }
-    // New handles for the written kept objects, above every written handle and the seed.
+    // Written kept objects keep their own handles (docs/cad-model.md, S1); one already taken in
+    // the written file gets a new handle, above every written handle and the seed.
     let mut next = seed(tags).max(max_handle(tags).saturating_add(1));
     let mut alive: HashMap<String, String> = HashMap::new();
+    let mut taken: HashSet<String> = written.clone();
     for o in f.objects.iter().filter(|o| alive_memo.get(&o.handle.hex()) == Some(&true)) {
-        alive.insert(o.handle.hex(), format!("{next:X}"));
+        let own = o.handle.hex();
+        if !o.handle.is_none() && taken.insert(own.clone()) {
+            alive.insert(own.clone(), own);
+            continue;
+        }
+        next = free_handle(&taken, next);
+        let new = format!("{next:X}");
+        taken.insert(new.clone());
+        alive.insert(own, new);
         next = next.saturating_add(1);
     }
     let entities: HashSet<String> = all_entities(d).map(|e| e.handle.hex()).filter(|h| written.contains(h)).collect();
@@ -884,7 +902,7 @@ pub(crate) fn finish(tags: &mut Vec<Tag>, d: &Drawing) {
         }
         record(&map, r, b, x.as_deref(), false, Some(r.start) == root, &mut out);
     }
-    add_appids(&mut out);
+    add_appids(&mut out, f);
     let top = max_handle(&out).saturating_add(1);
     if let Some(t) = seed_index(&out).and_then(|i| out.get_mut(i))
         && Handle::parse_hex(&t.str()).is_none_or(|h| h.0 < top)
@@ -1058,8 +1076,14 @@ fn xdata(map: &Map, x: &ForeignExtra, own: &HashSet<String>, out: &mut Vec<Tag>)
 }
 
 /// APPID records for every application with xdata in the file, added to the APPID table.
-fn add_appids(out: &mut Vec<Tag>) {
-    let used: BTreeMap<String, String> = out.iter().filter(|t| t.code == 1001).map(|t| (up(&t.str()), t.str().trim().to_string())).collect();
+fn add_appids(out: &mut Vec<Tag>, f: &Foreign) {
+    let mut used: BTreeMap<String, String> = out.iter().filter(|t| t.code == 1001).map(|t| (up(&t.str()), t.str().trim().to_string())).collect();
+    // The applications the file registered, used or not.
+    for (kind, name) in f.handles.keys() {
+        if kind == "APPID" && !name.is_empty() {
+            used.entry(name.clone()).or_insert_with(|| name.clone());
+        }
+    }
     let recs = written_records(out);
     let Some(table) = recs.iter().position(|r| {
         r.sec == "TABLES" && r.kind == "TABLE" && val(out.get(r.start + 1..r.end).unwrap_or(&[]), 2).is_some_and(|n| up(&n) == "APPID")
@@ -1080,26 +1104,45 @@ fn add_appids(out: &mut Vec<Tag>) {
     if missing.is_empty() {
         return;
     }
-    // New handles above the seed, which is then moved past them.
+    // Each its handle in the file when that is free (docs/cad-model.md, S1), else a new one above
+    // the seed, which is then moved past them.
+    let mut taken: HashSet<String> = out.iter().filter(|t| matches!(t.code, 5 | 105)).map(|t| norm(&t.str())).collect();
     let mut next = seed(out).max(max_handle(out).saturating_add(1));
     let mut add = Vec::new();
     for app in &missing {
+        let kept = f.handles.get(&("APPID".to_string(), up(app))).map(|h| h.hex()).filter(|h| !taken.contains(h));
+        let h = match kept {
+            Some(h) => h,
+            None => {
+                next = free_handle(&taken, next);
+                format!("{next:X}")
+            }
+        };
+        taken.insert(h.clone());
         add.extend([
             Tag::s(0, "APPID"),
-            Tag::s(5, format!("{next:X}")),
+            Tag::s(5, h),
             Tag::s(330, table_h.clone()),
             Tag::s(100, "AcDbSymbolTableRecord"),
             Tag::s(100, "AcDbRegAppTableRecord"),
             Tag::s(2, (*app).clone()),
             Tag::i(70, 0),
         ]);
-        next = next.saturating_add(1);
     }
     let end_at = end.start;
     if let Some(count) = out.get_mut(t.start + 1..t.end).and_then(|b| b.iter_mut().find(|x| x.code == 70)) {
         *count = Tag::i(70, count.i64().saturating_add(i64::try_from(missing.len()).unwrap_or(0)));
     }
     out.splice(end_at..end_at, add);
+}
+
+/// The first handle from `from` on (from 1 past the top of the range) that `taken` doesn't hold.
+/// Among `taken.len() + 1` values one is free, so this ends.
+fn free_handle(taken: &HashSet<String>, mut from: u64) -> u64 {
+    while from == 0 || from == u64::MAX || taken.contains(&format!("{from:X}")) {
+        from = if from >= u64::MAX - 1 { 1 } else { from + 1 };
+    }
+    from
 }
 
 /// The index of the `$HANDSEED` value in the header.

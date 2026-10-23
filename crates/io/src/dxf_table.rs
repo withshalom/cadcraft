@@ -97,6 +97,7 @@ pub(crate) fn read_table_style(name: &str, tags: &[Tag]) -> TableStyle {
     }
     let data_h = blocks.first().and_then(|b| first(140, b)).filter(|h| *h > 0.0);
     let mut st = TableStyle {
+        handle: Default::default(),
         name: name.to_string(),
         text_height: data_h.unwrap_or(def.text_height),
         margin: first(40, head).filter(|m| *m >= 0.0).unwrap_or(def.margin),

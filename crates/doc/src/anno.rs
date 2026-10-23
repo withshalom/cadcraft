@@ -17,6 +17,10 @@ use crate::{Common, Drawing, Entity, EntityKind};
 #[serde(rename_all = "camelCase")]
 pub struct AnnoScale {
     pub name: String,
+    /// The handle it was read with (0: none yet): written back, so other objects and other
+    /// programs keep pointing at it.
+    #[serde(default, skip_serializing_if = "crate::KeptHandle::is_none")]
+    pub handle: crate::KeptHandle,
     pub paper_units: f64,
     pub drawing_units: f64,
 }
@@ -26,7 +30,7 @@ pub const MAX_SCALES: usize = 1000;
 
 impl AnnoScale {
     pub fn new(name: &str, paper_units: f64, drawing_units: f64) -> Self {
-        AnnoScale { name: name.to_string(), paper_units, drawing_units }
+        AnnoScale { handle: Default::default(), name: name.to_string(), paper_units, drawing_units }
     }
     /// The 1:1 scale.
     pub fn unit() -> Self {

@@ -1379,6 +1379,11 @@ fn header(tags: &[Tag], d: &mut Drawing) {
     }
 }
 
+/// A record's handle (group `code`: 5, or 105 for DIMSTYLE), 0 when it has none.
+fn rec_handle(t: &T, code: i32) -> cadcraft_doc::KeptHandle {
+    t.s(code).and_then(|h| Handle::parse_hex(&h)).unwrap_or_default().into()
+}
+
 /// True when a style record carries `AcadAnnotative` xdata with the annotative flag set.
 fn annotative(tags: &[Tag]) -> bool {
     let list = crate::dxf_ext::xdata_list(crate::dxf_ext::xdata(tags, "AcadAnnotative"), "AnnotativeData");
@@ -1471,6 +1476,7 @@ fn tables(tags: &[Tag], d: &mut Drawing, rx: &mut Rx) {
                     locked: flags & 4 != 0,
                     vp_freeze_new: flags & 2 != 0,
                     plot: t.i(290).unwrap_or(1) != 0,
+                    handle: rec_handle(&t, 5),
                     ..Layer::default()
                 };
                 if let Some(tc) = t.i(420) {
@@ -1504,7 +1510,7 @@ fn tables(tags: &[Tag], d: &mut Drawing, rx: &mut Rx) {
                     continue;
                 }
                 let pattern = ltype_pattern(&tg, &ltype_styles);
-                d.linetypes.push(Linetype { name, description: t.s(3).unwrap_or_default(), pattern });
+                d.linetypes.push(Linetype { handle: rec_handle(&t, 5), name, description: t.s(3).unwrap_or_default(), pattern });
             }
             "STYLE" => {
                 let name = t.s(2).unwrap_or_default();
@@ -1514,6 +1520,7 @@ fn tables(tags: &[Tag], d: &mut Drawing, rx: &mut Rx) {
                 // 70 bit 4: vertical; 71 bits 2/4: backwards / upside down.
                 let gen_flags = t.i(71).unwrap_or(0);
                 let st = TextStyle {
+                    handle: rec_handle(&t, 5),
                     name: name.clone(),
                     font: style_font(&tg, t.s(3).unwrap_or_default()),
                     big_font: t.s(4).unwrap_or_default(),
@@ -1569,7 +1576,16 @@ fn tables(tags: &[Tag], d: &mut Drawing, rx: &mut Rx) {
                 // 70 bit 1: a paper space view; its layout is CADCraft xdata.
                 let layout = (t.i(70).unwrap_or(0) & 1 != 0).then(|| field("LAYOUT").unwrap_or_default());
                 let twist = t.f(50).filter(|a| a.is_finite()).map_or(0.0, |a| a.rem_euclid(360.0).to_radians());
-                let v = NamedView { name: name.clone(), center, height: h, width: w, layer_state: field("LAYERSTATE"), twist, layout };
+                let v = NamedView {
+                    handle: rec_handle(&t, 5),
+                    name: name.clone(),
+                    center,
+                    height: h,
+                    width: w,
+                    layer_state: field("LAYERSTATE"),
+                    twist,
+                    layout,
+                };
                 match d.views.iter_mut().find(|x| x.name.eq_ignore_ascii_case(&name)) {
                     Some(x) => *x = v,
                     None => d.views.push(v),
@@ -1582,7 +1598,7 @@ fn tables(tags: &[Tag], d: &mut Drawing, rx: &mut Rx) {
                 if name.is_empty() || !finite || d.ucss.len() >= MAX_OBJECTS {
                     continue;
                 }
-                let u = Ucs { name: name.clone(), origin, x_axis, y_axis };
+                let u = Ucs { handle: rec_handle(&t, 5), name: name.clone(), origin, x_axis, y_axis };
                 match d.ucss.iter_mut().find(|x| x.name.eq_ignore_ascii_case(&name)) {
                     Some(x) => *x = u,
                     None => d.ucss.push(u),
@@ -1603,7 +1619,7 @@ fn tables(tags: &[Tag], d: &mut Drawing, rx: &mut Rx) {
                     }
                 }
                 fields.extend(crate::dxf_ext::read_newer_dimvars(&tg, &rx.styles, &rx.brs, &rx.ltypes));
-                let mut st = DimStyle { name: name.clone(), annotative: annotative(&tg), ..DimStyle::default() };
+                let mut st = DimStyle { name: name.clone(), annotative: annotative(&tg), handle: rec_handle(&t, 105), ..DimStyle::default() };
                 st.apply_fields(&fields);
                 match d.dim_styles.iter_mut().find(|s| s.name.eq_ignore_ascii_case(&name)) {
                     Some(x) => *x = st,
@@ -1639,7 +1655,7 @@ fn vport_record(d: &mut Drawing, t: &T) {
     }
     let aspect = t.f(41).filter(|a| a.is_finite() && *a > 0.0).unwrap_or(0.0);
     let clamp = |p: Vec2| Vec2::new(p.x.clamp(0.0, 1.0), p.y.clamp(0.0, 1.0));
-    let tile = VportTile { min: clamp(min), max: clamp(max), center, height, aspect };
+    let tile = VportTile { handle: rec_handle(t, 5), min: clamp(min), max: clamp(max), center, height, aspect };
     let name = if name.eq_ignore_ascii_case(VportConfig::ACTIVE) { VportConfig::ACTIVE.to_string() } else { name };
     let room = d.vports.len() < MAX_OBJECTS;
     match d.vports.iter_mut().find(|c| c.name.eq_ignore_ascii_case(&name)) {
@@ -1704,8 +1720,9 @@ fn read_budgeted(bytes: &[u8], mut table_cells_left: usize) -> Result<Drawing> {
     // A file without $INSUNITS declares no units (#1209); only new drawings take the template's.
     d.header.set_i64("INSUNITS", 0);
     let mut rx = Rx { pstyles: plot_style_names(&secs), ..Rx::default() };
-    let mut blocks: Vec<(String, Vec3, String, Vec<(Option<String>, bool, Entity)>, i64)> = Vec::new();
-    let mut layout_objs: Vec<(String, u32, String, PageSetup)> = Vec::new();
+    let mut blocks: Vec<(String, Vec3, String, Vec<(Option<String>, bool, Entity)>, i64, (cadcraft_doc::KeptHandle, cadcraft_doc::KeptHandle))> =
+        Vec::new();
+    let mut layout_objs: Vec<(String, u32, String, PageSetup, cadcraft_doc::KeptHandle)> = Vec::new();
     let mut entities = Vec::new();
     let mut objs = Objects::default();
     // Every handle another program's file already uses is taken before anything gets a new one:
@@ -1749,7 +1766,8 @@ fn read_budgeted(bytes: &[u8], mut table_cells_left: usize) -> Result<Drawing> {
                         }
                         let body = recs.get(i + 1..j).unwrap_or(&[]);
                         let ents = parse_entities(body, &mut d, &mut rx, &mut n, &mut table_cells_left);
-                        blocks.push((name, base, description, ents, xref));
+                        let end = recs.get(j).map_or(cadcraft_doc::KeptHandle::default(), |(_, et)| rec_handle(&T(et), 5));
+                        blocks.push((name, base, description, ents, xref, (rec_handle(&t, 5), end)));
                         i = j + 1;
                     } else {
                         // A record outside any BLOCK ... ENDBLK pair.
@@ -1778,7 +1796,8 @@ fn read_budgeted(bytes: &[u8], mut table_cells_left: usize) -> Result<Drawing> {
                         // LAYOUT has two 330s: owner dict and the block record; take the last.
                         let br = tg.iter().rfind(|x| x.code == 330).map(Tag::str).unwrap_or_default();
                         let plot = T(tg.get(..start).unwrap_or(&[]));
-                        layout_objs.push((t.s(1).unwrap_or_default(), t.i(71).unwrap_or(0) as u32, br.to_ascii_uppercase(), page_setup(&plot)));
+                        let own = rec_handle(&T(&tg), 5);
+                        layout_objs.push((t.s(1).unwrap_or_default(), t.i(71).unwrap_or(0) as u32, br.to_ascii_uppercase(), page_setup(&plot), own));
                     }
                 }
             }
@@ -1791,11 +1810,12 @@ fn read_budgeted(bytes: &[u8], mut table_cells_left: usize) -> Result<Drawing> {
     // Layouts.
     let mut paper_block_for: HashMap<String, String> = HashMap::new();
     layout_objs.sort_by_key(|l| l.1);
-    for (name, order, br, page) in &layout_objs {
+    for (name, order, br, page, own) in &layout_objs {
         if name.eq_ignore_ascii_case("Model") {
             continue;
         }
-        d.layouts.push(Layout { page: page.clone(), ..Layout::new(name, *order) });
+        let block_handle = Handle::parse_hex(br).unwrap_or_default().into();
+        d.layouts.push(Layout { page: page.clone(), handle: *own, block_handle, ..Layout::new(name, *order) });
         if let Some(bname) = rx.brs.get(br) {
             paper_block_for.insert(bname.to_ascii_uppercase(), name.clone());
         }
@@ -1806,7 +1826,9 @@ fn read_budgeted(bytes: &[u8], mut table_cells_left: usize) -> Result<Drawing> {
     }
     let first_layout = d.layouts.first().map(|l| l.name.clone()).unwrap_or_else(|| "Layout1".into());
     // Blocks: model/paper space blocks hold entities in newer files.
-    for (name, base, description, ents, xref) in blocks {
+    // Block record handles by upper-case block name.
+    let br_of: HashMap<String, Handle> = rx.brs.iter().filter_map(|(h, n)| Some((n.to_ascii_uppercase(), Handle::parse_hex(h)?))).collect();
+    for (name, base, description, ents, xref, (begin, end)) in blocks {
         let up = name.to_ascii_uppercase();
         if up == "*MODEL_SPACE" {
             for (_, _, e) in ents {
@@ -1818,6 +1840,10 @@ fn read_budgeted(bytes: &[u8], mut table_cells_left: usize) -> Result<Drawing> {
         if up.starts_with("*PAPER_SPACE") {
             let lname = paper_block_for.get(&up).cloned().unwrap_or_else(|| first_layout.clone());
             if let Some(l) = d.layouts.iter_mut().find(|l| l.name == lname) {
+                (l.begin_handle, l.end_handle) = (begin, end);
+                if l.block_handle.is_none() {
+                    l.block_handle = br_of.get(&up).copied().unwrap_or_default().into();
+                }
                 for (_, _, e) in ents {
                     l.entities.push(e);
                 }
@@ -1830,6 +1856,8 @@ fn read_budgeted(bytes: &[u8], mut table_cells_left: usize) -> Result<Drawing> {
             continue;
         }
         let mut b = Block::new(&name);
+        b.handle = br_of.get(&up).copied().unwrap_or_default().into();
+        (b.begin_handle, b.end_handle) = (begin, end);
         b.base = base;
         b.description = description;
         if let Some(&(units, explodable)) = rx.block_props.get(&up) {
@@ -1878,6 +1906,10 @@ fn read_budgeted(bytes: &[u8], mut table_cells_left: usize) -> Result<Drawing> {
         d.layers.insert(0, Layer::default());
     }
     crate::dxf_raw::read(&secs, &mut d);
+    // New objects never take a handle kept for a table, block, layout, style or kept object.
+    if let Some(top) = d.kept_handles().into_iter().max() {
+        d.bump_handseed(Handle(top));
+    }
     d.skipped_records = skipped;
     Ok(d)
 }
@@ -1987,9 +2019,10 @@ impl Objects {
         let h = T(tags).s(5).map(|h| h.trim().to_ascii_uppercase()).unwrap_or_default();
         match kind {
             "SCALE" if self.scales.len() < cadcraft_doc::MAX_SCALES => {
-                if let Some(s) = crate::dxf_ext::read_scale(tags)
+                if let Some(mut s) = crate::dxf_ext::read_scale(tags)
                     && !self.scales.iter().any(|x| x.name.eq_ignore_ascii_case(&s.name))
                 {
+                    s.handle = Handle::parse_hex(&h).unwrap_or_default().into();
                     self.scales.push(s);
                 }
             }
@@ -2052,7 +2085,8 @@ impl Objects {
         // Table styles (named by their ACAD_TABLESTYLE dictionary entries).
         for (h, tags) in &self.table_styles {
             let Some(name) = self.names.get(h).filter(|n| !n.is_empty()) else { continue };
-            let st = crate::dxf_table::read_table_style(name, tags);
+            let mut st = crate::dxf_table::read_table_style(name, tags);
+            st.handle = Handle::parse_hex(h).unwrap_or_default().into();
             match d.table_styles.iter_mut().find(|s| s.name.eq_ignore_ascii_case(name)) {
                 Some(x) => *x = st,
                 None => d.table_styles.push(st),
@@ -2109,6 +2143,7 @@ impl Objects {
             let num = |code: i32, d: f64, min: f64| t.f(code).filter(|v| v.is_finite() && *v >= min).unwrap_or(d);
             let text_style = t.s(342).and_then(|sh| rx.styles.get(&sh.trim().to_ascii_uppercase()).cloned()).filter(|n| !n.is_empty());
             let st = MLeaderStyle {
+                handle: Handle::parse_hex(h).unwrap_or_default().into(),
                 name: name.clone(),
                 arrow_size: num(44, def.arrow_size, 0.0),
                 text_height: t.f(45).filter(|v| v.is_finite() && *v > 0.0).unwrap_or(def.text_height),
@@ -2139,7 +2174,13 @@ impl Objects {
                 .filter(|m| d.entity(*m).is_some())
                 .take(MAX_OBJECTS)
                 .collect();
-            let g = Group { name: name.clone(), description: t.s(300).unwrap_or_default(), selectable: t.i(71).unwrap_or(1) != 0, members };
+            let g = Group {
+                handle: Handle::parse_hex(h).unwrap_or_default().into(),
+                name: name.clone(),
+                description: t.s(300).unwrap_or_default(),
+                selectable: t.i(71).unwrap_or(1) != 0,
+                members,
+            };
             match d.groups.iter_mut().find(|x| x.name.eq_ignore_ascii_case(name)) {
                 Some(x) => *x = g,
                 None => d.groups.push(g),

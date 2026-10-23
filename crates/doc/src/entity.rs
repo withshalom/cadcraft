@@ -13,9 +13,48 @@ pub use mline::*;
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct Handle(pub u64);
 
+/// The handle a table record, block, layout or style had in the file it was read from
+/// (docs/cad-model.md, S1). It is the object's identity in files, not part of what it is: two
+/// layers that differ only in it are equal.
+#[derive(Clone, Copy, Debug, Default, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct KeptHandle(pub Handle);
+
+impl KeptHandle {
+    /// No handle kept: one is given when the drawing is written.
+    pub fn is_none(&self) -> bool {
+        self.0.is_none()
+    }
+    pub fn get(self) -> Handle {
+        self.0
+    }
+}
+
+impl PartialEq for KeptHandle {
+    fn eq(&self, _: &Self) -> bool {
+        true
+    }
+}
+
+impl From<KeptHandle> for Handle {
+    fn from(h: KeptHandle) -> Self {
+        h.0
+    }
+}
+
+impl From<Handle> for KeptHandle {
+    fn from(h: Handle) -> Self {
+        KeptHandle(h)
+    }
+}
+
 impl Handle {
     pub fn hex(self) -> String {
         format!("{:X}", self.0)
+    }
+    /// No handle (0): one is given when the drawing is written.
+    pub fn is_none(&self) -> bool {
+        self.0 == 0
     }
     pub fn parse_hex(s: &str) -> Option<Handle> {
         u64::from_str_radix(s.trim(), 16).ok().map(Handle)

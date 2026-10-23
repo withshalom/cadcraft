@@ -13,6 +13,10 @@ use crate::{EntityStore, Lineweight};
 #[serde(default, rename_all = "camelCase")]
 pub struct Layer {
     pub name: String,
+    /// The handle it was read with (0: none yet): written back, so other objects and other
+    /// programs keep pointing at it.
+    #[serde(default, skip_serializing_if = "crate::KeptHandle::is_none")]
+    pub handle: crate::KeptHandle,
     /// Always an index or true colour (never ByLayer/ByBlock).
     pub color: Color,
     pub linetype: String,
@@ -32,6 +36,7 @@ pub struct Layer {
 impl Default for Layer {
     fn default() -> Self {
         Layer {
+            handle: Default::default(),
             name: "0".into(),
             color: Color::Index(7),
             linetype: "Continuous".into(),
@@ -91,16 +96,25 @@ impl DashElement {
 #[serde(rename_all = "camelCase")]
 pub struct Linetype {
     pub name: String,
+    /// The handle it was read with (0: none yet): written back, so other objects and other
+    /// programs keep pointing at it.
+    #[serde(default, skip_serializing_if = "crate::KeptHandle::is_none")]
+    pub handle: crate::KeptHandle,
     pub description: String,
     pub pattern: Vec<DashElement>,
 }
 
 impl Linetype {
     pub fn continuous() -> Self {
-        Linetype { name: "Continuous".into(), description: "Solid line".into(), pattern: Vec::new() }
+        Linetype { handle: Default::default(), name: "Continuous".into(), description: "Solid line".into(), pattern: Vec::new() }
     }
     pub fn simple(name: &str, description: &str, dashes: &[f64]) -> Self {
-        Linetype { name: name.into(), description: description.into(), pattern: dashes.iter().map(|d| DashElement::dash(*d)).collect() }
+        Linetype {
+            handle: Default::default(),
+            name: name.into(),
+            description: description.into(),
+            pattern: dashes.iter().map(|d| DashElement::dash(*d)).collect(),
+        }
     }
     pub fn pattern_length(&self) -> f64 {
         self.pattern.iter().map(|d| d.length.abs()).sum()
@@ -111,6 +125,10 @@ impl Linetype {
 #[serde(default, rename_all = "camelCase")]
 pub struct TextStyle {
     pub name: String,
+    /// The handle it was read with (0: none yet): written back, so other objects and other
+    /// programs keep pointing at it.
+    #[serde(default, skip_serializing_if = "crate::KeptHandle::is_none")]
+    pub handle: crate::KeptHandle,
     /// Font file or family name (TTF family or a stroke-font name).
     pub font: String,
     pub big_font: String,
@@ -127,6 +145,7 @@ pub struct TextStyle {
 impl Default for TextStyle {
     fn default() -> Self {
         TextStyle {
+            handle: Default::default(),
             name: "Standard".into(),
             font: "CADCraft Stroke".into(),
             big_font: String::new(),
@@ -146,6 +165,10 @@ impl Default for TextStyle {
 #[serde(default, rename_all = "camelCase")]
 pub struct DimStyle {
     pub name: String,
+    /// The handle it was read with (0: none yet): written back, so other objects and other
+    /// programs keep pointing at it.
+    #[serde(default, skip_serializing_if = "crate::KeptHandle::is_none")]
+    pub handle: crate::KeptHandle,
     /// DIMSCALE overall scale.
     pub scale: f64,
     /// DIMASZ arrow size.
@@ -349,6 +372,7 @@ pub const DIMVARS: &[(&str, &str)] = &[
 impl Default for DimStyle {
     fn default() -> Self {
         DimStyle {
+            handle: Default::default(),
             name: "Standard".into(),
             scale: 1.0,
             arrow_size: 0.18,
@@ -593,6 +617,10 @@ impl DimStyle {
 #[serde(default, rename_all = "camelCase")]
 pub struct MLeaderStyle {
     pub name: String,
+    /// The handle it was read with (0: none yet): written back, so other objects and other
+    /// programs keep pointing at it.
+    #[serde(default, skip_serializing_if = "crate::KeptHandle::is_none")]
+    pub handle: crate::KeptHandle,
     pub arrow_size: f64,
     pub text_height: f64,
     pub landing_gap: f64,
@@ -605,6 +633,7 @@ pub struct MLeaderStyle {
 impl Default for MLeaderStyle {
     fn default() -> Self {
         MLeaderStyle {
+            handle: Default::default(),
             name: "Standard".into(),
             arrow_size: 0.18,
             text_height: 0.18,
@@ -627,6 +656,10 @@ impl MLeaderStyle {
 #[serde(default, rename_all = "camelCase")]
 pub struct TableStyle {
     pub name: String,
+    /// The handle it was read with (0: none yet): written back, so other objects and other
+    /// programs keep pointing at it.
+    #[serde(default, skip_serializing_if = "crate::KeptHandle::is_none")]
+    pub handle: crate::KeptHandle,
     pub text_height: f64,
     pub margin: f64,
     pub title: bool,
@@ -639,7 +672,15 @@ pub struct TableStyle {
 
 impl Default for TableStyle {
     fn default() -> Self {
-        TableStyle { name: "Standard".into(), text_height: 0.18, margin: 0.06, title: true, header: true, cell_styles: Vec::new() }
+        TableStyle {
+            handle: Default::default(),
+            name: "Standard".into(),
+            text_height: 0.18,
+            margin: 0.06,
+            title: true,
+            header: true,
+            cell_styles: Vec::new(),
+        }
     }
 }
 
@@ -660,6 +701,14 @@ pub use tablebreak::*;
 #[serde(rename_all = "camelCase")]
 pub struct Block {
     pub name: String,
+    /// The handles it was read with (0: none yet), written back: its BLOCK_RECORD table record,
+    /// and the BLOCK and ENDBLK entities around its contents.
+    #[serde(default, skip_serializing_if = "crate::KeptHandle::is_none")]
+    pub handle: crate::KeptHandle,
+    #[serde(default, skip_serializing_if = "crate::KeptHandle::is_none")]
+    pub begin_handle: crate::KeptHandle,
+    #[serde(default, skip_serializing_if = "crate::KeptHandle::is_none")]
+    pub end_handle: crate::KeptHandle,
     /// References to this block are annotative.
     #[serde(default)]
     pub annotative: bool,
@@ -723,6 +772,9 @@ impl XrefStatus {
 impl Block {
     pub fn new(name: &str) -> Self {
         Block {
+            begin_handle: Default::default(),
+            end_handle: Default::default(),
+            handle: Default::default(),
             name: name.into(),
             annotative: false,
             base: Vec3::ZERO,
@@ -798,6 +850,16 @@ impl Default for PageSetup {
 #[serde(rename_all = "camelCase")]
 pub struct Layout {
     pub name: String,
+    /// The handles it was read with (0: none yet), written back: the LAYOUT object, its paper
+    /// space BLOCK_RECORD, and that block's BLOCK and ENDBLK entities.
+    #[serde(default, skip_serializing_if = "crate::KeptHandle::is_none")]
+    pub handle: crate::KeptHandle,
+    #[serde(default, skip_serializing_if = "crate::KeptHandle::is_none")]
+    pub block_handle: crate::KeptHandle,
+    #[serde(default, skip_serializing_if = "crate::KeptHandle::is_none")]
+    pub begin_handle: crate::KeptHandle,
+    #[serde(default, skip_serializing_if = "crate::KeptHandle::is_none")]
+    pub end_handle: crate::KeptHandle,
     pub tab_order: u32,
     pub page: PageSetup,
     #[serde(skip)]
@@ -809,7 +871,17 @@ pub struct Layout {
 
 impl Layout {
     pub fn new(name: &str, tab_order: u32) -> Self {
-        Layout { name: name.into(), tab_order, page: PageSetup::default(), entities: EntityStore::new(), view: None }
+        Layout {
+            name: name.into(),
+            handle: crate::KeptHandle::default(),
+            block_handle: crate::KeptHandle::default(),
+            begin_handle: crate::KeptHandle::default(),
+            end_handle: crate::KeptHandle::default(),
+            tab_order,
+            page: PageSetup::default(),
+            entities: EntityStore::new(),
+            view: None,
+        }
     }
 }
 
@@ -818,6 +890,10 @@ impl Layout {
 #[serde(rename_all = "camelCase")]
 pub struct NamedView {
     pub name: String,
+    /// The handle it was read with (0: none yet): written back, so other objects and other
+    /// programs keep pointing at it.
+    #[serde(default, skip_serializing_if = "crate::KeptHandle::is_none")]
+    pub handle: crate::KeptHandle,
     pub center: Vec2,
     pub height: f64,
     pub width: f64,
@@ -838,6 +914,10 @@ pub struct NamedView {
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct VportTile {
+    /// The handle it was read with (0: none yet): written back, so other objects and other
+    /// programs keep pointing at it.
+    #[serde(default, skip_serializing_if = "crate::KeptHandle::is_none")]
+    pub handle: crate::KeptHandle,
     pub min: Vec2,
     pub max: Vec2,
     pub center: Vec2,
@@ -867,6 +947,10 @@ impl VportConfig {
 #[serde(rename_all = "camelCase")]
 pub struct Ucs {
     pub name: String,
+    /// The handle it was read with (0: none yet): written back, so other objects and other
+    /// programs keep pointing at it.
+    #[serde(default, skip_serializing_if = "crate::KeptHandle::is_none")]
+    pub handle: crate::KeptHandle,
     pub origin: Vec3,
     pub x_axis: Vec3,
     pub y_axis: Vec3,
@@ -883,6 +967,10 @@ pub struct LayerState {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Group {
     pub name: String,
+    /// The handle it was read with (0: none yet): written back, so other objects and other
+    /// programs keep pointing at it.
+    #[serde(default, skip_serializing_if = "crate::KeptHandle::is_none")]
+    pub handle: crate::KeptHandle,
     pub description: String,
     pub selectable: bool,
     pub members: Vec<crate::Handle>,
@@ -890,3 +978,38 @@ pub struct Group {
 
 /// Shared ownership helper: blocks are cloned on write.
 pub type BlockRef = Arc<Block>;
+
+/// An object that keeps the handle it was read with (docs/cad-model.md, S1).
+pub trait KeepsHandle {
+    /// Drop the kept handles, for a copy taken from another drawing: it gets new ones when this
+    /// drawing is written.
+    fn forget_handle(&mut self);
+}
+
+macro_rules! keeps_handle {
+    ($($t:ty),*) => {$(
+        impl KeepsHandle for $t {
+            fn forget_handle(&mut self) {
+                self.handle = crate::KeptHandle::default();
+            }
+        }
+    )*};
+}
+keeps_handle!(Layer, Linetype, TextStyle, DimStyle, MLeaderStyle, TableStyle, NamedView, Ucs, Group, crate::MLineStyle, crate::AnnoScale);
+
+impl KeepsHandle for Block {
+    fn forget_handle(&mut self) {
+        self.handle = crate::KeptHandle::default();
+        self.begin_handle = crate::KeptHandle::default();
+        self.end_handle = crate::KeptHandle::default();
+    }
+}
+
+impl KeepsHandle for Layout {
+    fn forget_handle(&mut self) {
+        self.handle = crate::KeptHandle::default();
+        self.block_handle = crate::KeptHandle::default();
+        self.begin_handle = crate::KeptHandle::default();
+        self.end_handle = crate::KeptHandle::default();
+    }
+}

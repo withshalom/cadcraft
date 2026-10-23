@@ -92,6 +92,9 @@ fn a_dimension_drawn_from_its_block_is_picked_on_the_block_text() {
     let mut entities = cadcraft_engine::doc::EntityStore::new();
     entities.push(text);
     let block = cadcraft_engine::doc::Block {
+        begin_handle: Default::default(),
+        end_handle: Default::default(),
+        handle: Default::default(),
         xref_overlay: false,
         xref_status: Default::default(),
         name: "*D1".into(),
