@@ -449,6 +449,17 @@ fn current_text_style(doc: &mut acadrust::CadDocument) {
 }
 
 fn convert(dxf: &[u8], version: Option<acadrust::DxfVersion>) -> Result<Vec<u8>, String> {
+    // Reject a pathologically large DXF before handing it to the third-party decoder, which
+    // allocates tables and section buffers from the input's declared sizes and cannot be
+    // interrupted once it starts (CWE-789). This bounds the large-input variant; the decoder
+    // runs inside `catch_unwind` so a decode failure is reported rather than crashing.
+    if dxf.len() > Limits::DEFAULT.max_dxf_bytes {
+        return Err(format!(
+            "DXF: the input is {}, larger than the {} CADCraft converts to DWG",
+            mb(dxf.len() as u64),
+            mb(Limits::DEFAULT.max_dxf_bytes as u64)
+        ));
+    }
     let data = dxf.to_vec();
     let mut doc = std::panic::catch_unwind(move || acadrust::DxfReader::from_reader(Cursor::new(data)).and_then(|r| r.read()))
         .map_err(|_| "the DXF→DWG conversion failed".to_string())?
