@@ -14,7 +14,7 @@ pub use mline::*;
 pub struct Handle(pub u64);
 
 /// The handle a table record, block, layout or style had in the file it was read from
-/// (docs/cad-model.md, S1). It is the object's identity in files, not part of what it is: two
+/// (docs/cadcraft-model.md, S1). It is the object's identity in files, not part of what it is: two
 /// layers that differ only in it are equal.
 #[derive(Clone, Copy, Debug, Default, Serialize, Deserialize)]
 #[serde(transparent)]

@@ -1,5 +1,5 @@
 //! How much of an AutoCAD drawing CADCraft's model holds: the measurements behind
-//! `docs/cad-model.md`.
+//! `docs/cadcraft-model.md`.
 //!
 //! Runs only when `MI201_CORPUS` names a folder of AutoCAD-saved DXF and DWG files, for example
 //! the MI-201 corpus (`corpus/mosaiciron-mi201` in https://github.com/withshalom/CAD). The

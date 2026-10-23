@@ -24,7 +24,7 @@ struct W {
     reactors: HashMap<Handle, Vec<String>>,
     /// Handles already given in the file being written (entities' own, and every one handed out).
     used: HashSet<u64>,
-    /// Handles kept from the file the drawing was read from (docs/cad-model.md, S1): new handles
+    /// Handles kept from the file the drawing was read from (docs/cadcraft-model.md, S1): new handles
     /// skip them, so each goes back to the object that had it.
     reserved: HashSet<u64>,
     /// Role → the handle it had when read ([`cadcraft_model::foreign::Foreign::handles`]).

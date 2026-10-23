@@ -1004,7 +1004,7 @@ pub struct Group {
 /// Shared ownership helper: blocks are cloned on write.
 pub type BlockRef = Arc<Block>;
 
-/// An object that keeps the handle it was read with (docs/cad-model.md, S1).
+/// An object that keeps the handle it was read with (docs/cadcraft-model.md, S1).
 pub trait KeepsHandle {
     /// Drop the kept handles, for a copy taken from another drawing: it gets new ones when this
     /// drawing is written.

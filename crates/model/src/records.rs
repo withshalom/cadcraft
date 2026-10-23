@@ -3,7 +3,7 @@
 //! of a multileader or table style, a dimension link's snap data and the registered applications.
 //! Each field is named and typed after the public DXF Reference (and, where it says nothing, the
 //! Open Design Alliance's public DWG specification), read from DXF and DWG, written back, and
-//! kept in `.cad` (docs/cad-model.md §4).
+//! kept in `.cad` (docs/cadcraft-model.md §4).
 //!
 //! Defaults are what a new drawing's records hold, so a record read with default values equals
 //! one made here.

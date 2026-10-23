@@ -1,5 +1,5 @@
 //! Header variables CADCraft doesn't know by name are written back with the group codes they were
-//! read with, through DXF and through `.cad` (docs/cad-model.md, S2). The fixture is synthetic,
+//! read with, through DXF and through `.cad` (docs/cadcraft-model.md, S2). The fixture is synthetic,
 //! from the public DXF Reference's HEADER section.
 
 use cadcraft_dxf::{parse, sections};

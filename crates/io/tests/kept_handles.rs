@@ -1,5 +1,5 @@
 //! Tables, blocks, layouts and dictionaries keep the handles they were read with, through DXF and
-//! through `.cad` (docs/cad-model.md, S1). The fixture is synthetic, from the public DXF Reference.
+//! through `.cad` (docs/cadcraft-model.md, S1). The fixture is synthetic, from the public DXF Reference.
 
 use std::collections::HashMap;
 

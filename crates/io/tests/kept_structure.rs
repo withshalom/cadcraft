@@ -1,4 +1,4 @@
-//! The object structure around a drawing survives saving and reopening (docs/cad-model.md, S3
+//! The object structure around a drawing survives saving and reopening (docs/cadcraft-model.md, S3
 //! and S4): a dimension's extension dictionary and DIMASSOC keep their handles, the geometry the
 //! dimension follows names the DIMASSOC as a persistent reactor, and the named object dictionary
 //! and the layout dictionary list their entries in key order.

@@ -410,7 +410,7 @@ pub(crate) fn read(secs: &[Section], d: &mut Drawing) {
         }
     }
     let mut f = Foreign::default();
-    // The handle of every role (docs/cad-model.md, S1); the lowest when two records share one.
+    // The handle of every role (docs/cadcraft-model.md, S1); the lowest when two records share one.
     for (h, k) in &ids {
         if let Some(hh) = handle(h)
             && f.handles.len() < MAX_OBJECTS
@@ -894,7 +894,7 @@ pub(crate) fn finish(tags: &mut Vec<Tag>, d: &Drawing) {
             alive_memo.insert(p, verdict);
         }
     }
-    // Written kept objects keep their own handles (docs/cad-model.md, S1); one already taken in
+    // Written kept objects keep their own handles (docs/cadcraft-model.md, S1); one already taken in
     // the written file gets a new handle, above every written handle and the seed.
     let mut next = seed(tags).max(max_handle(tags).saturating_add(1));
     let mut alive: HashMap<String, String> = HashMap::new();
@@ -1169,7 +1169,7 @@ fn add_appids(out: &mut Vec<Tag>, f: &Foreign) {
     if missing.is_empty() {
         return;
     }
-    // Each its handle in the file when that is free (docs/cad-model.md, S1), else a new one above
+    // Each its handle in the file when that is free (docs/cadcraft-model.md, S1), else a new one above
     // the seed, which is then moved past them.
     let mut taken: HashSet<String> = out.iter().filter(|t| matches!(t.code, 5 | 105)).map(|t| norm(&t.str())).collect();
     let mut next = seed(out).max(max_handle(out).saturating_add(1));

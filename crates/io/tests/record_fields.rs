@@ -1,4 +1,4 @@
-//! The rest of the fields of the drawing's records (docs/cad-model.md §4) survive saving and
+//! The rest of the fields of the drawing's records (docs/cadcraft-model.md §4) survive saving and
 //! reopening in DXF and in `.cad`: a layout's plot settings and layout data, a model space
 //! viewport's view settings, a multileader style's and a table style's fields, a dimension link's
 //! snap data, a dimension's arrowhead flips and the registered applications.

@@ -1,4 +1,4 @@
-//! Fields the model now holds come back from a saved DXF (docs/cad-model.md §4): a multiline
+//! Fields the model now holds come back from a saved DXF (docs/cadcraft-model.md §4): a multiline
 //! text's defined height, a dimension's text attachment, a block's uniform scaling, a scale's
 //! unit flag; and the text style group is written only when it isn't the default.
 

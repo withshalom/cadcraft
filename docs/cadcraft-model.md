@@ -226,3 +226,21 @@ On the corpus only the 2018 files go through `cad-dwg` both ways. §5 removes bo
   arrowhead flips (groups 73–75), the APPID table, built-in linetype names; the named object
   dictionary is written in key order on a first save; `.cad` records 1.2. MI-201: 183 of 194
   records (2018) with the same values.
+
+## Names on the branches
+
+The model crate is `cadcraft-model` on `cad-native` and `cad-craftsman` (directory `crates/model`, Rust name
+`cadcraft_model`). The PR-line branches (`dwg-craft`, `dwg-fidelity`, `dwg-fidelity-verified`, `dwg-native`) keep
+upstream's `cadcraft-doc` (`crates/doc`, `cadcraft_doc`), because a pull request that renames upstream's core
+crate would not merge. To move a patch from one to the other, rewrite the names in the patch:
+
+```sh
+# cad-native -> PR line
+git diff A..B | sed 's#crates/model#crates/doc#g; s#cadcraft-model#cadcraft-doc#g; s#cadcraft_model#cadcraft_doc#g' | git apply
+# PR line -> cad-native
+git diff A..B | sed 's#crates/doc#crates/model#g; s#cadcraft-doc#cadcraft-model#g; s#cadcraft_doc#cadcraft_model#g' | git apply
+```
+
+| Date | Change |
+|---|---|
+| 2026-10-23 | The crate is `cadcraft-model` (was `cadcraft-doc`) on `cad-native`; this file was `docs/cad-model.md`. Authors: WithShalom. |
