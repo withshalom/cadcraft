@@ -10,9 +10,9 @@
 
 use super::{Builder, Ctx, Ink, fill, ink, max_scale};
 use cadcraft_color::{Color, Rgb};
-use cadcraft_doc::library::{PatternLine, pattern_for};
-use cadcraft_doc::{Drawing, Entity, Gradient, Hatch};
 use cadcraft_geom::{Bounds2, Polyline, Vec2, point_in_polygon};
+use cadcraft_model::library::{PatternLine, pattern_for};
+use cadcraft_model::{Drawing, Entity, Gradient, Hatch};
 use std::sync::atomic::{AtomicBool, Ordering};
 
 /// Draw a hatch entity: `rgb` is its resolved colour, `tol` the chord tolerance.
@@ -568,8 +568,8 @@ impl Family<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cadcraft_doc::{Hatch, HatchLoop};
     use cadcraft_geom::PolyVertex;
+    use cadcraft_model::{Hatch, HatchLoop};
 
     #[test]
     fn fill_loops_deduplicates_coincident_loops() {

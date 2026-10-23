@@ -14,9 +14,9 @@
 //! Shape elements (`74` bit 4) need SHX shape files, which CADCraft does not read: they draw
 //! nothing and leave their gap empty.
 
-use cadcraft_doc::{Drawing, Linetype};
 use cadcraft_fonts::{Shaped, TextFont, TextParams};
 use cadcraft_geom::Vec2;
+use cadcraft_model::{Drawing, Linetype};
 
 /// Upper bound on the texts drawn along one run (hostile scales; `apply` caps the dashes).
 const MAX_TEXTS: usize = 10_000;
@@ -137,7 +137,7 @@ impl Walk<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cadcraft_doc::DashElement;
+    use cadcraft_model::DashElement;
 
     fn gas() -> Linetype {
         Linetype {

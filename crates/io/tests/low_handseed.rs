@@ -5,7 +5,7 @@
 
 use std::collections::HashSet;
 
-use cadcraft_doc::{Drawing, EntityKind, Handle};
+use cadcraft_model::{Drawing, EntityKind, Handle};
 
 /// A block holding a polyface mesh of three triangles (handle 2000) and, in model space after it,
 /// lines with handles 2001–2003 (the next ones after the mesh's), under a $HANDSEED of 10. The

@@ -3,8 +3,8 @@
 use std::fmt::Write as _;
 
 use cadcraft_color::Rgb;
-use cadcraft_doc::{Drawing, Space};
 use cadcraft_geom::Bounds2;
+use cadcraft_model::{Drawing, Space};
 use cadcraft_render::Kind;
 
 /// Export with a white background (colour 7 prints black), fitted to the extents.

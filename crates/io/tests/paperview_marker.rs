@@ -2,8 +2,8 @@
 //! CADCraft xdata) but keeps a real viewport whose frozen or recoloured layer is named PAPERVIEW.
 
 use cadcraft_color::Color;
-use cadcraft_doc::*;
 use cadcraft_geom::{Vec2, Vec3};
+use cadcraft_model::*;
 
 fn viewport(id: u32, frozen_layers: Vec<String>, layer_colors: Vec<(String, Color)>) -> EntityKind {
     EntityKind::Viewport(Viewport {

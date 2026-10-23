@@ -704,7 +704,7 @@ mod tests {
 
     use crate::{CadApp, Services};
 
-    fn fake_plot(_: &cadcraft_doc::Drawing, _: &cadcraft_doc::Space, _: &Value) -> Result<Vec<u8>, String> {
+    fn fake_plot(_: &cadcraft_model::Drawing, _: &cadcraft_model::Space, _: &Value) -> Result<Vec<u8>, String> {
         Ok(b"%PDF-1.4 test".to_vec())
     }
 

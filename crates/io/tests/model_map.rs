@@ -1,8 +1,8 @@
 //! How much of an AutoCAD drawing CADCraft's model holds: the measurements behind
 //! `docs/cad-model.md`.
 //!
-//! Runs only when `BLACKCAD_CORPUS` names a folder of AutoCAD-saved DXF and DWG files, for example
-//! BlackCAD's MI-201 corpus (`corpus/mosaiciron-mi201` in https://github.com/withshalom/CAD). The
+//! Runs only when `MI201_CORPUS` names a folder of AutoCAD-saved DXF and DWG files, for example
+//! the MI-201 corpus (`corpus/mosaiciron-mi201` in https://github.com/withshalom/CAD). The
 //! files are AutoCAD's, so they are never committed here; without the variable the test does
 //! nothing. With `CADCRAFT_MODEL_MAP=path` it also writes the report to that file.
 //!
@@ -16,16 +16,16 @@
 //!
 //! It also writes the model to `.cad` and back and checks the DXF written from that is identical,
 //! so anything the model holds, `.cad` holds. For each DWG it lists the object types the file
-//! holds (BlackCAD's reader), so DWG-only types show up next to the DXF ones.
+//! holds (the open engine's reader), so DWG-only types show up next to the DXF ones.
 //!
 //! It fails only when a file doesn't open or `.cad` loses something the model held.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
 
-use cadcraft_doc::{Drawing, EntityKind};
 use cadcraft_dxf::{Kind, Tag, kind_of, records, sections};
 use cadcraft_io::{cad_file, read_dxf};
+use cadcraft_model::{Drawing, EntityKind};
 
 /// The drawing saved as DXF the way CADCraft saves it: in its own version.
 fn save_dxf(d: &Drawing) -> String {
@@ -127,7 +127,7 @@ fn holding(d: &Drawing) -> BTreeMap<String, &'static str> {
     for o in &d.foreign.objects {
         m.insert(o.kind.clone(), "kept raw");
     }
-    let mut note = |e: &cadcraft_doc::Entity| {
+    let mut note = |e: &cadcraft_model::Entity| {
         if let EntityKind::Unknown(u) = &e.kind {
             m.insert(u.dxf_type.clone(), "kept raw");
         }
@@ -293,15 +293,15 @@ fn map_dwg(path: &std::path::Path, out: &mut String) {
             let _ = writeln!(out, "- **{name}**: {} objects: {}", d.objects.len(), list.join(", "));
         }
         Err(e) => {
-            let _ = writeln!(out, "- **{name}**: not read by BlackCAD's reader ({e})");
+            let _ = writeln!(out, "- **{name}**: not read by the open engine's reader ({e})");
         }
     }
 }
 
 #[test]
 fn model_map() {
-    let Some(dir) = std::env::var_os("BLACKCAD_CORPUS") else {
-        eprintln!("BLACKCAD_CORPUS not set: no corpus to map");
+    let Some(dir) = std::env::var_os("MI201_CORPUS") else {
+        eprintln!("MI201_CORPUS not set: no corpus to map");
         return;
     };
     let mut files: Vec<std::path::PathBuf> =
@@ -316,7 +316,7 @@ fn model_map() {
             failures.push(format!("{}: {e}", p.display()));
         }
     }
-    let _ = writeln!(out, "\n## DWG object types (BlackCAD's reader)\n");
+    let _ = writeln!(out, "\n## DWG object types (the open engine's reader)\n");
     for p in files.iter().filter(|p| ext(p, "dwg")) {
         map_dwg(p, &mut out);
     }

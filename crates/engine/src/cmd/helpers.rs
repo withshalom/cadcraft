@@ -1,7 +1,7 @@
 //! Shared geometry helpers for commands.
 
-use cadcraft_doc::{EntityKind, Line};
 use cadcraft_geom::{PolyVertex, Vec2, Vec3};
+use cadcraft_model::{EntityKind, Line};
 
 pub fn v3(p: Vec2) -> Vec3 {
     p.to3(0.0)
@@ -12,15 +12,15 @@ pub fn line(a: Vec2, b: Vec2) -> EntityKind {
 }
 
 pub fn circle(c: Vec2, r: f64) -> EntityKind {
-    EntityKind::Circle(cadcraft_doc::Circle { center: v3(c), radius: r.abs() })
+    EntityKind::Circle(cadcraft_model::Circle { center: v3(c), radius: r.abs() })
 }
 
 pub fn arc(a: &cadcraft_geom::Arc) -> EntityKind {
-    EntityKind::Arc(cadcraft_doc::Arc { center: v3(a.center), radius: a.radius, start: a.start, end: a.end })
+    EntityKind::Arc(cadcraft_model::Arc { center: v3(a.center), radius: a.radius, start: a.start, end: a.end })
 }
 
 pub fn lwpoly(vs: Vec<PolyVertex>, closed: bool) -> EntityKind {
-    EntityKind::LwPolyline(cadcraft_doc::LwPolyline { vertices: vs, closed, const_width: 0.0, elevation: 0.0, plinegen: false })
+    EntityKind::LwPolyline(cadcraft_model::LwPolyline { vertices: vs, closed, const_width: 0.0, elevation: 0.0, plinegen: false })
 }
 
 pub fn rect_vertices(a: Vec2, b: Vec2) -> Vec<PolyVertex> {

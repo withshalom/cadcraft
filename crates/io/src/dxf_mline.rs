@@ -8,12 +8,12 @@
 use std::collections::HashMap;
 
 use cadcraft_color::Color;
-use cadcraft_doc::{
+use cadcraft_dxf::{Section, Tag};
+use cadcraft_geom::{Vec2, Vec3};
+use cadcraft_model::{
     Drawing, Entity, EntityKind, EntityStore, Handle, MAX_MLINE_CUTS, MAX_MLINE_ELEMENTS, MAX_MLINE_VERTICES, MLine, MLineCaps, MLineCut,
     MLineElement, MLineJust, MLineStyle, MLineVertex, STANDARD_MLINE_STYLE,
 };
-use cadcraft_dxf::{Section, Tag};
-use cadcraft_geom::{Vec2, Vec3};
 
 /// Most groups 41 kept per element and vertex (start, then break pairs).
 const MAX_PARAMS: usize = 2 * MAX_MLINE_CUTS + 2;
@@ -365,7 +365,7 @@ pub(crate) fn resolve(secs: &[Section], d: &mut Drawing) {
 }
 
 fn fill(store: &mut EntityStore, by_name: &HashMap<String, MLineStyle>) {
-    let hs: Vec<cadcraft_doc::Handle> = store.iter().filter(|e| matches!(e.kind, EntityKind::MLine(_))).map(|e| e.handle).collect();
+    let hs: Vec<cadcraft_model::Handle> = store.iter().filter(|e| matches!(e.kind, EntityKind::MLine(_))).map(|e| e.handle).collect();
     for h in hs {
         store.modify(h, |e| {
             if let EntityKind::MLine(m) = &mut e.kind
@@ -400,7 +400,7 @@ impl Plan {
 pub(crate) fn plan<'a>(
     d: &Drawing,
     every: impl Iterator<Item = &'a Entity>,
-    mut new_handle: impl FnMut(cadcraft_doc::KeptHandle, (&str, &str)) -> String,
+    mut new_handle: impl FnMut(cadcraft_model::KeptHandle, (&str, &str)) -> String,
 ) -> Plan {
     let mut list: Vec<MLineStyle> = d.mline_styles.clone();
     if !list.iter().any(|s| s.name.eq_ignore_ascii_case(STANDARD_MLINE_STYLE)) {
@@ -413,7 +413,7 @@ pub(crate) fn plan<'a>(
             list.push(MLineStyle { name: m.style.trim().to_string(), ..m.def.clone() });
         }
     }
-    let dict = new_handle(cadcraft_doc::KeptHandle::default(), ("NOD", "ACAD_MLINESTYLE"));
+    let dict = new_handle(cadcraft_model::KeptHandle::default(), ("NOD", "ACAD_MLINESTYLE"));
     let styles = list
         .into_iter()
         .filter(|s| !s.name.trim().is_empty())

@@ -2,10 +2,10 @@
 //! PAGESETUP takes a device and its papers with their printable areas, and PLOT hands the
 //! plotter the device's output, paper and margins.
 
-use cadcraft_doc::{Drawing, Space};
 use cadcraft_engine::Session;
 use cadcraft_engine::cmd::file::{IoHooks, base64_decode, set_io};
 use cadcraft_engine::cmd::plotters::{PlotterStore, set_plotter_store};
+use cadcraft_model::{Drawing, Space};
 use serde_json::{Value, json};
 
 /// The plot hook echoes the options it gets.

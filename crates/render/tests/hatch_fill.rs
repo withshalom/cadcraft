@@ -2,9 +2,9 @@
 //! pattern definitions kept from a file (issues #289, #290).
 
 use cadcraft_color::{Color, Rgb, aci_rgb};
-use cadcraft_doc::library::PatternLine;
-use cadcraft_doc::{Common, Drawing, EntityKind, Gradient, Hatch, HatchLoop, Layer, Space};
 use cadcraft_geom::{PolyVertex, Vec2};
+use cadcraft_model::library::PatternLine;
+use cadcraft_model::{Common, Drawing, EntityKind, Gradient, Hatch, HatchLoop, Layer, Space};
 use cadcraft_render::{DisplayList, Kind, Options, build};
 
 fn square(lo: f64, hi: f64) -> HatchLoop {
@@ -167,7 +167,7 @@ fn pattern_lines_from_a_file_are_drawn_for_unknown_names() {
 
 #[test]
 fn pattern_swatches_stay_in_their_square_and_show_a_few_repeats() {
-    for p in cadcraft_doc::library::standard_patterns() {
+    for p in cadcraft_model::library::standard_patterns() {
         let runs = cadcraft_render::pattern_swatch(&p.lines, 1.0);
         if p.lines.is_empty() {
             assert!(runs.is_empty(), "{}", p.name);

@@ -37,7 +37,7 @@ pub const TABLE: &[(&str, Class)] = &[
     ("dxf", Class::Standalone),
     ("dwg", Class::Standalone),
     ("color", Class::Layer(0)),
-    ("doc", Class::Layer(1)),
+    ("model", Class::Layer(1)),
     ("constraints", Class::Layer(2)),
     ("fonts", Class::Layer(2)),
     ("render", Class::Layer(2)),
@@ -242,8 +242,8 @@ mod tests {
     fn clean_downward_graph_passes() {
         let g = [
             c("cadcraft-geom", &[("kurbo", Normal, false)]),
-            c("cadcraft-doc", &[("cadcraft-geom", Normal, true)]),
-            c("cadcraft-engine", &[("cadcraft-doc", Normal, true), ("cadcraft-testkit", Dev, true)]),
+            c("cadcraft-model", &[("cadcraft-geom", Normal, true)]),
+            c("cadcraft-engine", &[("cadcraft-model", Normal, true), ("cadcraft-testkit", Dev, true)]),
             c("cadcraft-ui-egui", &[("cadcraft-engine", Normal, true), ("egui", Normal, false)]),
             c("cadcraft-cli", &[("cadcraft-ui-egui", Normal, true)]),
         ];
@@ -252,7 +252,7 @@ mod tests {
 
     #[test]
     fn upward_dependency_flagged() {
-        let v = check(&[c("cadcraft-doc", &[("cadcraft-engine", Normal, true)])]);
+        let v = check(&[c("cadcraft-model", &[("cadcraft-engine", Normal, true)])]);
         assert!(matches!(v[..], [Violation::Upward { from: 1, to: 4, .. }]));
     }
 
@@ -271,12 +271,12 @@ mod tests {
 
     #[test]
     fn self_dev_dependency_ignored() {
-        assert!(check(&[c("cadcraft-doc", &[("cadcraft-doc", Dev, true)])]).is_empty());
+        assert!(check(&[c("cadcraft-model", &[("cadcraft-model", Dev, true)])]).is_empty());
     }
 
     #[test]
     fn upward_dev_dependency_flagged() {
-        let v = check(&[c("cadcraft-geom", &[("cadcraft-doc", Dev, true)])]);
+        let v = check(&[c("cadcraft-geom", &[("cadcraft-model", Dev, true)])]);
         assert!(matches!(v[..], [Violation::Upward { kind: Dev, .. }]));
     }
 
@@ -316,7 +316,7 @@ mod tests {
     fn metadata_parsing() {
         let meta: Value = serde_json::from_str(
             r#"{"packages":[
-                {"name":"cadcraft-doc","dependencies":[
+                {"name":"cadcraft-model","dependencies":[
                     {"name":"cadcraft-geom","kind":null,"path":"/x/crates/geom"},
                     {"name":"serde","kind":null},
                     {"name":"proptest","kind":"dev"}]},
@@ -326,7 +326,7 @@ mod tests {
         .unwrap();
         let g = from_metadata(&meta).unwrap();
         assert_eq!(g.len(), 2);
-        let doc = g.iter().find(|c| c.name == "cadcraft-doc").unwrap();
+        let doc = g.iter().find(|c| c.name == "cadcraft-model").unwrap();
         assert!(doc.deps[0].workspace && !doc.deps[1].workspace);
         assert_eq!(doc.deps[2].kind, Dev);
         assert!(check(&g).is_empty());

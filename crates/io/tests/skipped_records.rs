@@ -4,7 +4,7 @@
 
 use std::collections::BTreeMap;
 
-use cadcraft_doc::*;
+use cadcraft_model::*;
 
 /// ASCII DXF from one `code value` group per line.
 fn dxf(groups: &str) -> Vec<u8> {

@@ -4,9 +4,9 @@
 //! of a rotated linear dimension (#1054) and of angular dimensions.
 
 use cadcraft_color::Color;
-use cadcraft_doc::{Common, DimKind, DimStyle, Dimension, Drawing, EntityKind, HAlign, Space, Text, VAlign};
 use cadcraft_geom::Vec3;
 use cadcraft_io::{SaveOptions, Version, read, write_dxf, write_with};
+use cadcraft_model::{Common, DimKind, DimStyle, Dimension, Drawing, EntityKind, HAlign, Space, Text, VAlign};
 
 fn dwg_roundtrip(d: &Drawing) -> Drawing {
     let dwg = write_with(d, "case.dwg", &SaveOptions { version: Some(Version::R2018), binary: false }).unwrap();

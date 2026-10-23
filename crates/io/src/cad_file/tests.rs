@@ -2,8 +2,8 @@
 
 use std::collections::BTreeMap;
 
-use cadcraft_doc::{AnnoScale, Common, Entity, EntityKind, Layout, Lineweight, Space, Transparency};
 use cadcraft_geom::{Vec2, Vec3};
+use cadcraft_model::{AnnoScale, Common, Entity, EntityKind, Layout, Lineweight, Space, Transparency};
 use serde_json::json;
 
 use super::*;
@@ -190,7 +190,7 @@ fn every_kind() -> Vec<EntityKind> {
 fn rich_common(i: usize) -> Common {
     Common {
         layer: "PARTS".into(),
-        color: cadcraft_doc::color::Color::Index(u8::try_from(i % 255 + 1).unwrap()),
+        color: cadcraft_model::color::Color::Index(u8::try_from(i % 255 + 1).unwrap()),
         linetype: "HIDDEN".into(),
         lineweight: Lineweight::Mm100(35),
         ltscale: 0.5,
@@ -231,7 +231,7 @@ fn full_drawing() -> Drawing {
         serde_json::from_value(json!({"name": "TILTED", "origin": p3(1.0, 0.0, 0.0), "xAxis": p3(0.0, 1.0, 0.0), "yAxis": p3(-1.0, 0.0, 0.0)}))
             .unwrap(),
     );
-    d.layer_states.push(cadcraft_doc::LayerState { name: "ALL OFF".into(), layers: d.layers.clone() });
+    d.layer_states.push(cadcraft_model::LayerState { name: "ALL OFF".into(), layers: d.layers.clone() });
     d
 }
 
@@ -339,11 +339,11 @@ fn real_drawings_round_trip_exactly() {
     assert!(n > 0);
 }
 
-/// With `BLACKCAD_CORPUS` naming a folder of DWG and DXF files (CI: the MI-201 corpus), each
+/// With `MI201_CORPUS` naming a folder of DWG and DXF files (CI: the MI-201 corpus), each
 /// opens, saves as `.cad` and opens again unchanged.
 #[test]
 fn corpus_drawings_round_trip_exactly() {
-    let Some(dir) = std::env::var_os("BLACKCAD_CORPUS") else { return };
+    let Some(dir) = std::env::var_os("MI201_CORPUS") else { return };
     let mut n = 0;
     for e in std::fs::read_dir(dir).unwrap().flatten() {
         let path = e.path();
@@ -362,17 +362,13 @@ fn corpus_drawings_round_trip_exactly() {
 }
 
 #[test]
-fn cad_and_blc_files_are_told_apart() {
+fn cad_files_are_told_apart_by_content() {
     let mut d = Drawing::default();
     d.add(&Space::Model, Common::default(), every_kind().remove(2)).unwrap();
     let cad = crate::write(&d, "part.cad").unwrap();
-    let blc = crate::write(&d, "part.blc").unwrap();
-    assert!(is_cad(&cad) && !cadcraft_dwg::is_blc(&cad));
-    assert!(!is_cad(&blc) && cadcraft_dwg::is_blc(&blc));
+    assert!(is_cad(&cad));
     // The content decides, whatever the name says.
     assert_eq!(plain(crate::read(&cad, "renamed.dxf").unwrap()), d);
-    assert!(crate::read(&blc, "renamed.cad").is_ok());
-    assert!(read(&blc).is_err());
     // A preview is kept for file browsers.
     let c = Container::parse(&cad).unwrap();
     assert!(c.entry(SEC_PREVIEW).is_some());

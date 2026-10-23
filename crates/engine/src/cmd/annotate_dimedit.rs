@@ -1,8 +1,8 @@
 //! Dimension edits: DIMEDIT (Home/New/Rotate/Oblique), DIMJOGGED, DIMJOGLINE, DIMBREAK and
 //! DIMINSPECT. Each has a JSON form; the prompt sequences run the same JSON form.
 
-use cadcraft_doc::{DimBreak, DimKind, Dimension, EntityKind, Handle, Inspection, JoggedRadius, Prim};
 use cadcraft_geom::{Segment, Vec2};
+use cadcraft_model::{DimBreak, DimKind, Dimension, EntityKind, Handle, Inspection, JoggedRadius, Prim};
 use serde_json::{Value, json};
 
 use super::machines::{SelOutcome, SelectPhase};

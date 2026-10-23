@@ -3,8 +3,8 @@
 
 use super::{Builder, Ctx, Ink, fill, ink, linetype, resolve_common};
 use cadcraft_color::Color;
-use cadcraft_doc::{Entity, MLine};
 use cadcraft_geom::Vec2;
+use cadcraft_model::{Entity, MLine};
 
 pub(super) fn draw(b: &mut Builder, ctx: &Ctx, e: &Entity, m: &MLine, rgb: Ink, lw: f32, tol: f64) {
     let g = m.geometry();
@@ -58,7 +58,7 @@ pub(super) fn draw(b: &mut Builder, ctx: &Ctx, e: &Entity, m: &MLine, rgb: Ink, 
 }
 
 #[allow(clippy::too_many_arguments)]
-fn stroke(b: &mut Builder, ctx: &Ctx, rgb: Ink, lw: f32, lt: Option<&cadcraft_doc::Linetype>, scale: f64, min: f64, pts: &[Vec2]) {
+fn stroke(b: &mut Builder, ctx: &Ctx, rgb: Ink, lw: f32, lt: Option<&cadcraft_model::Linetype>, scale: f64, min: f64, pts: &[Vec2]) {
     match lt {
         Some(lt) => {
             for dash in linetype::apply(pts, lt, scale, min) {

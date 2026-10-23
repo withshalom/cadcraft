@@ -2,7 +2,7 @@
 //! it (a drawing measured from north has 90.0), held in radians; `$ANGDIR` and `$AUNITS`
 //! (group 70) as integers.
 
-use cadcraft_doc::{Drawing, HVal};
+use cadcraft_model::{Drawing, HVal};
 
 #[test]
 fn angbase_angdir_aunits_round_trip_through_dxf() {

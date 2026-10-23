@@ -3,10 +3,10 @@
 //! viewport's view settings, a multileader style's and a table style's fields, a dimension link's
 //! snap data, a dimension's arrowhead flips and the registered applications.
 
-use cadcraft_doc::*;
 use cadcraft_dxf::{Tag, parse, records, sections};
 use cadcraft_geom::{Vec2, Vec3};
 use cadcraft_io::{Version, read_dxf};
+use cadcraft_model::*;
 
 fn dxf(d: &Drawing) -> String {
     let mut d = d.clone();

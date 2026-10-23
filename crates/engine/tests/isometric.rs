@@ -1,11 +1,11 @@
 //! Isometric drafting: ISODRAFT and ISOPLANE (SNAPSTYL, SNAPISOPAIR), the isometric snap
 //! lattice, ortho along the isometric plane's axes and ELLIPSE's Isocircle option.
 
-use cadcraft_doc::EntityKind;
 use cadcraft_engine::Session;
 use cadcraft_engine::geom::Vec2;
 use cadcraft_engine::snap::iso::{self, IsoPlane};
 use cadcraft_engine::snap::tracking::CursorQuery;
+use cadcraft_model::EntityKind;
 use serde_json::{Value, json};
 
 fn v(x: f64, y: f64) -> Vec2 {
@@ -24,7 +24,7 @@ fn setvar(s: &mut Session, name: &str, value: Value) -> cadcraft_engine::Result<
     s.execute("setvar", &json!({ "name": name, "value": value }))
 }
 
-fn last_ellipse(s: &Session) -> cadcraft_doc::Ellipse {
+fn last_ellipse(s: &Session) -> cadcraft_model::Ellipse {
     match s.doc().unwrap().model.iter().last().map(|e| e.kind.clone()) {
         Some(EntityKind::Ellipse(e)) => e,
         other => panic!("not an ellipse: {other:?}"),
@@ -32,7 +32,7 @@ fn last_ellipse(s: &Session) -> cadcraft_doc::Ellipse {
 }
 
 /// Whether `p` lies on the full ellipse.
-fn on_ellipse(e: &cadcraft_doc::Ellipse, p: Vec2) -> bool {
+fn on_ellipse(e: &cadcraft_model::Ellipse, p: Vec2) -> bool {
     let (c, m) = (e.center.xy(), e.major.xy());
     let (a, b) = (m.len(), m.len() * e.ratio);
     let u = m.normalized();

@@ -1,8 +1,8 @@
 //! A closed fit-point spline is periodic: DXF flags it closed + periodic (group 70 bits 1 and 2)
 //! and it reads back as the same smooth closed curve.
 
-use cadcraft_doc::{Common, Drawing, EntityKind, Space};
 use cadcraft_geom::{Spline, Vec2};
+use cadcraft_model::{Common, Drawing, EntityKind, Space};
 
 #[test]
 fn closed_fit_spline_roundtrips_as_periodic() {

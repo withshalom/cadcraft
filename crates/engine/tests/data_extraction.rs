@@ -1,7 +1,7 @@
 //! DATAEXTRACTION / EATTEXT: block and attribute data as rows, a CSV file and a table.
 
-use cadcraft_doc::EntityKind;
 use cadcraft_engine::Session;
+use cadcraft_model::EntityKind;
 use serde_json::{Value, json};
 
 /// Blocks VALVE (tags PART, QTY) and PUMP (tag PART) with references, and an unattributed block.
@@ -105,7 +105,7 @@ fn writes_csv_and_tab_separated_files() {
 fn inserts_a_table_with_a_header_row() {
     let mut s = drawing();
     let r = s.execute("dataextraction", &json!({"blocks": "VALVE", "at": [100, 100], "title": "Valves"})).unwrap();
-    let h = cadcraft_doc::Handle::parse_hex(r["table"].as_str().unwrap()).unwrap();
+    let h = cadcraft_model::Handle::parse_hex(r["table"].as_str().unwrap()).unwrap();
     let EntityKind::Table(t) = &s.doc().unwrap().entity(h).unwrap().kind else { panic!("not a table") };
     let text: Vec<Vec<&str>> = t.cells.iter().map(|r| r.iter().map(|c| c.text.as_str()).collect()).collect();
     assert_eq!(

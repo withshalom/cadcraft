@@ -9,7 +9,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
-use cadcraft_doc::{Block, Drawing, Entity, EntityKind, Handle};
+use cadcraft_model::{Block, Drawing, Entity, EntityKind, Handle};
 use serde_json::{Value, json};
 
 use super::super::file::io;
@@ -106,7 +106,7 @@ fn define_from(s: &mut Session, src: &Drawing, name: &str) -> Result<String> {
     for (from, to) in &renames {
         let Some(b) = src.blocks.get(from) else { continue };
         let mut nb = (**b).clone();
-        cadcraft_doc::KeepsHandle::forget_handle(&mut nb);
+        cadcraft_model::KeepsHandle::forget_handle(&mut nb);
         nb.name = to.clone();
         nb.entities = Default::default();
         for e in b.entities.iter() {

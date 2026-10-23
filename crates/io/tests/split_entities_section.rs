@@ -2,7 +2,7 @@
 //! variables and ENDSECs between them, and no EOF). Every section is read, not just the last
 //! one (#865).
 
-use cadcraft_doc::EntityKind;
+use cadcraft_model::EntityKind;
 
 #[test]
 fn entities_of_every_entities_section_are_read() {

@@ -16,9 +16,9 @@ use std::borrow::Cow;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::sync::Arc;
 
-use cadcraft_doc::foreign::{Foreign, ForeignExtra, ForeignKey, ForeignObject};
-use cadcraft_doc::{Drawing, Entity, EntityKind, Handle, RawTag, Unknown};
 use cadcraft_dxf::{Section, Tag};
+use cadcraft_model::foreign::{Foreign, ForeignExtra, ForeignKey, ForeignObject};
+use cadcraft_model::{Drawing, Entity, EntityKind, Handle, RawTag, Unknown};
 
 /// Named object dictionary entries CADCraft writes itself from its model (plus every key that
 /// starts with `CADCRAFT`): they are read into the model, not kept raw. A change that starts
@@ -306,7 +306,7 @@ fn put_xdata(d: &mut Drawing, mut xdata: HashMap<Handle, Vec<RawTag>>) {
     if xdata.is_empty() {
         return;
     }
-    let mut give = |store: &mut cadcraft_doc::EntityStore| {
+    let mut give = |store: &mut cadcraft_model::EntityStore| {
         let hs: Vec<Handle> = store.iter().map(|e| e.handle).filter(|h| xdata.contains_key(h)).collect();
         for h in hs {
             if let Some(xd) = xdata.remove(&h) {
@@ -787,7 +787,7 @@ fn extra_for<'a>(
     }
 }
 
-/// Entities' own xdata ([`cadcraft_doc::Common::xdata`]), by handle.
+/// Entities' own xdata ([`cadcraft_model::Common::xdata`]), by handle.
 type XdataOf<'a> = HashMap<Handle, &'a [RawTag]>;
 
 /// The extras of entity `h`: what the drawing keeps for it, with the entity's own xdata.
@@ -975,11 +975,11 @@ fn plan_unknown(d: &Drawing, recs: &[Rec], tags: &[Tag], roles: &HashMap<Foreign
         recs.iter().skip(i).find(|r| r.kind == "ENDBLK").map(|r| r.start)
     };
     let br = |name: &str| roles.get(&("BLOCK_RECORD".to_string(), up(name))).cloned();
-    let first_at = |s: &cadcraft_doc::EntityStore| s.iter().find_map(|e| at.get(&e.handle.hex()).copied());
-    let mut layouts: Vec<&cadcraft_doc::Layout> = d.layouts.iter().collect();
+    let first_at = |s: &cadcraft_model::EntityStore| s.iter().find_map(|e| at.get(&e.handle.hex()).copied());
+    let mut layouts: Vec<&cadcraft_model::Layout> = d.layouts.iter().collect();
     layouts.sort_by_key(|l| l.tab_order);
     // (entities, owner, paper space, end of the space, section)
-    let mut stores: Vec<(&cadcraft_doc::EntityStore, Option<String>, bool, Option<usize>, &str)> = Vec::new();
+    let mut stores: Vec<(&cadcraft_model::EntityStore, Option<String>, bool, Option<usize>, &str)> = Vec::new();
     let model_end = layouts.first().and_then(|l| first_at(&l.entities)).or(ents_end);
     stores.push((&d.model, br("*Model_Space"), false, model_end, "ENTITIES"));
     for (i, l) in layouts.iter().enumerate() {

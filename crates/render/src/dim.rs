@@ -6,9 +6,9 @@
 //! DIMPOST, DIMTOL/DIMLIM with DIMTZIN and DIMTOLJ, DIMALT with DIMALTU/DIMALTZ/DIMALTRND,
 //! DIMAZIN, DIMARCSYM).
 
-use cadcraft_doc::{DimKind, DimStyle, Dimension};
 use cadcraft_fonts::{MTextParams, TextFont};
 use cadcraft_geom::{Arc, Vec2, ccw_sweep};
+use cadcraft_model::{DimKind, DimStyle, Dimension};
 
 use crate::units::{NumFormat, format_angle, format_decimal, format_linear};
 
@@ -1355,7 +1355,7 @@ mod tests {
         let mut d = lin((0.0, 0.0), (0.0, 0.0), (0.0, 0.0), 0.0);
         d.kind = DimKind::Radius;
         d.p15 = Vec3::new(10.0, 0.0, 0.0);
-        d.marks.jogged = Some(cadcraft_doc::JoggedRadius { center: Vec3::new(0.0, -4.0, 0.0), jog: Vec3::new(5.0, -2.0, 0.0) });
+        d.marks.jogged = Some(cadcraft_model::JoggedRadius { center: Vec3::new(0.0, -4.0, 0.0), jog: Vec3::new(5.0, -2.0, 0.0) });
         // Finite control: the jogged line runs from the arrowhead on the arc to the override centre.
         let g = dimension_geometry(&d, &DimStyle::default(), 1.0);
         let jog = g.lines.iter().find(|l| l.len() == 4).expect("jogged dimension line");

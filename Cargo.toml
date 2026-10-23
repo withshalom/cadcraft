@@ -16,7 +16,7 @@ cadcraft-geom = { path = "crates/geom" }
 cadcraft-dxf = { path = "crates/dxf" }
 cadcraft-dwg = { path = "crates/dwg" }
 cadcraft-color = { path = "crates/color" }
-cadcraft-doc = { path = "crates/doc" }
+cadcraft-model = { path = "crates/model" }
 cadcraft-constraints = { path = "crates/constraints" }
 cadcraft-fonts = { path = "crates/fonts" }
 cadcraft-render = { path = "crates/render" }
@@ -36,7 +36,7 @@ log = "0.4"
 chrono = { version = "0.4.45", default-features = false, features = ["std"] }
 rayon = "1"
 
-# DWG: BlackCAD's open DWG and DXF readers and writers (MIT OR Apache-2.0, std only), the first
+# DWG: WithShalom's open DWG and DXF readers and writers (MIT OR Apache-2.0, std only), the first
 # engine crates/dwg tries; acadrust (crates/dwg, native only) is the second.
 cad-dwg = { git = "https://github.com/withshalom/CAD", rev = "8b06c8eb6248818fe37eafba3f31d486f4813155" }
 cad-dxf = { git = "https://github.com/withshalom/CAD", rev = "8b06c8eb6248818fe37eafba3f31d486f4813155" }

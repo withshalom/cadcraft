@@ -10,10 +10,10 @@
 //! circle's radius, a polyline arc's) shows the same way, as one length field from the base, and
 //! Enter sends the typed value to the command as a number.
 
-use cadcraft_doc::Handle;
 use cadcraft_engine::Input;
 use cadcraft_engine::grip_dims::{GripDim, GripDimKind, grip_dims, resolve};
 use cadcraft_geom::Vec2;
+use cadcraft_model::Handle;
 use egui::{Color32, Pos2, Rect, Shape, Stroke, pos2, vec2};
 
 use crate::CadApp;
@@ -230,7 +230,7 @@ fn padlock(p: &egui::Painter, c: Pos2, color: Color32) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cadcraft_doc::EntityKind;
+    use cadcraft_model::EntityKind;
     use egui::Event;
 
     fn run_frame(app: &mut CadApp, ctx: &egui::Context, events: Vec<Event>) {

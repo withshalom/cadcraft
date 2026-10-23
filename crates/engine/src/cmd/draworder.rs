@@ -4,7 +4,7 @@
 
 use std::collections::{HashMap, HashSet};
 
-use cadcraft_doc::{EntityKind, Handle};
+use cadcraft_model::{EntityKind, Handle};
 use serde_json::{Value, json};
 
 use super::machines::{SelOutcome, SelectPhase, SelectRun};

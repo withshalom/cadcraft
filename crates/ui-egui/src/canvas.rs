@@ -2,10 +2,10 @@
 //! markers, crosshair cursor, ViewCube, UCS icon and mouse handling.
 
 use cadcraft_color::Rgb;
-use cadcraft_doc::Handle;
 use cadcraft_engine::Input;
 use cadcraft_engine::snap::{self, SnapHit};
 use cadcraft_geom::{Bounds2, Vec2};
+use cadcraft_model::Handle;
 use cadcraft_render::{DisplayList, Kind};
 use egui::{Color32, Pos2, Rect, Sense, Shape, Stroke, pos2, vec2};
 
@@ -257,7 +257,7 @@ fn preview_options(scale: f64) -> cadcraft_render::Options {
 /// command's rubber band and rebuilt copies of existing objects. They carry CLAYER's properties,
 /// not the objects', so they are drawn opaque (the GPU drag of the objects themselves keeps their
 /// transparency, see [`draw_drag_gpu`]).
-fn rebuilt_preview<'a>(doc: &cadcraft_doc::Drawing, ents: impl IntoIterator<Item = &'a cadcraft_doc::Entity>, scale: f64) -> DisplayList {
+fn rebuilt_preview<'a>(doc: &cadcraft_model::Drawing, ents: impl IntoIterator<Item = &'a cadcraft_model::Entity>, scale: f64) -> DisplayList {
     cadcraft_render::build_entities(doc, ents, &preview_options(scale))
 }
 
@@ -382,7 +382,7 @@ fn ensure_list(app: &mut CadApp, xf: &Xf, views: &[(Bounds2, f64)], ctx: &egui::
 fn split_viewport(
     st: &cadcraft_engine::DocState,
     stencil: bool,
-) -> Option<(Handle, cadcraft_doc::Viewport, Option<cadcraft_render::clip::PolyClip>)> {
+) -> Option<(Handle, cadcraft_model::Viewport, Option<cadcraft_render::clip::PolyClip>)> {
     let (h, vp) = st.active_viewport()?;
     let clip = cadcraft_render::viewport_clip(&st.doc, h, &vp);
     (clip.is_none() || stencil).then_some((h, vp, clip))
@@ -439,7 +439,7 @@ impl VpContent {
 /// view, as `p = k·p0 + b` on paper. A model point m is at p0 = c + s0 (m − c0) in the list and
 /// belongs at p = c + s (m − vc), with c the viewport's centre and s, s0 paper units per model
 /// unit, so k = s / s0 and b = c (1 − k) + s (c0 − vc).
-fn vp_motion(vp: &cadcraft_doc::Viewport, built: (Vec2, f64)) -> Option<(f64, Vec2)> {
+fn vp_motion(vp: &cadcraft_model::Viewport, built: (Vec2, f64)) -> Option<(f64, Vec2)> {
     let (s, k) = (vp.height / vp.view_height, built.1 / vp.view_height);
     let b = vp.center.xy() * (1.0 - k) + (built.0 - vp.view_center) * s;
     (k.is_finite() && k > 0.0 && b.is_finite()).then_some((k, b))
@@ -900,9 +900,9 @@ fn draw_drag_gpu(
     c: &mut CanvasState,
     p: &egui::Painter,
     xf: &Xf,
-    doc: &cadcraft_doc::Drawing,
+    doc: &cadcraft_model::Drawing,
     drag: &cadcraft_engine::Drag,
-    clipboard: (&[cadcraft_doc::Entity], u64),
+    clipboard: (&[cadcraft_model::Entity], u64),
     bg: Rgb,
     transparency: bool,
 ) {
@@ -1489,11 +1489,11 @@ pub fn show(app: &mut CadApp, ui: &mut egui::Ui) {
     if inside
         && dbl_primary
         && !app.session.prompting()
-        && matches!(app.session.layout_space(), cadcraft_doc::Space::Paper(_))
+        && matches!(app.session.layout_space(), cadcraft_model::Space::Paper(_))
         && let Some(hp) = hover_pos
     {
         let pp = xf_paper.to_world(hp);
-        let in_rect = |v: &cadcraft_doc::Viewport| (pp.x - v.center.x).abs() <= v.width / 2.0 && (pp.y - v.center.y).abs() <= v.height / 2.0;
+        let in_rect = |v: &cadcraft_model::Viewport| (pp.x - v.center.x).abs() <= v.width / 2.0 && (pp.y - v.center.y).abs() <= v.height / 2.0;
         let in_active = active_vp.as_ref().is_some_and(|v| active_clip.as_ref().map_or(in_rect(v), |c| c.contains(pp)));
         if !in_active {
             app.canvas.hot_grips.clear();
@@ -2214,7 +2214,7 @@ fn hatch_at(app: &CadApp, w: Vec2, scale: f64) -> Option<Handle> {
     let st = app.session.state().ok()?;
     let aperture = app.session.settings.pickbox.max(1.0) * 1.5 / scale.max(1e-12);
     let h = cadcraft_engine::select::pick(&st.doc, &st.edit_space(), w, aperture)?;
-    matches!(st.doc.entity(h)?.kind, cadcraft_doc::EntityKind::Hatch(_)).then_some(h)
+    matches!(st.doc.entity(h)?.kind, cadcraft_model::EntityKind::Hatch(_)).then_some(h)
 }
 
 /// Half the side of the pick box: the pick aperture (PICKBOX × 1.5 pixels, as `select::pick` is
@@ -2680,10 +2680,10 @@ pub(crate) mod tests {
     /// on, and is opaque when it is off.
     #[test]
     fn dragged_objects_keep_their_transparency() {
-        let mut d = cadcraft_doc::Drawing::new_metric();
-        let common = cadcraft_doc::Common { transparency: cadcraft_doc::Transparency::Percent(50), ..Default::default() };
-        let line = cadcraft_doc::Line { a: cadcraft_geom::Vec3::ZERO, b: cadcraft_geom::Vec3::new(10.0, 0.0, 0.0) };
-        let h = d.add(&cadcraft_doc::Space::Model, common, cadcraft_doc::EntityKind::Line(line)).unwrap();
+        let mut d = cadcraft_model::Drawing::new_metric();
+        let common = cadcraft_model::Common { transparency: cadcraft_model::Transparency::Percent(50), ..Default::default() };
+        let line = cadcraft_model::Line { a: cadcraft_geom::Vec3::ZERO, b: cadcraft_geom::Vec3::new(10.0, 0.0, 0.0) };
+        let h = d.add(&cadcraft_model::Space::Model, common, cadcraft_model::EntityKind::Line(line)).unwrap();
         let drag = cadcraft_engine::Drag { handles: vec![h], matrix: cadcraft_geom::Mat3::IDENTITY, extra: Vec::new(), clipboard: false };
         let rect = Rect::from_min_size(Pos2::ZERO, vec2(200.0, 100.0));
         let xf = Xf { rect, center: Vec2::new(5.0, 0.0), scale: 10.0 };
@@ -2708,7 +2708,7 @@ pub(crate) mod tests {
     fn rebuilt_previews_stay_opaque_on_a_transparent_current_layer() {
         let mut s = cadcraft_engine::Session::new();
         let d = s.doc_mut().unwrap();
-        d.layers.push(cadcraft_doc::Layer { name: "Glass".into(), transparency: 40, ..Default::default() });
+        d.layers.push(cadcraft_model::Layer { name: "Glass".into(), transparency: 40, ..Default::default() });
         d.header.set_str("CLAYER", "Glass");
         assert!(s.settings.transparency_display);
         // LINE: the segment from the first point to the cursor.
@@ -2760,7 +2760,7 @@ pub(crate) mod tests {
 
     #[test]
     fn viewport_highlight_is_tessellated_once_per_selection_and_zoom_band() {
-        use cadcraft_doc::{Circle, Common, Drawing, EntityKind, Space};
+        use cadcraft_model::{Circle, Common, Drawing, EntityKind, Space};
         let mut d = Drawing::new_imperial();
         let circle = |r| EntityKind::Circle(Circle { center: cadcraft_geom::Vec3::new(0.0, 0.0, 0.0), radius: r });
         let a = d.add(&Space::Model, Common::default(), circle(10.0)).unwrap();

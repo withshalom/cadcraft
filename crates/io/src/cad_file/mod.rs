@@ -1,5 +1,5 @@
 //! CADCraft's native format, `.cad` (docs/cad-format.md): CADCraft's drawing model as records in
-//! the container of BlackCAD's open `cad-native` crate, marked as CADCraft's in the file header.
+//! the container of WithShalom's open `cad-native` crate, marked as CADCraft's in the file header.
 //!
 //! The records hold the model's serde form ([`node`]) as tags under the codes of the file's name
 //! dictionary ([`codec`]), so every entity type, table and setting is saved exactly, and a field
@@ -16,8 +16,8 @@ use cad_native::RECORDS_CADCRAFT;
 use cad_native::cad_model::model::Handle as TagHandle;
 use cad_native::container::{Builder, Container, Encoding};
 use cad_native::tags::{TagWriter, Value, put_record, records};
-use cadcraft_doc::foreign::{Foreign, ForeignExtra, ForeignObject};
-use cadcraft_doc::{Block, Drawing, Entity, HVal, Handle, Header, RawTag, XrefStatus};
+use cadcraft_model::foreign::{Foreign, ForeignExtra, ForeignObject};
+use cadcraft_model::{Block, Drawing, Entity, HVal, Handle, Header, RawTag, XrefStatus};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 
@@ -361,7 +361,7 @@ fn field(body: &mut Vec<(String, Node)>, name: &str) -> Option<Node> {
 #[derive(Default)]
 struct Parts {
     d: Drawing,
-    parametric: Option<cadcraft_doc::Parametric>,
+    parametric: Option<cadcraft_model::Parametric>,
     foreign: Foreign,
     entities: Vec<(Entity, Option<String>, Option<String>)>,
 }
@@ -446,7 +446,7 @@ impl Parts {
 pub fn read(bytes: &[u8]) -> Result<Drawing> {
     let c = Container::parse(bytes).map_err(err)?;
     if c.header.records != RECORDS_CADCRAFT {
-        return Err(err("the file holds another program's records (BlackCAD's .blc?)"));
+        return Err(err("the file holds another program's records"));
     }
     let mut notes: Vec<String> = c.notes.clone();
     let section = |name: &str, notes: &mut Vec<String>| -> Option<Vec<u8>> {

@@ -15,18 +15,18 @@ About 57,000 lines of Rust in 12 library crates, 3 apps and `xtask` (counted 202
 | L0 | `geom` | 2,067 | f64 2D/3D vectors, `Mat3`/`Mat4`, bounds, lines, arcs and bulges, circles, ellipses, (rational) B-splines with fit-point interpolation, line/arc intersections, tessellation, planar region tracing for HATCH/BOUNDARY (`region.rs`) |
 | L0 | `dxf` | 571 | Standalone DXF tag reader/writer: ASCII and binary, tag-count limits for hostile input |
 | L1 | `color` | 265 | AutoCAD Color Index table, true colour, ByLayer/ByBlock |
-| L1 | `doc` | 3,054 | The drawing database: header, symbol tables (layers, linetypes, text/dimension/table/multileader styles), blocks, model space, layouts, constraints; copy-on-write `EntityStore`; our own hatch pattern and linetype library (`library.rs`) |
+| L1 | `model` | 3,054 | The drawing database: header, symbol tables (layers, linetypes, text/dimension/table/multileader styles), blocks, model space, layouts, constraints; copy-on-write `EntityStore`; our own hatch pattern and linetype library (`library.rs`) |
 | L2 | `fonts` | 2,062 | Our single-stroke drafting font, TrueType/OpenType/`.ttc` outlines through `skrifa`, TEXT and MTEXT layout and formatting codes, per-character fallback and FONTALT |
 | L2 | `render` | 3,300 | Display lists (polylines, triangles, points tagged with entity handles): linetypes, hatches, gradients, text, block expansion, dimension geometry, paper-space clipping; CPU rasteriser (`tiny-skia`) for PNG, plot preview and tests |
 | L2 | `constraints` | 2,504 | Own parametric solver: damped Gauss–Newton / Levenberg–Marquardt (`lm.rs`), 12 geometric and the dimensional constraints, expressions and parameters, AutoConstrain inference |
 | L3 | `io` | 5,124 | DXF ⇄ document mapping (`dxf_read.rs`, `dxf_write.rs`, CADCraft xdata in `dxf_ext.rs`), PDF plotting, SVG and PNG export |
-| L3 | `dwg` | 149 | DWG (and on `dwg-native`, BlackCAD's `.blc`) through a DXF bridge, two engines converting DWG ⇄ DXF bytes: BlackCAD's open `cad-dwg`/`cad-dxf` crates (MIT OR Apache-2.0, std only, every target) first, and the `acadrust` crate (MPL-2.0, unmodified, native only) for what BlackCAD doesn't convert whole; nothing else sees their types |
+| L3 | `dwg` | 149 | DWG through a DXF bridge, two engines converting DWG ⇄ DXF bytes: WithShalom's open `cad-dwg`/`cad-dxf` crates (MIT OR Apache-2.0, std only, every target) first, and the `acadrust` crate (MPL-2.0, unmodified, native only) for what the open engine doesn't convert whole; nothing else sees their types |
 | L4 | `engine` | 25,090 | `Session`, the command registry (`cmd/*`), command-line parser and prompt machines, object snaps and polar/ortho (`snap.rs`), selection (`select.rs`), grips (`grips.rs`), associativity (`assoc.rs`), system variables, units, undo, R-tree spatial index (`spatial.rs`) |
 | L5 | `ui-egui` | 9,849 | The swappable egui front end: GPU canvas (`gpu.rs`, wgpu), menus and shortcuts (`menus.rs`), command line, palettes, Layer Properties Manager and other dialogs, ViewCube, icons drawn in code, themes, the interface string catalog (`i18n/`, English, Ukrainian and German), JSON control channel (`control.rs`) |
 | L5 | `mcp` | 559 | MCP server (JSON-RPC 2.0 over stdio) on a headless session or bridged to a running app |
 | app | `cadcraft` | 1,102 | Desktop app (eframe/wgpu; DirectX 12 by default on Windows) |
 | app | `cadcraft-cli` | 823 | `info`, `convert`, `run` (scripts), `commands`, `sample`, `mcp` |
-| app | `cadcraft-web` | 88 | WASM build of the same UI (DWG through BlackCAD's crates only) |
+| app | `cadcraft-web` | 88 | WASM build of the same UI (DWG through WithShalom's open crates only) |
 | tool | `xtask` | 1,064 | `ci`, `layers`, `assets`, `wasm`, `parity`, `version`, `stats`, icon generation |
 
 `cargo xtask layers` enforces the layering: nothing below L5 depends on egui, eframe, winit,
@@ -65,9 +65,9 @@ SVG and plot preview reuse the same display list through the CPU rasteriser or v
 
 DXF is the native path: `dxf` parses tags, `io::dxf_read` maps them to the document, and
 `io::dxf_write` writes an R2000 (AC1015) DXF. DWG is converted to DXF in memory and read through
-the same path; saving DWG writes our DXF and converts it back. The conversion is BlackCAD's
-(`cad-dwg`, `cad-dxf`) when it carries the drawing over whole and acadrust's otherwise: BlackCAD
-reads R13–2018 except 2007 and writes 2018, and counts what it would leave out. CADCraft-only data
+the same path; saving DWG writes our DXF and converts it back. The conversion is WithShalom's open
+(`cad-dwg`, `cad-dxf`) crates' when they carry the drawing over whole and acadrust's otherwise: they
+read R13–2018 except 2007 and write 2018, and count what they would leave out. CADCraft-only data
 (constraints, associativity details, table flags) travels in xdata under our own application
 name. Detail and gaps: [file-format-parity.md](file-format-parity.md).
 

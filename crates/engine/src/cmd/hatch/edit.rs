@@ -3,8 +3,8 @@
 //! boundaries of existing hatches.
 
 use cadcraft_color::Color;
-use cadcraft_doc::{Drawing, EntityKind, Gradient, Handle, Hatch, HatchLoop, entity_bounds};
 use cadcraft_geom::{Bounds2, Polyline, Vec2, point_in_polygon};
+use cadcraft_model::{Drawing, EntityKind, Gradient, Handle, Hatch, HatchLoop, entity_bounds};
 use serde_json::{Value, json};
 
 use super::assoc::{detach, same_shape};
@@ -50,7 +50,7 @@ fn link(d: &Drawing, handle: Handle, h: &mut Hatch, boundary: Option<&[Handle]>,
         *budget -= 1;
         let lb = Bounds2::from_points(outline(l));
         let eps = 1e-4 * (1.0 + lb.width() + lb.height());
-        let fits = |e: &cadcraft_doc::Entity| {
+        let fits = |e: &cadcraft_model::Entity| {
             let eb = entity_bounds(d, e, 0);
             e.handle != handle
                 && eb.min.dist(lb.min) <= eps
@@ -152,7 +152,7 @@ fn properties(h: &mut Hatch, p: &Value) {
         if !h.solid {
             // A library pattern is drawn from the library; a loaded .pat pattern brings its lines;
             // any other name is the hatch's own and keeps its definition.
-            if cadcraft_doc::library::pattern(&h.pattern).is_some() {
+            if cadcraft_model::library::pattern(&h.pattern).is_some() {
                 h.pattern_lines.clear();
             } else if let Some(user) = super::patfile::user_pattern(&h.pattern) {
                 h.pattern_lines = user.lines;
@@ -390,7 +390,7 @@ pub(super) fn run_hatchedit(s: &mut Session, p: &Value) -> Result<Value> {
     // pattern read from a file keeps its definition).
     if let Some(up) = str_param(p, "pattern").map(|v| v.trim().to_ascii_uppercase()).filter(|v| !v.is_empty())
         && up != "SOLID"
-        && cadcraft_doc::library::pattern(&up).is_none()
+        && cadcraft_model::library::pattern(&up).is_none()
         && super::patfile::user_pattern(&up).is_none()
     {
         let d = s.doc()?;
@@ -631,7 +631,7 @@ impl Interactive for HatchEditM {
             (Ask::Pattern, _) => {
                 if let Some(t) = text.filter(|t| !t.is_empty()) {
                     let up = t.to_ascii_uppercase();
-                    if cadcraft_doc::library::pattern(&up).is_none() && super::patfile::user_pattern(&up).is_none() {
+                    if cadcraft_model::library::pattern(&up).is_none() && super::patfile::user_pattern(&up).is_none() {
                         s.echo(format!("Unknown pattern {up}."));
                         return Ok(Step::Continue);
                     }

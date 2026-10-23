@@ -9,9 +9,9 @@
 
 use std::sync::{Arc, Mutex};
 
-use cadcraft_doc::{Entity, Handle, Space};
 use cadcraft_dxf::Tag;
 use cadcraft_geom::Vec2;
+use cadcraft_model::{Entity, Handle, Space};
 
 use super::LispError;
 use super::builtins::args_err;
@@ -310,7 +310,7 @@ fn codec() -> Result<&'static crate::cmd::file::EntityCodec, LispError> {
     crate::cmd::file::entity_codec().ok_or_else(|| LispError::new("entity lists are not available in this build"))
 }
 
-fn space_of(d: &cadcraft_doc::Drawing, h: Handle) -> Option<Space> {
+fn space_of(d: &cadcraft_model::Drawing, h: Handle) -> Option<Space> {
     d.space_of(h)
 }
 
@@ -340,7 +340,7 @@ pub fn entget(ctx: &mut Ctx<'_>, a: Vec<Value>) -> Result<Flow, LispError> {
 }
 
 /// The entity a list describes, as the reader makes it; a missing layer (8) is the current one.
-fn entity_from_list(ctx: &Ctx<'_>, list: &Value) -> Result<(String, cadcraft_doc::Common, cadcraft_doc::EntityKind), LispError> {
+fn entity_from_list(ctx: &Ctx<'_>, list: &Value) -> Result<(String, cadcraft_model::Common, cadcraft_model::EntityKind), LispError> {
     let (kind, mut tags) = list_to_groups(list)?;
     convert_angles(&kind, &mut tags, f64::to_degrees);
     if !tags.iter().any(|t| t.code == 8) {
@@ -349,7 +349,9 @@ fn entity_from_list(ctx: &Ctx<'_>, list: &Value) -> Result<(String, cadcraft_doc
     }
     match (codec()?.entity)(&kind, &tags) {
         // A type the reader only carries through (an unknown or invalid name) isn't made.
-        Some((_, cadcraft_doc::EntityKind::Unknown(_))) | None => Err(LispError::new(format!("bad DXF group: {kind} can't be made from this list"))),
+        Some((_, cadcraft_model::EntityKind::Unknown(_))) | None => {
+            Err(LispError::new(format!("bad DXF group: {kind} can't be made from this list")))
+        }
         Some((common, k)) => Ok((kind, common, k)),
     }
 }
@@ -660,7 +662,7 @@ fn parse_filter_item(items: &[Value], i: &mut usize, depth: usize) -> Result<Fil
     })
 }
 
-fn matches_filter(d: &cadcraft_doc::Drawing, e: &Entity, f: &Filter) -> bool {
+fn matches_filter(d: &cadcraft_model::Drawing, e: &Entity, f: &Filter) -> bool {
     let groups = || match crate::cmd::file::entity_codec() {
         Some(c) => {
             let (kind, mut tags) = (c.groups)(d, e);
@@ -817,7 +819,7 @@ fn color_index(c: cadcraft_color::Color) -> i32 {
 }
 
 /// The records of a symbol table, as `tblsearch` lists them.
-fn table_records(d: &cadcraft_doc::Drawing, table: &str) -> Vec<Value> {
+fn table_records(d: &cadcraft_model::Drawing, table: &str) -> Vec<Value> {
     let pair = |c: i32, v: Value| Value::cons(Value::Int(c), v);
     match table {
         "LAYER" => d

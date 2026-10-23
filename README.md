@@ -90,7 +90,7 @@
   direct distance entry, window and crossing selection, grips, and right-click-to-repeat behave
   the way decades of drafting habit expect.
 - **Open files.** DXF is read and written natively (ASCII and binary, R12 through 2018), and DWG
-  files (R13 through 2018) open and save through BlackCAD's open-source DWG and DXF crates first
+  files (R13 through 2018) open and save through WithShalom's open-source DWG and DXF crates first
   and the acadrust library second. Export to SVG and PNG today.
 - **Fast and native.** Pure Rust and egui, no Electron, no web view. One binary on macOS
   (universal), Windows, Linux and FreeBSD, plus a WebAssembly build for the browser.
@@ -114,7 +114,7 @@ numbers):
 | Layers & properties | Layers palette and Layer Properties Manager (on/off, freeze, lock, plot, colour, linetype), layer tools (isolate, freeze, off, lock, match, previous), Properties palette with per-object editing, linetypes, lineweights, colour index and true colour |
 | Annotation | All DIM* commands with full DIMSTYLE variables, overrides and every arrowhead, associative dimensions that follow geometry, MLEADER, TABLE, TrueType fonts (`.ttf`, `.otf`, `.ttc` collections), MTEXT formatting codes (fonts, heights, colours, stacked fractions), our own single-stroke drafting font |
 | Hatch & blocks | Pick-point hatch boundaries with islands, pattern, solid and gradient fills from our own pattern library, BLOCK/INSERT, attributes and nested blocks |
-| Files | DXF read (R12–2018, ASCII and binary) and write (R2000), including dimension styles, associativity, tables and constraints; DWG read and write (BlackCAD's open DWG crates first, the acadrust library second); BlackCAD's `.blc` read and write (its open `cad-native` crate); PDF plotting, SVG and PNG export. Entities CADCraft doesn't model yet are not kept on save: see [file-format parity](docs/file-format-parity.md) |
+| Files | DXF read (R12–2018, ASCII and binary) and write (R2000), including dimension styles, associativity, tables and constraints; DWG read and write (WithShalom's open DWG crates first, the acadrust library second); `.cad` (CADCraft's native format) read and write; PDF plotting, SVG and PNG export. Entities CADCraft doesn't model yet are not kept on save: see [file-format parity](docs/file-format-parity.md) |
 | Layouts & plotting | Paper-space layouts, viewports (scale, lock, per-viewport layer freeze), MSPACE/PSPACE through viewports, page setups, PLOT and EXPORTPDF |
 | Parametric | Geometric and dimensional constraints, AUTOCONSTRAIN, PARAMETERS with expressions, conflict detection; constraints re-solve after every edit |
 | Grips | Hot grips with Space to cycle Stretch, Move, Rotate, Scale and Mirror |

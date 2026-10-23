@@ -5,8 +5,8 @@
 //! left of their extents. Otherwise each TEXT becomes its own MTEXT, attached at the point it
 //! is justified by.
 
-use cadcraft_doc::{EntityKind, HAlign, Handle, MText, Text, VAlign, entity_bounds, mtext_literal};
 use cadcraft_geom::Bounds2;
+use cadcraft_model::{EntityKind, HAlign, Handle, MText, Text, VAlign, entity_bounds, mtext_literal};
 use serde_json::{Value, json};
 
 use super::curves::KW;

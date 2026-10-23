@@ -1,8 +1,8 @@
 //! Groups (#417) survive a DWG round trip through the DXF bridge (the DXF round trip is in
 //! `tables_objects_roundtrip`).
 
-use cadcraft_doc::{Common, Drawing, EntityKind, Group, Line, Space};
 use cadcraft_geom::Vec3;
+use cadcraft_model::{Common, Drawing, EntityKind, Group, Line, Space};
 
 #[cfg(not(target_arch = "wasm32"))]
 #[test]

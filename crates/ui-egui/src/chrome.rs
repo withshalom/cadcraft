@@ -367,7 +367,7 @@ pub fn status_bar(app: &mut CadApp, ui: &mut egui::Ui) {
         let mut coord_right = rx - 8.0;
         // The annotation scale list (model space).
         coord_right = annoscale::status(app, ui, coord_right, r.center().y);
-        if matches!(app.session.layout_space(), cadcraft_doc::Space::Paper(_)) {
+        if matches!(app.session.layout_space(), cadcraft_model::Space::Paper(_)) {
             let model = app.session.state().is_ok_and(|st| st.mspace.is_some());
             let label = if model { "MODEL" } else { "PAPER" };
             let br = Rect::from_min_max(pos2(rx - 60.0, r.center().y - 9.0), pos2(rx - 6.0, r.center().y + 9.0));
@@ -387,8 +387,8 @@ pub fn status_bar(app: &mut CadApp, ui: &mut egui::Ui) {
         // current one always); the layout list reaches the rest.
         let mut tabs: Vec<String> = vec!["Model".into()];
         let cur = app.session.state().map(|s| match &s.space {
-            cadcraft_doc::Space::Model => "Model".to_string(),
-            cadcraft_doc::Space::Paper(n) => n.clone(),
+            cadcraft_model::Space::Model => "Model".to_string(),
+            cadcraft_model::Space::Paper(n) => n.clone(),
         });
         if let Ok(st) = app.session.state() {
             let mut ls: Vec<_> = st.doc.layouts.iter().collect();

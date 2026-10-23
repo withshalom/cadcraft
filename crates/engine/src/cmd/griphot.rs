@@ -8,8 +8,8 @@
 
 use std::sync::Arc;
 
-use cadcraft_doc::{Drawing, EntityKind, Handle};
 use cadcraft_geom::{Mat3, Vec2};
+use cadcraft_model::{Drawing, EntityKind, Handle};
 
 use super::gripcmds::stretch_grips;
 use super::helpers::line;

@@ -8,10 +8,10 @@
 //! row and cell styles and the formulas go into CADCraft xdata (`TABLEX`, JSON).
 
 use cadcraft_color::Color;
-use cadcraft_doc::{
+use cadcraft_dxf::Tag;
+use cadcraft_model::{
     CellBorder, CellStyle, DataLink, Lineweight, MAX_CELL_STYLES, MAX_TABLE_PARTS, Table, TableBreak, TableCellData, TableStyle, TableStyleProps,
 };
-use cadcraft_dxf::Tag;
 use serde::{Deserialize, Serialize};
 
 use crate::dxf_ext::{APP, xdata};

@@ -82,7 +82,7 @@ fn selection_filter_combines_before_paging_without_changing_state() {
 
 #[test]
 fn selection_is_empty_by_default_and_limited_to_active_space() {
-    use cadcraft_doc::{Handle, Space};
+    use cadcraft_model::{Handle, Space};
     let mut s = Session::new();
     s.execute("circle", &json!({"center": [0, 0], "radius": 2})).unwrap();
     let model = s.doc().unwrap().model.iter().next().unwrap().handle;

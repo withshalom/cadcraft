@@ -2,10 +2,10 @@
 //! text's defined height, a dimension's text attachment, a block's uniform scaling, a scale's
 //! unit flag; and the text style group is written only when it isn't the default.
 
-use cadcraft_doc::*;
 use cadcraft_dxf::{Tag, parse, records, sections};
 use cadcraft_geom::Vec3;
 use cadcraft_io::{Version, read_dxf};
+use cadcraft_model::*;
 
 fn save(d: &Drawing) -> String {
     let mut d = d.clone();

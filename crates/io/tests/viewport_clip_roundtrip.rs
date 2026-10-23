@@ -2,8 +2,8 @@
 //! status flags (group 90: 16384 locked, 65536 non-rectangular clipping, 131072 off), status 68
 //! (0 = off) and the clip boundary entity (group 340), per the public DXF Reference.
 
-use cadcraft_doc::*;
 use cadcraft_geom::{PolyVertex, Vec2, Vec3};
+use cadcraft_model::*;
 
 /// A metric drawing with model lines and, on its first layout, an L-shaped closed polyline
 /// clipping a viewport.

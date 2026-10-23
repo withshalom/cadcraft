@@ -1,8 +1,8 @@
 //! LAYOUT / -LAYOUT typed at the command line asks for an option and the layout names it needs
 //! instead of running the next inputs as commands.
 
-use cadcraft_doc::Space;
 use cadcraft_engine::Session;
+use cadcraft_model::Space;
 
 fn layouts(s: &Session) -> Vec<String> {
     let mut ls: Vec<_> = s.doc().unwrap().layouts.iter().map(|l| (l.tab_order, l.name.clone())).collect();

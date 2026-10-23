@@ -7,9 +7,9 @@
 
 use std::collections::HashMap;
 
-use cadcraft_doc::{Drawing, EntityKind};
 use cadcraft_dxf::{Tag, records, sections};
 use cadcraft_io::{read_dxf, write_dxf};
+use cadcraft_model::{Drawing, EntityKind};
 
 /// DXF text from lines of `code value` (the value may be empty).
 fn dxf(src: &str) -> String {
@@ -896,7 +896,7 @@ fn class_records_have_instance_counts_for_generated_and_preserved_records() {
 #[test]
 fn erased_entities_take_their_extension_data_with_them() {
     let mut d = read_dxf(fixture().as_bytes()).expect("read");
-    let line = cadcraft_doc::Handle::parse_hex("2A").expect("handle");
+    let line = cadcraft_model::Handle::parse_hex("2A").expect("handle");
     d.remove_entity(line).expect("erase the line");
     let o = Out::new(&write_dxf(&d));
     assert!(o.handle("2A").is_none());
@@ -911,7 +911,7 @@ fn erased_entities_take_their_extension_data_with_them() {
 #[test]
 fn a_new_colour_drops_the_colour_book_name() {
     let mut d = read_dxf(fixture().as_bytes()).expect("read");
-    let line = cadcraft_doc::Handle::parse_hex("2A").expect("handle");
+    let line = cadcraft_model::Handle::parse_hex("2A").expect("handle");
     d.modify_entity(line, |e| e.common.color = cadcraft_color::Color::Index(3)).expect("recolour");
     if let Some(l) = d.layer_mut("WALLS") {
         l.color = cadcraft_color::Color::Index(5);

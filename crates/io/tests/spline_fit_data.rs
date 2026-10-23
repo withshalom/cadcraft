@@ -1,8 +1,8 @@
 //! SPLINE fit data in DXF: fit tolerance (group 44) and end tangents (12/13) are written and read
 //! back; the knot parametrisation, which DXF does not store, is recovered from the knots (#408).
 
-use cadcraft_doc::{Common, Drawing, EntityKind, Space};
 use cadcraft_geom::{FitOptions, KnotParam, Spline, Vec2};
+use cadcraft_model::{Common, Drawing, EntityKind, Space};
 
 fn roundtrip(sp: &Spline) -> Spline {
     let mut d = Drawing::new_metric();

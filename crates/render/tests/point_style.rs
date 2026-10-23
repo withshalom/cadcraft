@@ -1,7 +1,7 @@
 //! POINT display: point style (PDMODE) and size (PDSIZE) (issue #261).
 
-use cadcraft_doc::{Common, Drawing, EntityKind, Line, Point, Space};
 use cadcraft_geom::{Bounds2, Vec3};
+use cadcraft_model::{Common, Drawing, EntityKind, Line, Point, Space};
 use cadcraft_render::{DisplayList, Kind, Options, build};
 
 /// A point at (5,5) and a vertical line 100 units long (the extents are 100 high).

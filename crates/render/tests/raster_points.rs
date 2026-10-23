@@ -1,8 +1,8 @@
 //! PNG rasterising of POINT markers must never panic, wherever the point lands on the pixel grid
 //! (issue #270).
 
-use cadcraft_doc::{Common, Drawing, EntityKind, Line, Point, Space};
 use cadcraft_geom::{Vec2, Vec3};
+use cadcraft_model::{Common, Drawing, EntityKind, Line, Point, Space};
 use cadcraft_render::raster::{RasterOptions, View, render};
 use cadcraft_render::{Options, build};
 

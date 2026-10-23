@@ -5,9 +5,9 @@
 //!
 //! The fonts are tiny synthetic TrueType files built here (no font files in the repository).
 
-use cadcraft_doc::{Common, Drawing, EntityKind, Space, Text, TextStyle, Viewport};
 use cadcraft_geom::{Vec2, Vec3};
 use cadcraft_io::plot;
+use cadcraft_model::{Common, Drawing, EntityKind, Space, Text, TextStyle, Viewport};
 use serde_json::json;
 
 // ---------- a minimal TrueType font: .notdef, "A" (triangle), "B" (square) ----------

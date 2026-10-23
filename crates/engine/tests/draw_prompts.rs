@@ -1,8 +1,8 @@
 //! Command-line behaviour of the SPLINE, POLYGON and CIRCLE prompt machines.
 
-use cadcraft_doc::EntityKind;
 use cadcraft_engine::Session;
 use cadcraft_geom::Vec2;
+use cadcraft_model::EntityKind;
 
 fn last(s: &Session) -> EntityKind {
     s.doc().unwrap().model.iter().last().map(|e| e.kind.clone()).unwrap()

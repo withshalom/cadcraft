@@ -1,6 +1,6 @@
-# The dwg-fidelity branch: CADCraft holds DWG files with more fidelity, through BlackCAD's open
-# crates; CADCraft's model and behaviour stay as they are. Lint, tests
-# and the web check of the crates the branch changes, and a round trip of BlackCAD's MI-201 corpus
+# The dwg-fidelity branch: CADCraft holds DWG files with more fidelity, through WithShalom's open
+# DWG and DXF crates; CADCraft's model and behaviour stay as they are. Lint, tests
+# and the web check of the crates the branch changes, and a round trip of the MI-201 corpus
 # (real AutoCAD files, cloned from withshalom/CAD at run time, never committed here). Failures and
 # the corpus report are posted as annotations. `full: true` also runs `cargo xtask ci`.
 name: dwg-fidelity
@@ -41,10 +41,10 @@ jobs:
           rustup default stable
           rustup target add wasm32-unknown-unknown
           rustc --version
-      - name: BlackCAD corpus
+      - name: MI-201 corpus
         run: |
-          git clone --depth 1 https://github.com/withshalom/CAD "$RUNNER_TEMP/blackcad"
-          echo "BLACKCAD_CORPUS=$RUNNER_TEMP/blackcad/corpus/mosaiciron-mi201" >> "$GITHUB_ENV"
+          git clone --depth 1 https://github.com/withshalom/CAD "$RUNNER_TEMP/corpus"
+          echo "MI201_CORPUS=$RUNNER_TEMP/corpus/corpus/mosaiciron-mi201" >> "$GITHUB_ENV"
       - name: Format
         run: |
           cargo fmt --all -- --check > "$RUNNER_TEMP/fmt.log" 2>&1 || { python3 .github/scripts/annotate.py notice fmt "$RUNNER_TEMP/fmt.log"; exit 1; }

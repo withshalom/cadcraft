@@ -7,11 +7,11 @@
 keeps it in memory, so a drawing saved and opened again is the same drawing, bit for bit, with
 nothing translated through DXF or DWG.
 
-It uses the container of BlackCAD's native format (`.blc`): the same file header, named
-sections, compression, CRCs, directory copies and recovery data, from BlackCAD's open
-`cad-native` crate (MIT OR Apache-2.0). The records inside are CADCraft's own. The file header
-says whose records a file holds (bytes 40–41: 0 BlackCAD's, 1 CADCraft's), so each program
-tells the two apart by content and refuses the other's with a message saying what it is.
+It uses the container of WithShalom's open `cad-native` crate (MIT OR Apache-2.0): the same file
+header, named sections, compression, CRCs, directory copies and recovery data. The records inside
+are CADCraft's own. The file header says whose records a file holds (bytes 40–41: 0 the crate's
+own, 1 CADCraft's), so each program tells the two apart by content and refuses the other's with a
+message saying what it is.
 
 This document has three parts: how CADCraft models a drawing (§1), the format (§2–§8), and
 where the file differs from the model and why (§9). The lock file is §10.
@@ -20,7 +20,7 @@ where the file differs from the model and why (§9). The lock file is §10.
 
 ## 1. CADCraft's drawing model
 
-The model is the `cadcraft-doc` crate. Every type in it except the drawing itself, the entity
+The model is the `cadcraft-model` crate. Every type in it except the drawing itself, the entity
 store and the kept foreign data derives serde's `Serialize` and `Deserialize`, with defaults on
 almost every field; CADCraft already uses that form for its command parameters, the MCP and
 control channel, and its own extension data inside DXF files. The format is built on it (§9.1).
@@ -86,9 +86,9 @@ where DXF keeps them:
 | Tolerance | insertion point, direction, style, frame contents |
 | Unknown | an entity type CADCraft doesn't model: its DXF type and groups, kept and written back |
 
-### 1.3 Compared with BlackCAD's model
+### 1.3 Compared with `cad-native`'s own model
 
-The `.cad` records follow CADCraft's model, not BlackCAD's (owner's decision, 2026-10-22). The
+The `.cad` records follow CADCraft's model, not `cad-native`'s own (owner's decision, 2026-10-22). The
 main differences, for anyone reading both formats: CADCraft's splines are 2D; its regions are
 bulge loops rather than ACIS bodies (ACIS data from a file stays in the kept foreign data);
 dimensions keep their definition points and regenerate their geometry; constraints, parametric
@@ -99,7 +99,7 @@ owner handles: an entity belongs to model space, a layout or a block by where it
 
 ## 2. The container
 
-Everything in BlackCAD's `docs/FORMAT.md` §1–§5 applies unchanged: little-endian values,
+Everything in `cad-native`'s `docs/FORMAT.md` §1–§5 applies unchanged: little-endian values,
 varints, the 48-byte header in two copies, the section directory in two copies, DEFLATE,
 records split into streams before compression, CRC-32 per section, recovery parity between the
 directory copies, the save to a temporary file renamed over the target. The header's format
@@ -157,16 +157,16 @@ across pages. Pages are read in number order.
 
 ### 3.5 `Preview`
 
-An SVG of model space, as for `.blc`, so file browsers and Open dialogs can show the drawing.
-At most 1 MiB before compression; left out when larger (BlackCAD allows 4 MiB). A hatched
+An SVG of model space, as `cad-native` files have, so file browsers and Open dialogs can show the drawing.
+At most 1 MiB before compression; left out when larger (`cad-native` allows 4 MiB). A hatched
 drawing's SVG draws every hatch line and can be several megabytes, many times the drawing
 itself; a lighter preview is later work.
 
 ### 3.6 `Recovery`
 
-Parity over the snapshot's sections, as `.blc` (FORMAT.md §7.7), so a damaged stretch of the
+Parity over the snapshot's sections, as `cad-native` files have (FORMAT.md §7.7), so a damaged stretch of the
 file can be rebuilt. CADCraft writes it; its reader doesn't apply it yet, because `cad-native`
-keeps the repair private (a public `repair` in `cad-native` is a small BlackCAD change). Until
+keeps the repair private (a public `repair` in `cad-native` is a small `cad-native` change). Until
 then a damaged section is read as it is, with a note (§7).
 
 ## 4. Records and codes
@@ -189,7 +189,7 @@ value). It starts with an **envelope**, then its **body**: the object's fields.
 | 3001 + 2*i* | I16 | named | A compound value of the field or key named by entry *i*; the value is its form (§5) |
 
 Codes below 2000 keep their DXF meaning, as in every record of this container. Codes 2000 and up
-are CADCraft's own in a CADCraft file (BlackCAD's own codes mean other things in BlackCAD's
+are CADCraft's own in a CADCraft file (`cad-native`'s own codes mean other things in its own
 files; a file holds one or the other).
 
 The body of a record is a map: one named value per field, until the end of the record (no end
@@ -253,8 +253,8 @@ and tools reading the file; the body's `kind.type` field is what the reader uses
 ## 7. Reading
 
 - **Recognising.** A file is CADCraft's `.cad` when the container's magic is there and the
-  records field is 1, whatever its name. A `.blc` or a BlackCAD file named `.cad` (records field
-  0) goes to the `.blc` reader.
+  records field is 1, whatever its name. A `cad-native` file with its own records (records field
+  0) named `.cad` is refused with a message saying what it is.
 - **Versions.** Records 1.x are read. A newer minor version is read with a note that fields a
   newer CADCraft added are not kept on save. A major version other than 1 is refused with a
   message naming it.
@@ -285,7 +285,7 @@ and tools reading the file; the body's `kind.type` field is what the reader uses
 1. **Serde form instead of a hand-written layout per type** (optimal). The model already has a
    complete, defaulted serde form; writing it field by field under dictionary codes means every
    entity type, table and setting is saved, today and as the model grows, with one encoder and
-   one decoder instead of one per type. BlackCAD's records name fields by fixed DXF group codes;
+   one decoder instead of one per type. `cad-native`'s own records name fields by fixed DXF group codes;
    CADCraft's fields have no DXF code (most of them aren't in DXF at all), so names are coded
    through the file's dictionary, which costs a few bytes per file and none per record.
 2. **Points, handles and integers in their own tag types** (optimal). `Vec2`/`Vec3` as P2/P3
@@ -317,7 +317,7 @@ and tools reading the file; the body's `kind.type` field is what the reader uses
 ## 10. The lock file (`.cdl`)
 
 While a `.cad` drawing is open for editing, CADCraft keeps `name.cdl` beside it (`part.cad` →
-`part.cdl`): BlackCAD's lock format under CADCraft's name (`cad_native::lock`,
+`part.cdl`): `cad-native`'s lock format under CADCraft's name (`cad_native::lock`,
 `LockKind::CADCRAFT`; the first line is `cdl 1`), a few lines of text saying who has the drawing
 open, on which machine, in which program, since when, and a heartbeat.
 
@@ -334,8 +334,8 @@ open, on which machine, in which program, since when, and a heartbeat.
 - **Closing** the drawing (or CADCraft) removes the lock file.
 - Only `.cad` drawings are locked by CADCraft today. AutoCAD's own `.dwl` locks beside DWG files
   are separate work. The web build has no files and no locks.
-- Like AutoCAD's `.dwl`, the lock is advisory: it coordinates copies of CADCraft (and BlackCAD,
-  which reads `cdl` locks) on a shared folder; it does not stop other programs writing the file.
+- Like AutoCAD's `.dwl`, the lock is advisory: it coordinates copies of CADCraft (and WithShalom's other programs,
+  which read `cdl` locks) on a shared folder; it does not stop other programs writing the file.
 
 ## Revision history
 

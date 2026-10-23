@@ -2,7 +2,7 @@
 //! European, Greek, Japanese, Chinese and Korean drawings open with their layer names, block names
 //! and text intact, in ASCII and binary DXF, and a hostile file never panics.
 
-use cadcraft_doc::{Drawing, EntityKind};
+use cadcraft_model::{Drawing, EntityKind};
 
 /// An ASCII DXF of `version` declaring `code_page`, with a layer, a block and a TEXT whose names
 /// and value are the raw bytes given.

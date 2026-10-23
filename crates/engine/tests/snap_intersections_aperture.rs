@@ -1,8 +1,8 @@
 //! Finite and apparent intersection behavior around the cursor aperture.
 
-use cadcraft_doc::{Common, Drawing, Ellipse, EntityKind, Line, Space};
 use cadcraft_engine::snap::{self, SnapHit, mode};
 use cadcraft_geom::{Vec2, Vec3};
+use cadcraft_model::{Common, Drawing, Ellipse, EntityKind, Line, Space};
 
 fn add_line(d: &mut Drawing, a: Vec2, b: Vec2) {
     d.add(&Space::Model, Common::default(), EntityKind::Line(Line { a: a.to3(0.0), b: b.to3(0.0) })).unwrap();
@@ -133,7 +133,7 @@ fn real_intersection_keeps_precedence_when_app_is_also_enabled() {
 #[test]
 fn line_and_circle_intersections_remain_available() {
     let mut d = Drawing::new_imperial();
-    d.add(&Space::Model, Common::default(), EntityKind::Circle(cadcraft_doc::Circle { center: Vec3::ZERO, radius: 2.0 })).unwrap();
+    d.add(&Space::Model, Common::default(), EntityKind::Circle(cadcraft_model::Circle { center: Vec3::ZERO, radius: 2.0 })).unwrap();
     add_line(&mut d, Vec2::new(-3.0, 0.0), Vec2::new(3.0, 0.0));
     add_line(&mut d, Vec2::new(0.0, -3.0), Vec2::new(0.0, 3.0));
 

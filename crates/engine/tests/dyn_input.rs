@@ -32,7 +32,7 @@ fn an_option_picked_at_the_cursor_answers_the_prompt() {
     assert!(s.running.is_none());
     let doc = s.doc().unwrap();
     let circle = doc.model.iter().find_map(|e| match &e.kind {
-        cadcraft_doc::EntityKind::Circle(c) => Some(c.clone()),
+        cadcraft_model::EntityKind::Circle(c) => Some(c.clone()),
         _ => None,
     });
     let c = circle.expect("a three-point circle");

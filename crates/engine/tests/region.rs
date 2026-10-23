@@ -2,9 +2,9 @@
 //! them; UNION, SUBTRACT and INTERSECT combine regions whose boundaries don't meet; they move,
 //! explode and snap like other objects.
 
-use cadcraft_doc::{EntityKind, Handle, Region, Space};
 use cadcraft_engine::Session;
 use cadcraft_geom::{PI, Vec2};
+use cadcraft_model::{EntityKind, Handle, Region, Space};
 use serde_json::{Value, json};
 
 fn h(v: &Value) -> Handle {

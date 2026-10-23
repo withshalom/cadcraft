@@ -4,9 +4,9 @@
 //! and hostile ones don't panic.
 
 use cadcraft_color::Color;
-use cadcraft_doc::{Common, Drawing, EntityKind, MLine, MLineCaps, MLineCut, MLineElement, MLineJust, MLineStyle, Space};
 use cadcraft_dxf::{Tag, records, sections};
 use cadcraft_geom::Vec2;
+use cadcraft_model::{Common, Drawing, EntityKind, MLine, MLineCaps, MLineCut, MLineElement, MLineJust, MLineStyle, Space};
 
 fn mlines(d: &Drawing) -> Vec<MLine> {
     d.model
@@ -275,7 +275,7 @@ fn hostile_mline_does_not_panic() {
     huge.push_str("0\nENDSEC\n0\nEOF\n");
     let d = cadcraft_io::read_dxf(huge.as_bytes()).unwrap();
     for m in mlines(&d) {
-        assert!(m.def.elements.len() <= cadcraft_doc::MAX_MLINE_ELEMENTS);
+        assert!(m.def.elements.len() <= cadcraft_model::MAX_MLINE_ELEMENTS);
         let _ = m.geometry();
     }
     let _ = cadcraft_io::write_dxf(&d);

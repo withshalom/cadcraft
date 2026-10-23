@@ -1,7 +1,7 @@
 //! A model-space PNG plot with `fit: false` and no `scale` plots at 1:1, as PDF does (issue #713).
 
-use cadcraft_doc::{Common, Drawing, EntityKind, Line, Space};
 use cadcraft_geom::Vec3;
+use cadcraft_model::{Common, Drawing, EntityKind, Line, Space};
 use serde_json::{Value, json};
 
 /// The RGBA rows of an 8-bit RGBA PNG (the only kind the plotter writes).

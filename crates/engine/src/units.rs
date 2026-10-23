@@ -193,7 +193,7 @@ pub struct AngleSettings {
 }
 
 impl AngleSettings {
-    pub fn from_header(h: &cadcraft_doc::Header) -> Self {
+    pub fn from_header(h: &cadcraft_model::Header) -> Self {
         AngleSettings { aunits: h.i64("AUNITS", 0), angbase: h.f64("ANGBASE", 0.0), clockwise: h.i64("ANGDIR", 0) != 0 }
     }
 

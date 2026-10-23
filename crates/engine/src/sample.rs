@@ -1,8 +1,8 @@
 //! Sample drawings generated in code (original CADCraft content, used for demos and tests).
 
 use cadcraft_color::Color;
-use cadcraft_doc::{Common, DimKind, Dimension, Drawing, EntityKind, Hatch, HatchLoop, Layer, Lineweight, MText, Space, Text};
 use cadcraft_geom::{PolyVertex, Vec2, Vec3, arc_to_bulge};
+use cadcraft_model::{Common, DimKind, Dimension, Drawing, EntityKind, Hatch, HatchLoop, Layer, Lineweight, MText, Space, Text};
 
 use crate::cmd::helpers::{arc, circle, line, lwpoly, rect_vertices, v3};
 
@@ -57,7 +57,7 @@ fn text(at: Vec2, h: f64, s: &str) -> EntityKind {
 /// centre lines, hidden lines, a section hatch and a title block. Units: inches.
 pub fn bracket() -> Drawing {
     let mut d = Drawing::new_imperial();
-    d.linetypes.extend(cadcraft_doc::library::standard_linetypes());
+    d.linetypes.extend(cadcraft_model::library::standard_linetypes());
     d.layers.extend([
         layer("Outline", 7, "Continuous", 50),
         layer("Center", 1, "CENTER", 18),
@@ -240,7 +240,7 @@ pub fn bracket() -> Drawing {
 /// A small architectural floor plan (feet-inches, drawn in inches).
 pub fn floor_plan() -> Drawing {
     let mut d = Drawing::new_imperial();
-    d.linetypes.extend(cadcraft_doc::library::standard_linetypes());
+    d.linetypes.extend(cadcraft_model::library::standard_linetypes());
     d.layers.extend([
         layer("A-WALL", 7, "Continuous", 50),
         layer("A-DOOR", 3, "Continuous", 25),

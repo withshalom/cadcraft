@@ -2,7 +2,7 @@
 //! (DXF group 11), like every justification but baseline-left; group 10 is then a computed point
 //! on the baseline (#342).
 
-use cadcraft_doc::{EntityKind, Space, entity_bounds};
+use cadcraft_model::{EntityKind, Space, entity_bounds};
 
 /// One TEXT, height 1, "AB", group 72 = 0 and group 73 = `v`, with group 10 at `p10`, group 11 at
 /// `p11`, and `extra` group codes.

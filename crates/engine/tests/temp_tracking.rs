@@ -2,11 +2,11 @@
 //! tracking modifier typed at any point prompt, PolarSnap, polar angles relative to the last
 //! segment and Extension on elliptical arcs and splines, all driven without the UI.
 
-use cadcraft_doc::EntityKind;
 use cadcraft_engine::Session;
 use cadcraft_engine::geom::Vec2;
 use cadcraft_engine::snap;
 use cadcraft_engine::snap::tracking::{Acquired, CursorQuery, DWELL, PathKind, PathShape};
+use cadcraft_model::EntityKind;
 use serde_json::json;
 
 fn v(x: f64, y: f64) -> Vec2 {

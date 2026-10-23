@@ -1,7 +1,7 @@
 //! Nested, self-referencing and arrayed block references in a hostile DXF must not hang drawing
 //! or extents (issue #255): the expansion is bounded, not only its depth.
 
-use cadcraft_doc::{Drawing, EntityKind, Space};
+use cadcraft_model::{Drawing, EntityKind, Space};
 use cadcraft_render::{MAX_BLOCK_EXPANSION, Options, build};
 
 fn read(text: &str) -> Drawing {
@@ -61,5 +61,5 @@ fn ordinary_nested_and_arrayed_blocks_are_drawn_whole() {
     // A self-referencing block draws its line at every level down to MAX_BLOCK_DEPTH.
     let d = read(&self_referencing(1));
     assert!(matches!(d.model.iter().next().map(|e| &e.kind), Some(EntityKind::Insert(_))));
-    assert_eq!(build(&d, &Space::Model, &Options::default()).prims.len(), cadcraft_doc::MAX_BLOCK_DEPTH);
+    assert_eq!(build(&d, &Space::Model, &Options::default()).prims.len(), cadcraft_model::MAX_BLOCK_DEPTH);
 }

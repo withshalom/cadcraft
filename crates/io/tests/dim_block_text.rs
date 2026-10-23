@@ -2,8 +2,8 @@
 //! the height it is drawn at: the dimension's overrides and DIMSCALE (0 = the drawing's) count
 //! (issue #367).
 
-use cadcraft_doc::{Common, DimKind, Dimension, Drawing, EntityKind, Space};
 use cadcraft_geom::Vec3;
+use cadcraft_model::{Common, DimKind, Dimension, Drawing, EntityKind, Space};
 
 /// The group 40 (height) of the first MTEXT in the BLOCKS section.
 fn block_mtext_height(dxf: &str) -> f64 {

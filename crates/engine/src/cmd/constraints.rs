@@ -9,8 +9,8 @@
 use std::sync::Arc;
 
 use cadcraft_constraints as cs;
-use cadcraft_doc::{Constraint, ConstraintKind as K, DistAxis, Drawing, EntityKind, GeomRef, Handle, Sub};
 use cadcraft_geom::{Line, Vec2};
+use cadcraft_model::{Constraint, ConstraintKind as K, DistAxis, Drawing, EntityKind, GeomRef, Handle, Sub};
 use serde_json::{Value, json};
 
 use super::machines::{SelOutcome, SelectPhase};
@@ -1060,7 +1060,7 @@ fn infer_after(s: &mut Session, before: &Drawing) {
         return;
     }
     let Some(store) = d.space(&space) else { return };
-    let changed = |e: &Arc<cadcraft_doc::Entity>| before.entity(e.handle).is_none_or(|b| !Arc::ptr_eq(b, e) && **b != **e);
+    let changed = |e: &Arc<cadcraft_model::Entity>| before.entity(e.handle).is_none_or(|b| !Arc::ptr_eq(b, e) && **b != **e);
     let placed: Vec<Handle> = store.iter().filter(|e| cs::supported(&e.kind) && changed(e)).map(|e| e.handle).take(MAX_INFER_PLACED + 1).collect();
     if placed.is_empty() || placed.len() > MAX_INFER_PLACED {
         return;
@@ -1098,7 +1098,7 @@ fn infer_after(s: &mut Session, before: &Drawing) {
         if placed.contains(&e.handle) || !cs::supported(&e.kind) || !d.is_visible(e) {
             continue;
         }
-        let b = cadcraft_doc::entity_bounds(d, e, 0).expand(tol);
+        let b = cadcraft_model::entity_bounds(d, e, 0).expand(tol);
         if pts.iter().any(|p| b.contains(*p)) {
             if others.len() < 150 {
                 others.push(e.handle);

@@ -1,8 +1,8 @@
 //! CONSTRAINTINFER: constraints inferred for what a drawing or editing command places with
 //! object snaps, ortho or polar (#546).
 
-use cadcraft_doc::{ConstraintKind as K, EntityKind, Handle, Sub};
 use cadcraft_engine::Session;
+use cadcraft_model::{ConstraintKind as K, EntityKind, Handle, Sub};
 use serde_json::json;
 
 /// A session with a circle at 20,20 radius 3 (not constrained) and CONSTRAINTINFER on.

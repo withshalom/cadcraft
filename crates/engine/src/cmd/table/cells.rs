@@ -1,8 +1,8 @@
 //! Table cell styles, formulas, TABLEDIT and TABLEEXPORT.
 
 use cadcraft_color::Color;
-use cadcraft_doc::{CellBorder, CellFormat, CellStyle, Drawing, EntityKind, Handle, Lineweight, Table, TableStyle};
 use cadcraft_geom::Vec2;
+use cadcraft_model::{CellBorder, CellFormat, CellStyle, Drawing, EntityKind, Handle, Lineweight, Table, TableStyle};
 use serde_json::{Value, json};
 
 use super::formula::{self, cell_name, parse_cell_name};
@@ -220,7 +220,7 @@ pub(crate) fn define_cell_style(d: &mut Drawing, p: &Value) -> Result<Value> {
             }
         }
     } else {
-        if !st.has_cell_style(name) && st.cell_styles.len() >= cadcraft_doc::MAX_CELL_STYLES {
+        if !st.has_cell_style(name) && st.cell_styles.len() >= cadcraft_model::MAX_CELL_STYLES {
             return Err(bad(id, "too many cell styles"));
         }
         let mut cs = st.cell_style(name);

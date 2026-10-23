@@ -2,8 +2,8 @@
 //! get the documented TABLESTYLE groups and a block drawn with the styles.
 
 use cadcraft_color::{Color, Rgb};
-use cadcraft_doc::*;
 use cadcraft_geom::Vec3;
+use cadcraft_model::*;
 
 fn sample() -> (Drawing, Table) {
     let mut d = Drawing::new_imperial();

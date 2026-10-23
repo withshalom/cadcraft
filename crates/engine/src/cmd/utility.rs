@@ -1,7 +1,7 @@
 //! Utilities: CAL (expression calculator), FIND (find and replace text), MASSPROP, MEASUREGEOM.
 
-use cadcraft_doc::{EntityKind, Handle};
 use cadcraft_geom::Vec2;
+use cadcraft_model::{EntityKind, Handle};
 use serde_json::{Value, json};
 
 use super::*;

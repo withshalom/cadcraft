@@ -4,8 +4,8 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use cadcraft_doc::{Entity, EntityKind};
 use cadcraft_geom::{Bounds2, Polyline, Vec2, intersect_segments};
+use cadcraft_model::{Entity, EntityKind};
 use serde_json::{Value, json};
 
 use super::super::*;

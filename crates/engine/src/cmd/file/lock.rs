@@ -1,8 +1,8 @@
-//! The `.cdl` lock beside an open `.cad` drawing (docs/cad-format.md §10): BlackCAD's lock file
+//! The `.cdl` lock beside an open `.cad` drawing (docs/cad-format.md §10): the open engine's lock file
 //! under CADCraft's name, from the open `cad-native` crate.
 //!
 //! Opening a `.cad` drawing from a file takes its lock; if another copy of CADCraft (or
-//! BlackCAD) holds it with a live heartbeat, the drawing opens read-only: saving to that file is
+//! the open engine) holds it with a live heartbeat, the drawing opens read-only: saving to that file is
 //! refused, Save As to another name works. The host calls [`refresh_locks`] regularly (the UI does
 //! every frame) to keep the heartbeat live; a lock left behind by a crash goes stale after two
 //! minutes and is taken over. Closing the drawing removes the lock. Locks are advisory, and the

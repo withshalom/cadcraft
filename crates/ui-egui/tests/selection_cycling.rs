@@ -2,9 +2,9 @@
 //! overlapping objects lists them and a click on a row selects that object; Shift+Space steps the
 //! highlight through them and a click selects the highlighted one.
 
-use cadcraft_doc::Handle;
 use cadcraft_engine::Session;
 use cadcraft_geom::Vec2;
+use cadcraft_model::Handle;
 use cadcraft_ui_egui::{CadApp, Services};
 use egui::{Modifiers, Pos2, vec2};
 use egui_kittest::Harness;

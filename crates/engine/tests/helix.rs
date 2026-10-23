@@ -1,10 +1,10 @@
 //! Helices (#510): HELIX makes a helix object drawn as a spline, which edits, grips, snaps and
 //! explodes like other curves.
 
-use cadcraft_doc::{EntityKind, Handle, Helix, Space};
 use cadcraft_engine::Session;
 use cadcraft_engine::snap::{self, mode};
 use cadcraft_geom::{Spline, Vec2};
+use cadcraft_model::{EntityKind, Handle, Helix, Space};
 use serde_json::{Value, json};
 
 fn h(v: &Value) -> Handle {

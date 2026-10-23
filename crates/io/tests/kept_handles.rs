@@ -3,9 +3,9 @@
 
 use std::collections::HashMap;
 
-use cadcraft_doc::{Handle, Layer};
 use cadcraft_dxf::{parse, records, sections};
 use cadcraft_io::{cad_file, read_dxf, write_dxf};
+use cadcraft_model::{Handle, Layer};
 
 /// DXF text from lines of `code value`.
 fn dxf(src: &str) -> String {

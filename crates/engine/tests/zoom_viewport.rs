@@ -1,8 +1,8 @@
 //! ZOOM inside a layout viewport (MSPACE) works on that viewport, as in AutoCAD: Extents and
 //! Window fit the viewport, nX keeps its centre, nXP sets its scale (#370).
 
-use cadcraft_doc::{EntityKind, Viewport};
 use cadcraft_engine::Session;
+use cadcraft_model::{EntityKind, Viewport};
 use serde_json::json;
 
 fn viewport(s: &Session, h: &str) -> Viewport {

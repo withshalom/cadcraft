@@ -1,7 +1,7 @@
 //! Apply a dash pattern along a polyline.
 
-use cadcraft_doc::Linetype;
 use cadcraft_geom::Vec2;
+use cadcraft_model::Linetype;
 
 /// Split `pts` into dashes. Dots come back as single-point runs. When the scaled pattern is
 /// shorter than `min_pattern` (sub-pixel), the polyline is returned whole.

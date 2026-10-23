@@ -1,11 +1,11 @@
 //! Object snap tracking (OTRACK, F11) and the Extension, Parallel and Apparent Intersection
 //! snaps, driven through `Session::snap_cursor` as the UI does, without the UI.
 
-use cadcraft_doc::{Common, EntityKind, Insert, Line, Space};
 use cadcraft_engine::Session;
 use cadcraft_engine::geom::{Vec2, Vec3};
 use cadcraft_engine::snap::tracking::{Acquired, CursorQuery, CursorSnap, DWELL, MAX_ACQUIRED, PathKind, polar_angles};
 use cadcraft_engine::snap::{self, mode};
+use cadcraft_model::{Common, EntityKind, Insert, Line, Space};
 use serde_json::json;
 
 const APERTURE: f64 = 0.5;

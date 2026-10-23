@@ -1,5 +1,5 @@
-use cadcraft_doc::{EntityKind, Handle};
 use cadcraft_geom::{Arc, Vec2};
+use cadcraft_model::{EntityKind, Handle};
 use serde_json::{Value, json};
 
 use super::*;

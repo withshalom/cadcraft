@@ -5,9 +5,9 @@
 //! our own file builds the region back from the first and drops the others. Foreign REGIONs are
 //! kept as unknown objects.
 
-use cadcraft_doc::{EntityKind, HatchLoop, LwPolyline, MAX_REGION_LOOPS, Region};
 use cadcraft_dxf::Tag;
 use cadcraft_geom::{PolyVertex, Vec2};
+use cadcraft_model::{EntityKind, HatchLoop, LwPolyline, MAX_REGION_LOOPS, Region};
 
 use crate::dxf_ext::{APP, xdata, xdata_list};
 

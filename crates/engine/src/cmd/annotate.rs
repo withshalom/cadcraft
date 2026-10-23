@@ -3,8 +3,8 @@
 //! DIMREASSOCIATE / DIMDISASSOCIATE, DIMTEDIT, DIMSPACE; DIMEDIT, DIMJOGGED, DIMJOGLINE,
 //! DIMBREAK and DIMINSPECT in `annotate_dimedit.rs`.
 
-use cadcraft_doc::{AssocSnap, DimAssoc, DimKind, Dimension, EntityKind, Handle, MLeader, MText, Prim};
 use cadcraft_geom::{Segment, Vec2, Vec3};
+use cadcraft_model::{AssocSnap, DimAssoc, DimKind, Dimension, EntityKind, Handle, MLeader, MText, Prim};
 use serde_json::{Value, json};
 
 use super::helpers::v3;
@@ -479,7 +479,7 @@ fn run_leader(s: &mut Session, p: &Value) -> Result<Value> {
         return Err(bad("leader", "need 2+ points"));
     }
     let st = style(s);
-    let h = s.add_entity(EntityKind::Leader(cadcraft_doc::Leader {
+    let h = s.add_entity(EntityKind::Leader(cadcraft_model::Leader {
         vertices: pts.iter().map(|q| v3(*q)).collect(),
         arrow: true,
         spline: false,
@@ -863,7 +863,7 @@ impl Interactive for OverrideM {
                 if t.eq_ignore_ascii_case("c") {
                     self.clear = true;
                     self.selecting = Some(super::machines::SelectPhase::default());
-                } else if cadcraft_doc::DimStyle::field_name(&t).is_some() {
+                } else if cadcraft_model::DimStyle::field_name(&t).is_some() {
                     self.var = Some(t);
                 } else {
                     s.echo(format!("Unknown dimension variable \"{t}\"."));

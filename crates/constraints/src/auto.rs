@@ -1,8 +1,8 @@
 //! AUTOCONSTRAIN: infer constraints from geometry that already nearly satisfies them; and
 //! CONSTRAINTINFER's inference for what a command just placed ([`infer_placed`]).
 
-use cadcraft_doc::{Constraint, ConstraintKind, Drawing, EntityKind, GeomRef, Handle, Sub};
 use cadcraft_geom::{Line, Vec2};
+use cadcraft_model::{Constraint, ConstraintKind, Drawing, EntityKind, GeomRef, Handle, Sub};
 
 /// Most objects considered at once.
 pub const MAX_OBJECTS: usize = 200;

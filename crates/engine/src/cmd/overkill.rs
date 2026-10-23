@@ -8,8 +8,8 @@
 
 use std::collections::{HashMap, HashSet};
 
-use cadcraft_doc::{Circle, Common, Entity, EntityKind, Handle};
 use cadcraft_geom::{TAU, Vec2, Vec3, ccw_sweep, norm_angle};
+use cadcraft_model::{Circle, Common, Entity, EntityKind, Handle};
 use serde_json::{Value, json};
 
 use super::machines::{SelOutcome, SelectPhase, number};
@@ -549,7 +549,7 @@ fn same_circle(group: &[usize], cands: &[Cand], o: &Opts, gone: &mut [bool], cha
 
 /// Drop zero-length segments and join consecutive collinear straight segments of a polyline
 /// (constant width only). Returns how many segments went.
-fn optimize_pline(pl: &mut cadcraft_doc::LwPolyline, q: f64) -> usize {
+fn optimize_pline(pl: &mut cadcraft_model::LwPolyline, q: f64) -> usize {
     let before = pl.vertices.len();
     let min = if pl.closed { 3 } else { 2 };
     // Zero-length segments: the vertex after one takes over its successor's segment.

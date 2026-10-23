@@ -5,8 +5,8 @@ pub use patfile::{PatternChoice, pattern_choices};
 pub(super) use patfile::{lines_for, run_patterns};
 
 use cadcraft_color::Color;
-use cadcraft_doc::{Drawing, Entity, EntityKind, Gradient, Handle, Hatch, HatchLoop, Space, entity_bounds};
 use cadcraft_geom::{Bounds2, PolyVertex, Polyline, Vec2, point_in_polygon};
+use cadcraft_model::{Drawing, Entity, EntityKind, Gradient, Handle, Hatch, HatchLoop, Space, entity_bounds};
 use serde_json::{Value, json};
 
 use super::helpers::lwpoly;
@@ -455,7 +455,7 @@ fn run_hatch(s: &mut Session, p: &Value) -> Result<Value> {
     patfile::load_param(p)?;
     // Like the prompt: a name without a definition would be drawn as ANSI31.
     if let Some(up) = str_param(p, "pattern").map(str::to_ascii_uppercase)
-        && cadcraft_doc::library::pattern(&up).is_none()
+        && cadcraft_model::library::pattern(&up).is_none()
         && patfile::user_pattern(&up).is_none()
     {
         return Err(bad("hatch", format!("unknown pattern {up}")));
@@ -512,7 +512,7 @@ fn run_region(s: &mut Session, p: &Value) -> Result<Value> {
         if let Some((vs, common)) = vs {
             let d = s.doc_mut()?;
             d.modify_entity(h, |e| {
-                e.kind = EntityKind::Region(cadcraft_doc::Region::from_loop(vs));
+                e.kind = EntityKind::Region(cadcraft_model::Region::from_loop(vs));
                 e.common = common;
             })?;
             n += 1;
@@ -565,7 +565,7 @@ impl HatchM {
         let h = &mut s.doc_mut()?.header;
         if let Some(o) = origin.filter(|o| o.is_finite()) {
             self.settings.origin = o;
-            h.set("HPORIGIN", cadcraft_doc::HVal::Point(o.to3(0.0)));
+            h.set("HPORIGIN", cadcraft_model::HVal::Point(o.to3(0.0)));
         }
         self.settings.origin_mode = mode;
         h.set_i64("HPORIGINMODE", mode.index());
@@ -579,7 +579,7 @@ impl HatchM {
                     Some(n) => n,
                     None => t.trim().to_ascii_uppercase(),
                 };
-                if cadcraft_doc::library::pattern(&up).is_some() || patfile::user_pattern(&up).is_some() {
+                if cadcraft_model::library::pattern(&up).is_some() || patfile::user_pattern(&up).is_some() {
                     self.settings.pattern = up.clone();
                     s.doc_mut()?.header.set_str("HPNAME", &up);
                 } else {

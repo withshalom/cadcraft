@@ -37,13 +37,13 @@ pub mod units;
 
 use std::sync::Arc;
 
-use cadcraft_doc::{Common, Drawing, Entity, EntityKind, Handle, Space};
 use cadcraft_geom::{Bounds2, Vec2};
+use cadcraft_model::{Common, Drawing, Entity, EntityKind, Handle, Space};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-pub use cadcraft_doc as doc;
 pub use cadcraft_geom as geom;
+pub use cadcraft_model as doc;
 pub use cadcraft_render as render;
 pub use cmd::hatch::{HatchPicks, PatternChoice, PickMode, pattern_choices};
 pub use cmd::{CommandInfo, CommandSpec, command_specs, find_command};
@@ -66,8 +66,8 @@ pub enum EngineError {
     Internal(String, String),
 }
 
-impl From<cadcraft_doc::DocError> for EngineError {
-    fn from(e: cadcraft_doc::DocError) -> Self {
+impl From<cadcraft_model::DocError> for EngineError {
+    fn from(e: cadcraft_model::DocError) -> Self {
         EngineError::Other(e.to_string())
     }
 }
@@ -218,11 +218,11 @@ impl DocState {
         if self.active_viewport().is_some() { Space::Model } else { self.space.clone() }
     }
     /// The active MSPACE viewport, if it still exists in the current layout.
-    pub fn active_viewport(&self) -> Option<(Handle, cadcraft_doc::Viewport)> {
+    pub fn active_viewport(&self) -> Option<(Handle, cadcraft_model::Viewport)> {
         let h = self.mspace?;
         let e = self.doc.space(&self.space)?.get(h)?;
         match &e.kind {
-            cadcraft_doc::EntityKind::Viewport(v) if v.height > 1e-12 && v.view_height > 1e-12 => Some((h, v.clone())),
+            cadcraft_model::EntityKind::Viewport(v) if v.height > 1e-12 && v.view_height > 1e-12 => Some((h, v.clone())),
             _ => None,
         }
     }
@@ -266,7 +266,7 @@ impl DocState {
                 let doc = Arc::make_mut(&mut self.doc);
                 if let Some(store) = doc.space_mut(&self.space.clone()) {
                     store.modify(h, |e| {
-                        if let cadcraft_doc::EntityKind::Viewport(x) = &mut e.kind {
+                        if let cadcraft_model::EntityKind::Viewport(x) = &mut e.kind {
                             x.view_center = center;
                             x.view_height = height;
                         }
@@ -305,7 +305,7 @@ impl DocState {
     /// The active MSPACE viewport when ZOOM works on its own view, as in AutoCAD: extents and
     /// windows fit the viewport, and zooms keep its centre. A locked viewport keeps its scale, so
     /// zooming it moves the sheet instead (see `store_view`).
-    pub fn zoom_viewport(&self) -> Option<cadcraft_doc::Viewport> {
+    pub fn zoom_viewport(&self) -> Option<cadcraft_model::Viewport> {
         self.active_viewport().map(|(_, v)| v).filter(|v| !v.locked && v.width > 1e-12)
     }
     /// The view ZOOM starts from: the model view of the active unlocked viewport, else [`Self::view`].
@@ -857,7 +857,7 @@ impl Session {
             layer: h.str("CLAYER", "0"),
             color: cadcraft_color::Color::from_aci(h.i64("CECOLOR", 256) as i16),
             linetype: h.str("CELTYPE", "ByLayer"),
-            lineweight: cadcraft_doc::Lineweight::from_dxf(h.i64("CELWEIGHT", -1) as i16),
+            lineweight: cadcraft_model::Lineweight::from_dxf(h.i64("CELWEIGHT", -1) as i16),
             ltscale: h.f64("CELTSCALE", 1.0),
             plot_style: h.str("CPLOTSTYLE", "ByLayer"),
             ..Common::default()
@@ -1379,7 +1379,7 @@ impl Session {
 
     /// The multiline text the running command is collecting, for the in-place editor
     /// ([`Interactive::editing_mtext`]).
-    pub fn editing_mtext(&self) -> Option<cadcraft_doc::MText> {
+    pub fn editing_mtext(&self) -> Option<cadcraft_model::MText> {
         self.running.as_ref().and_then(|r| r.machine.editing_mtext())
     }
 
@@ -1444,7 +1444,7 @@ impl Session {
             (None, None) => (Vec::new(), Vec::new()),
         };
         if !out.is_empty() {
-            common.color = cadcraft_doc::color::Color::True(cadcraft_doc::color::Rgb(0x2f, 0x6b, 0xff));
+            common.color = cadcraft_model::color::Color::True(cadcraft_model::color::Rgb(0x2f, 0x6b, 0xff));
         }
         out.extend(kinds.into_iter().map(|k| Entity { handle: Handle(0), common: common.clone(), kind: k }));
         out

@@ -3,9 +3,9 @@
 //! kept as read in pre-2007 files, and named-dictionary entries the writer writes itself not
 //! kept a second time.
 
-use cadcraft_doc::*;
 use cadcraft_geom::{Vec2, Vec3};
 use cadcraft_io::{SaveOptions, Version};
+use cadcraft_model::*;
 
 fn save(d: &Drawing, name: &str, v: Version) -> Vec<u8> {
     cadcraft_io::write_with(d, name, &SaveOptions { version: Some(v), binary: false }).unwrap()

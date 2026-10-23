@@ -3,18 +3,18 @@
 > **Status:** S1–S4 and the field gaps of §4 done, 2026-10-23 (branch `cad-native`) · **Measurements:** `crates/io/tests/model_map.rs`
 > · **Format:** [`cad-format.md`](cad-format.md)
 
-This is the plan for making CADCraft's own drawing model (`cadcraft-doc`) the one model that DWG,
+This is the plan for making CADCraft's own drawing model (`cadcraft-model`) the one model that DWG,
 DXF and `.cad` all read into and write from. Everything below is measured or read from the code.
 
 ## 1. Decisions (owner, 2026-10-22)
 
-1. **CADCraft's model is the model.** DWG maps straight onto `cadcraft-doc`: no BlackCAD model
+1. **CADCraft's model is the model.** DWG maps straight onto `cadcraft-model`: no second drawing model
    in between, and no DXF text in between.
 2. **CADCraft gets its own DWG reader and writer** in `crates/dwg`. The low-level parts (bit
-   streams, compression, checksums, the containers, the object map) are ported from BlackCAD's open
+   streams, compression, checksums, the containers, the object map) are ported from WithShalom's open
    `cad-dwg` crate (MIT OR Apache-2.0, same owner) and credited in `NOTICE`. The object decoders
    and encoders are rewritten to read and write CADCraft's types.
-3. **`.cad` keeps BlackCAD's container** (`cad-native`). Its records stay CADCraft's own.
+3. **`.cad` keeps `cad-native`'s container** (`cad-native`). Its records stay CADCraft's own.
 4. **The work is done here first, on `cad-native`.** The model additions and the DWG reader and
    writer then go to `dwg-fidelity` and the upstream PR. The `.cad` format stays on this branch
    until it is shared later. By then it already sits on the same model and the same DWG mapping.
@@ -78,7 +78,7 @@ These cut across every type. DWG needs all of them; DXF and `.cad` benefit too.
 | S3 ✓ | **The dictionary tree** (named object dictionary, extension dictionaries, ownership flags) is rebuilt by the writer, not kept. | 19 of 20 dictionaries rewritten (2018); entries renamed or reordered | DWG stores the tree as objects with owners and hard/soft pointers. | Keep the tree: each dictionary's handle, owner, entries (name → handle), hard-owner and duplicate-record flags. CADCraft's own entries are added into it rather than replacing it. **Done:** dictionaries keep their handles and owner reactors, list entries in key order, keep AutoCAD's keys (`A0`… for scales), and objects CADCraft writes keep their extension dictionaries (a table style's cell style map). Left: CADCraft adds two XRECORDs of its own; a multiline style's key comes back upper case. |
 | S4 ✓ | **Reactors on entities** (`102 {ACAD_REACTORS}`) are lost on entities that a dimension follows. | 4 of 20 lines and arcs lose them (2018) | DIMASSOC and associative hatches need their reactors on both ends. | Entities keep reactors and their extension dictionary in `ForeignExtra`, as table records already do. **Done:** the geometry a dimension follows names its DIMASSOC as a reactor. |
 | S5 | **DWG-only data:** control objects, the class list with DWG class numbers, the preview image, summary info, app info, file dependencies, revision history, the auxiliary header, VX_CONTROL. | Not in DXF, so not measured; all 8 DWGs have control objects and classes | Writing a DWG needs every one; keeping them makes DWG → DWG lossless. | A `dwg` part in `Foreign`: the sections the model doesn't model, kept as the file's bytes with the version they came from. |
-| S6 | **Objects kept raw are kept only as DXF groups.** | 7 types kept raw in the corpus (§4) | A DWG writer has to re-encode groups into DWG bits for every kept type, and that encoding is where BlackCAD's writer failed (group-order errors, §6). | A kept object holds its DXF groups and, when it came from a DWG, its DWG bits and version. Saving to the same DWG layout writes the bits back unchanged. |
+| S6 | **Objects kept raw are kept only as DXF groups.** | 7 types kept raw in the corpus (§4) | A DWG writer has to re-encode groups into DWG bits for every kept type, and that encoding is where the `cad-dwg` writer failed (group-order errors, §6). | A kept object holds its DXF groups and, when it came from a DWG, its DWG bits and version. Saving to the same DWG layout writes the bits back unchanged. |
 
 ## 4. Type by type
 
@@ -168,10 +168,10 @@ These cut across every type. DWG needs all of them; DXF and `.cad` benefit too.
 
 ## 5. DWG reader and writer in CADCraft
 
-`crates/dwg` becomes CADCraft's own codec on layer 2 (it depends on `doc`, `geom` and `color`).
-It is ported from BlackCAD's open `cad-dwg` (§1):
+`crates/dwg` becomes CADCraft's own codec on layer 2 (it depends on `model`, `geom` and `color`).
+It is ported from WithShalom's open `cad-dwg` (§1):
 
-| BlackCAD module | Lines | Coupled to BlackCAD's model? | Here |
+| `cad-dwg` module | Lines | Coupled to its own model? | Here |
 |---|---|---|---|
 | `bits.rs`, `crc.rs`, `lz77.rs`, `objmap.rs`, `section.rs` | 2,000 | no | ported as is |
 | `r2000.rs`, `r2004.rs`, `container.rs`, `streams.rs`, `write/container.rs` | 1,130 | barely | ported, model types removed |
@@ -189,15 +189,15 @@ write), exactly as today, and leaves when the codec covers every version.
 
 ## 6. Why the current bridge loses data (for the record)
 
-On `dwg-fidelity` today, a DWG goes DWG → BlackCAD's model → DXF text → CADCraft's DXF reader. It
+On `dwg-fidelity` today, a DWG goes DWG → `cad-dwg`'s model → DXF text → CADCraft's DXF reader. It
 saves the reverse way. Two separate losses add up:
 
-- **BlackCAD's model:** it can't convert some objects, so the file goes to `acadrust`. Every
+- **`cad-dwg`'s model:** it can't convert some objects, so the file goes to `acadrust`. Every
   version before 2018 does.
-- **Re-encoding DXF:** BlackCAD's writer expects groups in its own order, and refuses MATERIAL,
+- **Re-encoding DXF:** the `cad-dwg` writer expects groups in its own order, and refuses MATERIAL,
   VISUALSTYLE and the view styles in the order `acadrust` and AutoCAD write them.
 
-On the corpus only the 2018 files go through BlackCAD both ways. §5 removes both translations.
+On the corpus only the 2018 files go through `cad-dwg` both ways. §5 removes both translations.
 
 ## 7. Order of work
 

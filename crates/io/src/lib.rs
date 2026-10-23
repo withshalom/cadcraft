@@ -1,4 +1,4 @@
-//! CADCraft file formats: DXF, DWG, `.cad` (CADCraft's native format) and `.blc` (BlackCAD's)
+//! CADCraft file formats: DXF, DWG and `.cad` (CADCraft's native format)
 //! read and write, SVG and SVGZ import, SVG/PNG/PDF export (plotting).
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 #![forbid(unsafe_code)]
@@ -24,8 +24,8 @@ mod svg_read;
 /// Multilines and their styles (MLINE, MLINESTYLE).
 mod dxf_mline;
 
-use cadcraft_doc::{Drawing, Space};
 use cadcraft_geom::Bounds2;
+use cadcraft_model::{Drawing, Space};
 
 pub use cadcraft_dxf::Version;
 pub use dxf_read::entity_from_groups;
@@ -44,7 +44,7 @@ pub struct SaveOptions {
 /// The version a drawing is saved in when none is asked for: the version of the file it was
 /// read from (`$ACADVER`, the nearest one CADCraft writes), and 2018 for a new drawing.
 pub fn save_version(d: &Drawing) -> Version {
-    d.header.get("ACADVER").and_then(cadcraft_doc::HVal::as_str).and_then(Version::for_acadver).unwrap_or_default()
+    d.header.get("ACADVER").and_then(cadcraft_model::HVal::as_str).and_then(Version::for_acadver).unwrap_or_default()
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -61,7 +61,7 @@ fn ext(name: &str) -> String {
     std::path::Path::new(name).extension().map(|e| e.to_string_lossy().to_ascii_lowercase()).unwrap_or_default()
 }
 
-/// Read a drawing; the format comes from the content (DXF ASCII/binary, DWG, `.cad`, `.blc`) or
+/// Read a drawing; the format comes from the content (DXF ASCII/binary, DWG, `.cad`) or
 /// the name (SVG and gzip-compressed SVGZ).
 pub fn read(bytes: &[u8], name: &str) -> Result<Drawing> {
     if cadcraft_dwg::is_dwg(bytes) {
@@ -69,9 +69,6 @@ pub fn read(bytes: &[u8], name: &str) -> Result<Drawing> {
     }
     if cad_file::is_cad(bytes) {
         return cad_file::read(bytes);
-    }
-    if cadcraft_dwg::is_blc(bytes) {
-        return read_blc(bytes);
     }
     match ext(name).as_str() {
         "svg" | "svgz" => svg_read::read(bytes),
@@ -81,10 +78,10 @@ pub fn read(bytes: &[u8], name: &str) -> Result<Drawing> {
     }
 }
 
-/// A DWG file through the DWG bridge: BlackCAD's conversion when it carries the file over whole,
+/// A DWG file through the DWG bridge: the open engine's conversion when it carries the file over whole,
 /// otherwise acadrust's (`cadcraft_dwg::convert_dwg`). Should the DXF reader refuse what
-/// BlackCAD wrote, the file is converted again by acadrust. A drawing BlackCAD converted keeps
-/// the DWG's own version in `$ACADVER`, which saving uses: BlackCAD's DXF is always the 2018
+/// the open engine wrote, the file is converted again by acadrust. A drawing the open engine converted keeps
+/// the DWG's own version in `$ACADVER`, which saving uses: the open engine's DXF is always the 2018
 /// format, where acadrust's declares the file's version.
 fn read_dwg(bytes: &[u8]) -> Result<Drawing> {
     use cadcraft_dwg::{Engine, Limits};
@@ -92,35 +89,24 @@ fn read_dwg(bytes: &[u8]) -> Result<Drawing> {
     let c = cadcraft_dwg::convert_dwg(bytes, Limits::DEFAULT).map_err(IoError::Format)?;
     let (mut d, c) = match dxf_read::read(&c.dxf) {
         Ok(d) => (d, c),
-        Err(e) if c.engine == Engine::BlackCad => match cadcraft_dwg::convert_dwg_with(Engine::Acadrust, bytes, Limits::DEFAULT) {
+        Err(e) if c.engine == Engine::CadCrates => match cadcraft_dwg::convert_dwg_with(Engine::Acadrust, bytes, Limits::DEFAULT) {
             Ok(again) => (dxf_read::read(&again.dxf).map_err(in_dxf)?, again),
             Err(_) => return Err(in_dxf(e)),
         },
         Err(e) => return Err(in_dxf(e)),
     };
-    if c.engine == Engine::BlackCad
+    if c.engine == Engine::CadCrates
         && let Some(v) = cadcraft_dwg::version(bytes)
     {
-        d.header.set("ACADVER", cadcraft_doc::HVal::Str(v));
+        d.header.set("ACADVER", cadcraft_model::HVal::Str(v));
     }
     d.read_notes = c.notes;
     Ok(d)
 }
 
-/// A `.blc` file, BlackCAD's native format, through the same bridge as DWG (BlackCAD's open
-/// `cad-native` crate); older ones are named `.cad`, and the content says which they are. It saves
-/// again as 2018, the version its DXF declares.
-fn read_blc(bytes: &[u8]) -> Result<Drawing> {
-    let (dxf, notes) = cadcraft_dwg::blc_to_dxf(bytes, cadcraft_dwg::Limits::DEFAULT).map_err(IoError::Format)?;
-    let mut d = dxf_read::read(&dxf).map_err(|e| IoError::Format(format!("{e} (in the DXF converted from this BlackCAD file)")))?;
-    d.read_notes = notes;
-    Ok(d)
-}
-
 /// Write a drawing in the format chosen by the name's extension. Images (PNG, SVG, PDF) show
 /// model space fitted to its extents. DXF and DWG are written in the drawing's version
-/// ([`save_version`]), DXF as ASCII; `.cad` holds CADCraft's drawing exactly, `.blc` the 2018
-/// drawing as BlackCAD reads it, both with a preview.
+/// ([`save_version`]), DXF as ASCII; `.cad` holds CADCraft's drawing exactly, with a preview.
 pub fn write(d: &Drawing, name: &str) -> Result<Vec<u8>> {
     write_framed(d, name, None)
 }
@@ -148,27 +134,19 @@ pub fn write_with(d: &Drawing, name: &str, opts: &SaveOptions) -> Result<Vec<u8>
         // `.cad` (CADCraft's native format) holds the drawing exactly as CADCraft's model has it,
         // with model space as an SVG preview.
         "cad" if !opts.binary => cad_file::write(d, Some(svg::export_window(d, &Space::Model, None))),
-        // `.blc` (BlackCAD's native format) holds the drawing as BlackCAD's model reads our 2018
-        // DXF, with model space as an SVG preview for file browsers and Open dialogs.
-        "blc" if !opts.binary => {
-            let preview = svg::export_window(d, &Space::Model, None);
-            cadcraft_dwg::dxf_to_blc(dxf_write::dwg_bridge(d, Version::R2018).as_bytes(), Some(preview))
-                .map(|(bytes, _notes)| bytes)
-                .map_err(IoError::Format)
-        }
         e if opts.binary => Err(IoError::Format(format!("binary output is for DXF files, not `{e}`"))),
         _ => write_framed(d, name, None),
     }
 }
 
-/// The DXF the DWG bridge converts to a DWG of `version`: what BlackCAD's and acadrust's writers
+/// The DXF the DWG bridge converts to a DWG of `version`: what the open engine's and acadrust's writers
 /// read when CADCraft saves DWG. For tests and diagnostics; saving uses [`write_dwg_noted`].
 pub fn dwg_bridge_dxf(d: &Drawing, version: Version) -> String {
     dxf_write::dwg_bridge(d, version)
 }
 
 /// Save as DWG of `version` and say how: the file, the engine that wrote it, and when acadrust
-/// wrote a version BlackCAD writes, why BlackCAD didn't.
+/// wrote a version the open engine writes, why the open engine didn't.
 pub fn write_dwg_noted(d: &Drawing, version: Version) -> Result<cadcraft_dwg::Written> {
     cadcraft_dwg::dxf_to_dwg_written(dxf_write::dwg_bridge(d, version).as_bytes(), version.code()).map_err(IoError::Format)
 }
@@ -188,7 +166,7 @@ pub fn write_framed(d: &Drawing, name: &str, window: Option<Bounds2>) -> Result<
         check_window(w)?;
     }
     match ext(name).as_str() {
-        "dxf" | "" | "dwg" | "blc" | "cad" => write_with(d, name, &SaveOptions::default()),
+        "dxf" | "" | "dwg" | "cad" => write_with(d, name, &SaveOptions::default()),
         "svg" => Ok(svg::export_window(d, &Space::Model, window).into_bytes()),
         "png" => png_framed(d, &Space::Model, 2400, 1600, window),
         "pdf" => pdf::pdf(d, &Space::Model, &PdfOptions { compress: true, window, ..PdfOptions::default() }),

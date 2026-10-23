@@ -1,7 +1,7 @@
 //! Wide polylines are drawn with their linetype: each dash a filled piece of the band (issue #293).
 
-use cadcraft_doc::{Common, Drawing, EntityKind, LwPolyline, Space, library};
 use cadcraft_geom::{PolyVertex, Vec2};
+use cadcraft_model::{Common, Drawing, EntityKind, LwPolyline, Space, library};
 use cadcraft_render::{Kind, Options, build};
 
 /// A 0.2-wide polyline through `xs` (on y = 0) with linetype `lt` (DASHED: 0.5 on, 0.25 off).

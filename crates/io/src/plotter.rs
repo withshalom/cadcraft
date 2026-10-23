@@ -8,8 +8,8 @@
 use std::sync::Arc;
 
 use cadcraft_color::Rgb;
-use cadcraft_doc::{Drawing, Space};
 use cadcraft_geom::{Bounds2, Vec2};
+use cadcraft_model::{Drawing, Space};
 use cadcraft_render::{Sheet, paper, raster};
 use serde_json::Value;
 
@@ -51,7 +51,7 @@ pub fn plot(d: &Drawing, space: &Space, opts: &Value) -> Result<Vec<u8>> {
 }
 
 /// The sheet a plot draws on (a model-space plot's printable area inside the device margins).
-fn sheet(d: &Drawing, space: &Space, o: &PdfOptions) -> Result<(Sheet, cadcraft_doc::PageSetup)> {
+fn sheet(d: &Drawing, space: &Space, o: &PdfOptions) -> Result<(Sheet, cadcraft_model::PageSetup)> {
     let page = pdf::page_for(d, space, o)?;
     Ok((Sheet::from_page(&page, paper::page_unit_mm(d, &page)), page))
 }
@@ -77,7 +77,7 @@ fn png(d: &Drawing, space: &Space, opts: &Value) -> Result<Vec<u8>> {
     let px = |v: f64| (v * k).round().clamp(1.0, 16384.0) as u32;
     let (width, height) = (px(sheet.size.x), px(sheet.size.y));
     let lineweights = o.lineweights.unwrap_or(if space.is_paper() { page.lineweights } else { true });
-    let table = cadcraft_doc::plot_style_table(d, &page.plot_style_table).map(Arc::new);
+    let table = cadcraft_model::plot_style_table(d, &page.plot_style_table).map(Arc::new);
     // Paper units per drawing unit: 1 for a layout at 1:1, the fitted scale for model space.
     let fit = matches!(space, Space::Model) || o.fit == Some(true);
     let window = o.window.filter(|w| matches!(space, Space::Model) && !w.is_empty());
@@ -117,7 +117,7 @@ fn svg(d: &Drawing, space: &Space, opts: &Value) -> Result<Vec<u8>> {
     // fills at the scale that fits the window (or the extents) on the device's paper.
     let (sheet, page) = sheet(d, space, &o)?;
     let window = o.window.filter(|w| !w.is_empty());
-    let table = cadcraft_doc::plot_style_table(d, &page.plot_style_table).map(Arc::new);
+    let table = cadcraft_model::plot_style_table(d, &page.plot_style_table).map(Arc::new);
     let lineweights = o.lineweights.unwrap_or(true);
     let est = fit_scale(&window.unwrap_or_else(|| d.extents(space)), &sheet, &o);
     // Chord tolerance: about 0.05 mm on paper.
@@ -134,8 +134,8 @@ fn svg(d: &Drawing, space: &Space, opts: &Value) -> Result<Vec<u8>> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cadcraft_doc::{Common, EntityKind, Line};
     use cadcraft_geom::{Bounds2, Vec2, Vec3};
+    use cadcraft_model::{Common, EntityKind, Line};
     use serde_json::json;
 
     /// Width and height from a PNG's header.

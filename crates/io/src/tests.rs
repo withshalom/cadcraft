@@ -1,6 +1,6 @@
 use cadcraft_color::Color;
-use cadcraft_doc::*;
 use cadcraft_geom::{PolyVertex, Vec2, Vec3};
+use cadcraft_model::*;
 
 use crate::*;
 
@@ -181,35 +181,12 @@ fn dxf_roundtrip_preserves_entities() {
     assert!(back.entity(h).is_none());
 }
 
-/// BlackCAD's `.blc` opens and saves through its open crates on every target (the web build
-/// too): the drawing comes back with its entities, layers, blocks and layouts, whatever the
-/// file is called, so BlackCAD files saved as `.cad` before its rename open too.
+/// `.cad` is CADCraft's own native format: saved under that name it holds CADCraft's records
+/// (docs/cad-format.md), and it reopens as the same drawing.
 #[test]
-fn blc_roundtrip_keeps_the_drawing() {
-    let d = sample();
-    let bytes = write(&d, "part.blc").unwrap();
-    assert!(cadcraft_dwg::is_blc(&bytes) && !cadcraft_dwg::is_dwg(&bytes));
-    let kinds = |d: &Drawing| d.model.iter().map(|e| e.kind.type_name()).collect::<Vec<_>>();
-    for name in ["renamed.bin", "older.cad"] {
-        let back = read(&bytes, name).unwrap();
-        assert_eq!(kinds(&back), kinds(&d), "{name}: notes: {:?}", back.read_notes);
-        assert_eq!(back.layer("Walls").unwrap().color, Color::Index(1));
-        assert!(back.block("Bolt").is_some());
-        assert_eq!(back.layout("Layout1").unwrap().entities.len(), 1);
-    }
-    // Saved again, it is the same drawing.
-    let back = read(&bytes, "part.blc").unwrap();
-    let again = read(&write(&back, "part.blc").unwrap(), "part.blc").unwrap();
-    assert_eq!(kinds(&again), kinds(&d));
-}
-
-/// `.cad` is CADCraft's own native format, not BlackCAD's: saved under that name it holds
-/// CADCraft's records (docs/cad-format.md), and it reopens as the same drawing.
-#[test]
-fn cad_is_not_saved_as_blackcads_format() {
+fn cad_is_saved_as_cadcrafts_format() {
     let bytes = write(&sample(), "part.cad").unwrap();
     assert!(cad_file::is_cad(&bytes));
-    assert!(!cadcraft_dwg::is_blc(&bytes));
     let back = read(&bytes, "part.cad").unwrap();
     assert_eq!(kinds(&back), kinds(&sample()));
 }
@@ -1698,7 +1675,7 @@ fn dwg_roundtrip_keeps_extension_data() {
 #[test]
 fn mleader_is_written_as_multileader() {
     let mut d = Drawing::new_metric();
-    let text = cadcraft_doc::MText {
+    let text = cadcraft_model::MText {
         defined_height: Default::default(),
         insert: Vec3::new(12.0, 5.0, 0.0),
         height: 2.5,
@@ -1711,7 +1688,7 @@ fn mleader_is_written_as_multileader() {
         line_spacing_exact: false,
         columns: None,
     };
-    let m = cadcraft_doc::MLeader {
+    let m = cadcraft_model::MLeader {
         leaders: vec![vec![Vec3::new(0.0, 0.0, 0.0)]],
         landing: Vec3::new(10.0, 5.0, 0.0),
         dogleg: 2.0,

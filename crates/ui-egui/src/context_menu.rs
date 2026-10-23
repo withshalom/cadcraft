@@ -15,9 +15,9 @@
 //! commands as they land. Choosing an item ([`choose`]) starts its command like the menu bar, or
 //! gives the running command the same input as typing it on the command line.
 
-use cadcraft_doc::EntityKind;
 use cadcraft_engine::snap::mode;
 use cadcraft_engine::{Input, find_command};
+use cadcraft_model::EntityKind;
 
 use crate::CadApp;
 use crate::menus::{Entry, activate, entry_ui};

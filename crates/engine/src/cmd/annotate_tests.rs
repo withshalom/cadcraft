@@ -1,5 +1,5 @@
-use cadcraft_doc::{AssocSnap, DimKind, Dimension, EntityKind, Handle};
 use cadcraft_geom::Vec2;
+use cadcraft_model::{AssocSnap, DimKind, Dimension, EntityKind, Handle};
 use serde_json::{Value, json};
 
 use crate::{Input, Session};
@@ -434,7 +434,7 @@ fn table_create_edit_merge() {
     assert!(s.execute("table.set", &json!({ "handle": t.hex(), "row": 99, "col": 0, "text": "x" })).is_err());
     assert!(s.execute("table", &json!({ "at": [0, 0], "rows": 1_000_000, "cols": 3 })).is_err());
     // It renders: grid lines plus text.
-    let dl = cadcraft_render::build(s.doc().unwrap(), &cadcraft_doc::Space::Model, &cadcraft_render::Options::default());
+    let dl = cadcraft_render::build(s.doc().unwrap(), &cadcraft_model::Space::Model, &cadcraft_render::Options::default());
     assert!(dl.prims.len() > 10);
 }
 
@@ -475,7 +475,7 @@ fn hostile_annotation_params_never_panic() {
     }
     let d = h(&s.execute("dimlinear", &json!({ "p1": [0, 0], "p2": [1, 0], "at": [0, 1] })).unwrap());
     let _ = s.execute("dimoverride", &json!({ "handles": [d.hex()], "DIMTXT": -1, "DIMSCALE": 0, "DIMLUNIT": 99 }));
-    let _ = cadcraft_render::build(s.doc().unwrap(), &cadcraft_doc::Space::Model, &cadcraft_render::Options::default());
+    let _ = cadcraft_render::build(s.doc().unwrap(), &cadcraft_model::Space::Model, &cadcraft_render::Options::default());
     assert!(matches!(dim(&s, d).kind, DimKind::Linear { .. }));
 }
 
@@ -511,7 +511,7 @@ fn setvar_dim_variables_apply_to_new_dimensions() {
     assert!((text_height(&s, first) - base).abs() < 1e-12);
     // Extents use the same scale as the geometry: room for 2.5 text heights beyond the points.
     let d = s.doc().unwrap();
-    let margin = |hd: Handle, span: f64| (cadcraft_doc::entity_bounds(d, d.entity(hd).unwrap(), 0).height() - span) / 2.0;
+    let margin = |hd: Handle, span: f64| (cadcraft_model::entity_bounds(d, d.entity(hd).unwrap(), 0).height() - span) / 2.0;
     assert!((margin(first, 20.0) - 2.5 * base).abs() < 1e-9);
     assert!((margin(scaled, 40.0) - 2.5 * text_height(&s, scaled)).abs() < 1e-9);
 
