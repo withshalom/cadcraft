@@ -1,13 +1,13 @@
 //! What a real DWG keeps when CADCraft opens it and saves it again as DWG.
 //!
-//! Runs only when `BLACKCAD_CORPUS` names a folder of DWG files. In CI that is BlackCAD's MI-201
+//! Runs only when `MI201_CORPUS` names a folder of DWG files. In CI that is the open engine's MI-201
 //! corpus (`corpus/mosaiciron-mi201` in withshalom/CAD): one part saved by AutoCAD in every version
 //! from R14 to 2018. The files are AutoCAD's, so they are never committed here; without the
 //! variable the test does nothing.
 //!
 //! For each file it opens the DWG, saves it as 2018 DWG, opens that again, and prints a report:
 //! which engine converted the file; CADCraft's entities, layers and blocks before and after; and
-//! every object in the DWG by type before and after, as BlackCAD's reader sees both files. It
+//! every object in the DWG by type before and after, as the open engine's reader sees both files. It
 //! fails when a file doesn't open, doesn't save, or comes back with fewer model-space entities.
 
 use std::collections::BTreeMap;
@@ -39,7 +39,7 @@ fn cadcraft_counts(d: &Drawing) -> BTreeMap<String, usize> {
     m
 }
 
-/// BlackCAD's view of a DWG: every object by type, and how many are kept only as DWG bytes.
+/// the open engine's view of a DWG: every object by type, and how many are kept only as DWG bytes.
 fn dwg_counts(bytes: &[u8]) -> Result<BTreeMap<String, usize>, String> {
     let d = cad_dwg::read_bytes(bytes).map_err(|e| e.to_string())?;
     let mut m: BTreeMap<String, usize> = BTreeMap::new();
@@ -105,8 +105,8 @@ fn model_entities(m: &BTreeMap<String, usize>) -> usize {
 
 #[test]
 fn corpus_dwg_round_trips() {
-    let Some(dir) = std::env::var_os("BLACKCAD_CORPUS") else {
-        eprintln!("BLACKCAD_CORPUS not set: no corpus to check");
+    let Some(dir) = std::env::var_os("MI201_CORPUS") else {
+        eprintln!("MI201_CORPUS not set: no corpus to check");
         return;
     };
     let mut files: Vec<std::path::PathBuf> =
@@ -124,18 +124,18 @@ fn corpus_dwg_round_trips() {
             failures.push(format!("{name}: can't read the file"));
             continue;
         };
-        if let Ok(c) = cadcraft_dwg::convert_dwg_with(cadcraft_dwg::Engine::BlackCad, &bytes, cadcraft_dwg::Limits::DEFAULT)
+        if let Ok(c) = cadcraft_dwg::convert_dwg_with(cadcraft_dwg::Engine::CadCrates, &bytes, cadcraft_dwg::Limits::DEFAULT)
             && !c.notes.is_empty()
         {
-            let _ = writeln!(report, "BlackCAD alone would leave out ({} notes):", c.notes.len());
+            let _ = writeln!(report, "The open engine alone would leave out ({} notes):", c.notes.len());
             for n in c.notes.iter().take(5) {
                 let _ = writeln!(report, "  {n}");
             }
         }
-        let mut blackcad_opened = false;
+        let mut cad_crates_opened = false;
         match cadcraft_dwg::convert_dwg(&bytes, cadcraft_dwg::Limits::DEFAULT) {
             Ok(c) => {
-                blackcad_opened = c.engine == cadcraft_dwg::Engine::BlackCad;
+                cad_crates_opened = c.engine == cadcraft_dwg::Engine::CadCrates;
                 let _ = writeln!(
                     report,
                     "opened by: {:?}{}",
@@ -162,11 +162,11 @@ fn corpus_dwg_round_trips() {
             Ok(w) => {
                 let _ = writeln!(report, "saved by: {:?}", w.engine);
                 for n in w.notes.iter().take(10) {
-                    let _ = writeln!(report, "  BlackCAD's writer: {n}");
+                    let _ = writeln!(report, "  the open engine's writer: {n}");
                 }
-                // For files BlackCAD opened, the DXF records its writer refused, as CADCraft
+                // For files the open engine opened, the DXF records its writer refused, as CADCraft
                 // wrote them: what to teach the writer.
-                if blackcad_opened {
+                if cad_crates_opened {
                     let dxf = cadcraft_io::dwg_bridge_dxf(&first, Version::R2018);
                     for (kind, record) in refused_records(&w.notes, &dxf) {
                         let _ = writeln!(report, "  refused {kind} as CADCraft writes it: {record}");
@@ -209,10 +209,10 @@ fn corpus_dwg_round_trips() {
                 }
             }
             (Err(e), _) => {
-                let _ = writeln!(report, "BlackCAD doesn't read the original: {e}");
+                let _ = writeln!(report, "The open engine doesn't read the original: {e}");
             }
             (_, Err(e)) => {
-                let _ = writeln!(report, "BlackCAD doesn't read the saved file: {e}");
+                let _ = writeln!(report, "The open engine doesn't read the saved file: {e}");
             }
         }
         let _ = writeln!(report);
