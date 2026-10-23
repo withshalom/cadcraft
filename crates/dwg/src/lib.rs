@@ -15,6 +15,25 @@
 //! So a conversion never loses what acadrust would have kept: BlackCAD's result is used when it
 //! is complete, acadrust's otherwise, and BlackCAD's partial one (with notes on what it left
 //! out) only when acadrust can't convert the file at all.
+//!
+//! # Guardrails around the third-party decoder (acadrust)
+//!
+//! The decoder allocates tables and section buffers from sizes a (possibly damaged or hostile)
+//! file declares, and once it starts it cannot be interrupted (an allocation failure aborts the
+//! process, which `catch_unwind` cannot recover). Because the dependency is used unmodified, this
+//! crate guards it from the outside:
+//!
+//! - Both directions reject oversized input *before* the decoder runs ([`Limits::max_dwg_bytes`]
+//!   for DWG→DXF, [`Limits::max_dxf_bytes`] for DXF→DWG), and the DWG→DXF output is capped while
+//!   it is written (`CappedWriter`).
+//! - The reader and writer run inside `catch_unwind`, so a decode failure is reported instead of
+//!   crashing.
+//!
+//! These bound the input- and output-size variants. A small file that declares a huge internal
+//! table or section can still make the dependency allocate before any size is known; fully fixing
+//! that requires an upstream fix in `acadrust` (validate declared sizes against a decoded-memory
+//! budget) or running the decode in a separate worker with an OS memory limit. The limits here
+//! keep the blast radius bounded in the meantime.
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 #![forbid(unsafe_code)]
 
@@ -318,6 +337,15 @@ mod tests {
         assert_eq!(version(&dwg).as_deref(), Some("AC1021"));
         assert_eq!(convert_dwg(&dwg, Limits::DEFAULT).unwrap().engine, Engine::Acadrust);
         assert!(convert_dwg_with(Engine::BlackCad, &dwg, Limits::DEFAULT).is_err());
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    fn dxf_to_dwg_rejects_garbage_without_crashing() {
+        // The DXF→DWG path runs the third-party reader inside catch_unwind and reports failures
+        // rather than crashing (and rejects oversized input before decoding).
+        assert!(dxf_to_dwg(b"not a dxf file").is_err());
+        assert!(dxf_to_dwg(b"").is_err());
     }
 
     /// A DXF with one DIMENSION per (text, group 70, subclass, points) row.
