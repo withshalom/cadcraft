@@ -39,16 +39,19 @@ pub(crate) fn dwg_to_dxf(bytes: &[u8], limits: Limits) -> Result<Outcome, Failur
     let d = catch_unwind(|| cad_dwg::read_bytes(bytes))
         .map_err(|_| Failure::Failed("BlackCAD's DWG reader failed on this file".into()))?
         .map_err(|e| Failure::Failed(format!("DWG: {e}")))?;
-    let out = catch_unwind(AssertUnwindSafe(|| cad_dxf::to_bytes(&d, DxfFormat::Ascii)))
-        .map_err(|_| Failure::Failed("BlackCAD's DWG→DXF conversion failed on this file".into()))?;
-    if out.bytes.len() > limits.max_dxf_bytes {
-        return Err(Failure::Limit(format!(
-            "DWG: converting this {} file produced more than {} of drawing data (the limit); \
+    // Written within the limit: the DXF stops being built as soon as it would pass it, so a
+    // damaged file can't make the conversion take more memory than the limit first.
+    let out =
+        catch_unwind(AssertUnwindSafe(|| cad_dxf::to_bytes_within(&d, DxfFormat::Ascii, &cad_dxf::WriteOptions::default(), limits.max_dxf_bytes)))
+            .map_err(|_| Failure::Failed("BlackCAD's DWG→DXF conversion failed on this file".into()))?
+            .map_err(|_| {
+                Failure::Limit(format!(
+                    "DWG: converting this {} file produced more than {} of drawing data (the limit); \
              the file is probably damaged, or uses objects the DWG reader misreads",
-            mb(bytes.len() as u64),
-            mb(limits.max_dxf_bytes as u64)
-        )));
-    }
+                    mb(bytes.len() as u64),
+                    mb(limits.max_dxf_bytes as u64)
+                ))
+            })?;
     let mut losses = warnings(&d, "DWG");
     if let Some(note) = left_out_note(&out.left_out, "DWG", "couldn't be converted to DXF") {
         losses.push(note);

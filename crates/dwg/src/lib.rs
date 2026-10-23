@@ -279,6 +279,8 @@ mod tests {
 
     /// A DXF with ROMANS as `$TEXTSTYLE` gives a DWG whose current text style is ROMANS, not
     /// Standard: the DXF names the style, and the handle read with it was Standard's (#1650).
+    /// The repair is acadrust's, so acadrust's bridge writes the DWG here (2013 and 2018), and the
+    /// default path (BlackCAD's writer for 2018) must keep it too; acadrust reads every one back.
     #[cfg(not(target_arch = "wasm32"))]
     #[test]
     fn current_text_style_reaches_the_dwg() {
@@ -286,11 +288,19 @@ mod tests {
         let style = "  0\nSTYLE\n  5\n1F0\n100\nAcDbSymbolTableRecord\n100\nAcDbTextStyleTableRecord\n  2\nROMANS\n 70\n0\n";
         let style = format!("{style} 40\n0\n 41\n1\n 50\n0\n 71\n0\n 42\n2.5\n  3\nromans.shx\n  4\n\n");
         let dxf = format!("{header}  0\nSECTION\n  2\nTABLES\n  0\nTABLE\n  2\nSTYLE\n 70\n1\n{style}  0\nENDTAB\n  0\nENDSEC\n  0\nEOF\n");
-        let dwg = dxf_to_dwg(dxf.as_bytes()).unwrap();
-        let doc = acadrust::DwgReader::from_stream(std::io::Cursor::new(&dwg)).read().unwrap();
-        let romans = doc.text_styles.iter().find(|ts| ts.name == "ROMANS").map(|ts| ts.handle);
-        assert!(romans.is_some(), "ROMANS is missing from the DWG");
-        assert_eq!(Some(doc.header.current_text_style_handle), romans);
+        let written = dxf_to_dwg_written(dxf.as_bytes(), "AC1032").unwrap();
+        assert_eq!(written.engine, Engine::BlackCad, "{:?}", written.notes);
+        let dwgs = [
+            ("acadrust 2018", acadrust_bridge::dxf_to_dwg(dxf.as_bytes()).unwrap()),
+            ("acadrust 2013", acadrust_bridge::dxf_to_dwg_as(dxf.as_bytes(), "AC1027").unwrap()),
+            ("default (BlackCAD) 2018", written.dwg),
+        ];
+        for (how, dwg) in dwgs {
+            let doc = acadrust::DwgReader::from_stream(std::io::Cursor::new(&dwg)).read().unwrap();
+            let romans = doc.text_styles.iter().find(|ts| ts.name == "ROMANS").map(|ts| ts.handle);
+            assert!(romans.is_some(), "{how}: ROMANS is missing from the DWG");
+            assert_eq!(Some(doc.header.current_text_style_handle), romans, "{how}");
+        }
     }
 
     #[test]
@@ -342,6 +352,23 @@ mod tests {
         let tiny = Limits { max_dxf_bytes: 1000, ..Limits::DEFAULT };
         let e = convert_dwg(&dwg, tiny).unwrap_err();
         assert!(e.contains("produced more than 0.0 MB of drawing data (the limit)"), "{e}");
+    }
+
+    /// BlackCAD's DXF is written within the DXF limit (cad-dxf's `to_bytes_within`): a limit of
+    /// exactly its size passes, one byte less stops the conversion as the limit, while writing,
+    /// instead of after the whole DXF was built (a damaged file can't take more memory first).
+    #[test]
+    fn blackcads_dxf_is_written_within_the_limit() {
+        let dwg = dxf_to_dwg(simple_dxf().as_bytes()).unwrap();
+        let whole = match blackcad::dwg_to_dxf(&dwg, Limits::DEFAULT) {
+            Ok(blackcad::Outcome::Whole(dxf)) => dxf,
+            _ => Vec::new(),
+        };
+        assert!(!whole.is_empty(), "BlackCAD converts the file whole");
+        let exact = Limits { max_dxf_bytes: whole.len(), ..Limits::DEFAULT };
+        assert!(matches!(blackcad::dwg_to_dxf(&dwg, exact), Ok(blackcad::Outcome::Whole(d)) if d == whole));
+        let short = Limits { max_dxf_bytes: whole.len() - 1, ..Limits::DEFAULT };
+        assert!(matches!(blackcad::dwg_to_dxf(&dwg, short), Err(blackcad::Failure::Limit(_))));
     }
 
     #[test]
