@@ -1,6 +1,6 @@
 # CADCraft's drawing model against DWG — the map
 
-> **Status:** first map, 2026-10-23 (branch `cad-native`) · **Measurements:** `crates/io/tests/model_map.rs`
+> **Status:** S1–S4 done, 2026-10-23 (branch `cad-native`) · **Measurements:** `crates/io/tests/model_map.rs`
 > · **Format:** [`cad-format.md`](cad-format.md)
 
 This is the plan for making CADCraft's own drawing model (`cadcraft-doc`) the one model that DWG,
@@ -25,9 +25,8 @@ DXF and `.cad` all read into and write from. Everything below is measured or rea
 
 - Reads each DXF into the model and writes it back as DXF.
 - Matches the two files record by record: by handle, then by name, then by position.
-- Compares each record's values. References to other objects are left out of that comparison,
-  because tables and objects get new handles; whether a record kept its handle is counted
-  separately.
+- Compares each record's values. References to other objects are left out of that comparison;
+  whether a record kept its handle is counted separately.
 - Writes the model to `.cad` and back, and fails if that changes anything.
 
 For DWG it lists the object types each file holds.
@@ -37,15 +36,21 @@ For DWG it lists the object types each file holds.
 
 ### 2.1 Results (MI-201, one part saved in every version)
 
-| File | Records with the same values | Header variables kept |
-|---|---|---|
-| R12 DXF (AC1009) | 0 of 63* | 72 of 133 |
-| 2000 DXF (AC1015) | 170 of 265 | 103 of 199 |
-| 2004 DXF (AC1018) | 164 of 256 | 103 of 211 |
-| 2007 DXF (AC1021) | 162 of 248 | 107 of 251 |
-| 2010 DXF (AC1024) | 161 of 246 | 107 of 252 |
-| 2013 DXF (AC1027) | 123 of 198 | 107 of 253 |
-| 2018 DXF (AC1032) | 124 of 194 | 107 of 253 |
+Before → after S1–S4:
+
+| File | Records with the same values | Records with a new handle | Header variables kept |
+|---|---|---|---|
+| R12 DXF (AC1009) | 0 of 63* | – | 72 → 133 of 133 |
+| 2000 DXF (AC1015) | 170 → 236 of 265 | all → 0 | 103 → 199 of 199 |
+| 2004 DXF (AC1018) | 164 → 227 of 256 | all → 0 | 103 → 211 of 211 |
+| 2007 DXF (AC1021) | 162 → 215 of 248 | all → 0 | 107 → 251 of 251 |
+| 2010 DXF (AC1024) | 161 → 213 of 246 | all → 0 | 107 → 252 of 252 |
+| 2013 DXF (AC1027) | 123 → 165 of 198 | all → 0 | 107 → 253 of 253 |
+| 2018 DXF (AC1032) | 124 → 161 of 194 | 138 → 0 | 107 → 253 of 253 |
+
+What still differs is field by field (§4): dimension and multiline text fields, plot settings of
+layouts, block record flags, the active viewport's view, the table and multileader styles, and
+the osnap data of DIMASSOC objects.
 
 \* R12 files have no handles on most records and CADCraft writes them as a later version, so
 nothing matches one to one. R12 is measured for header variables only.
@@ -59,10 +64,10 @@ These cut across every type. DWG needs all of them; DXF and `.cad` benefit too.
 
 | # | Gap | Measured | What DWG needs | Change to the model |
 |---|---|---|---|---|
-| S1 | **Handles of tables, blocks, layouts, dictionaries and styles** are not kept: CADCraft gives them new ones when it writes. | Every table record, block and object that comes back gets a new one (2018: 138 of 138) | The object map is keyed by handle, and other objects, xrefs, data links and sheet sets point at handles. | A `handle` on every table record, block record, layout, style and kept object; the writer keeps it and only hands out new ones for new objects. |
-| S2 | **Header variables:** the model holds all of them, but the DXF writer only writes the 107 it knows. | 146 of 253 lost on save (2018) | DWG's header is a fixed list per version, so the DWG writer needs a value for every one. | Keep each unmodelled variable's group code next to its value, so any writer can write it. Add the public DXF reference's full variable table (name, code, default). |
-| S3 | **The dictionary tree** (named object dictionary, extension dictionaries, ownership flags) is rebuilt by the writer, not kept. | 19 of 20 dictionaries rewritten (2018); entries renamed or reordered | DWG stores the tree as objects with owners and hard/soft pointers. | Keep the tree: each dictionary's handle, owner, entries (name → handle), hard-owner and duplicate-record flags. CADCraft's own entries are added into it rather than replacing it. |
-| S4 | **Reactors on entities** (`102 {ACAD_REACTORS}`) are lost on entities that a dimension follows. | 4 of 20 lines and arcs lose them (2018) | DIMASSOC and associative hatches need their reactors on both ends. | Entities keep reactors and their extension dictionary in `ForeignExtra`, as table records already do. |
+| S1 ✓ | **Handles of tables, blocks, layouts, dictionaries and styles** are not kept: CADCraft gives them new ones when it writes. | Every table record, block and object that comes back gets a new one (2018: 138 of 138) | The object map is keyed by handle, and other objects, xrefs, data links and sheet sets point at handles. | A `handle` on every table record, block record, layout, style and kept object; the writer keeps it and only hands out new ones for new objects. **Done:** a `KeptHandle` on each (identity, not content: it doesn't take part in equality); `Foreign::handles` for every other role (tables, the dictionaries, a dimension's DIMASSOC); kept objects keep theirs; copies from other drawings drop theirs. |
+| S2 ✓ | **Header variables:** the model holds all of them, but the DXF writer only writes the 107 it knows. | 146 of 253 lost on save (2018) | DWG's header is a fixed list per version, so the DWG writer needs a value for every one. | Keep each unmodelled variable's group code next to its value, so any writer can write it. Add the public DXF reference's full variable table (name, code, default). **Done:** `Header::codes`; the DWG writer will need the full table. |
+| S3 ✓ | **The dictionary tree** (named object dictionary, extension dictionaries, ownership flags) is rebuilt by the writer, not kept. | 19 of 20 dictionaries rewritten (2018); entries renamed or reordered | DWG stores the tree as objects with owners and hard/soft pointers. | Keep the tree: each dictionary's handle, owner, entries (name → handle), hard-owner and duplicate-record flags. CADCraft's own entries are added into it rather than replacing it. **Done:** dictionaries keep their handles and owner reactors, list entries in key order, keep AutoCAD's keys (`A0`… for scales), and objects CADCraft writes keep their extension dictionaries (a table style's cell style map). Left: CADCraft adds two XRECORDs of its own; a multiline style's key comes back upper case. |
+| S4 ✓ | **Reactors on entities** (`102 {ACAD_REACTORS}`) are lost on entities that a dimension follows. | 4 of 20 lines and arcs lose them (2018) | DIMASSOC and associative hatches need their reactors on both ends. | Entities keep reactors and their extension dictionary in `ForeignExtra`, as table records already do. **Done:** the geometry a dimension follows names its DIMASSOC as a reactor. |
 | S5 | **DWG-only data:** control objects, the class list with DWG class numbers, the preview image, summary info, app info, file dependencies, revision history, the auxiliary header, VX_CONTROL. | Not in DXF, so not measured; all 8 DWGs have control objects and classes | Writing a DWG needs every one; keeping them makes DWG → DWG lossless. | A `dwg` part in `Foreign`: the sections the model doesn't model, kept as the file's bytes with the version they came from. |
 | S6 | **Objects kept raw are kept only as DXF groups.** | 7 types kept raw in the corpus (§4) | A DWG writer has to re-encode groups into DWG bits for every kept type, and that encoding is where BlackCAD's writer failed (group-order errors, §6). | A kept object holds its DXF groups and, when it came from a DWG, its DWG bits and version. Saving to the same DWG layout writes the bits back unchanged. |
 
@@ -81,8 +86,8 @@ These cut across every type. DWG needs all of them; DXF and `.cad` benefit too.
 
 | DWG / DXF type | CADCraft model | In corpus | Status | Gaps |
 |---|---|---|---|---|
-| LINE | `Line` | 22 | ◐ | reactors (S4) |
-| ARC | `Arc` | 6 | ◐ | reactors (S4) |
+| LINE | `Line` | 22 | ✓ | |
+| ARC | `Arc` | 6 | ✓ | |
 | CIRCLE | `Circle` | 4 | ✓ | |
 | POINT | `Point` | 6 | ✓ | |
 | SOLID, TRACE | `Solid`, `Trace` | 4 | ✓ | |
@@ -117,13 +122,13 @@ These cut across every type. DWG needs all of them; DXF and `.cad` benefit too.
 
 | DWG / DXF type | CADCraft model | In corpus | Status | Gaps |
 |---|---|---|---|---|
-| LAYER | `Layer` | 7 | ◐ | handle (S1) |
-| LTYPE | `Linetype` | 3 | ◐ | handle (S1); one linetype's description and name came back changed |
-| STYLE | `TextStyle` | 1 | ◐ | handle (S1) |
-| DIMSTYLE | `DimStyle` | 1 | ◐ | handle (S1); the writer adds groups for defaults (40–48, 71, 72) |
-| BLOCK_HEADER (BLOCK_RECORD), BLOCK, ENDBLK | `Block` | 4 | ◐ | handle (S1); insertion units (70), explodable (280), scale uniformly (281) |
-| VPORT | `VportConfig` | 1 | ◐ | handle (S1); the active view's centre, height, aspect, clipping, grid and view mode come back changed |
-| APPID | written from xdata | 4 | ◐ | handle (S1); 2 written that weren't in the file |
+| LAYER | `Layer` | 7 | ✓ | |
+| LTYPE | `Linetype` | 3 | ◐ | one linetype's description and name came back changed |
+| STYLE | `TextStyle` | 1 | ✓ | |
+| DIMSTYLE | `DimStyle` | 1 | ◐ | the writer adds groups for defaults (40–48, 71, 72) |
+| BLOCK_HEADER (BLOCK_RECORD), BLOCK, ENDBLK | `Block` | 4 | ◐ | insertion units (70), explodable (280), scale uniformly (281) |
+| VPORT | `VportConfig` | 1 | ◐ | the active view's centre, height, aspect, clipping, grid and view mode come back changed |
+| APPID | written from xdata and the file's list | 4 | ✓ | CADCraft adds its own applications |
 | VIEW | `NamedView` | – | · | |
 | UCS | `Ucs` | – | · | |
 | VX_TABLE_RECORD (VX_CONTROL) | – | 1 (R14, 2000) | ✗ | S5 |
@@ -132,23 +137,23 @@ These cut across every type. DWG needs all of them; DXF and `.cad` benefit too.
 
 | DWG / DXF type | CADCraft model | In corpus | Status | Gaps |
 |---|---|---|---|---|
-| DICTIONARY, ACDBDICTIONARYWDFLT | rebuilt | 19 + 1 | ◐ | S3 |
-| ACDBPLACEHOLDER | rebuilt | 1 | ◐ | S1 |
-| LAYOUT (with its PLOTSETTINGS) | `Layout` | 2 | ◐ | S1; paper name and size, plot type, standard scale, shade plot mode/resolution/DPI, tab order |
-| SCALE | `AnnoScale` | 17 | ◐ | S1; one flag (290) |
-| MLINESTYLE | `MLineStyle` | 1 | ✓ | S1 |
-| MLEADERSTYLE | `MLeaderStyle` | 1 | ◐ | S1; 298 and a block content group |
-| TABLESTYLE | `TableStyle` | 1 | ◐ | S1; cell styles (1, 90, 91 groups) rewritten |
-| CELLSTYLEMAP | – | 1 | ✗ | dropped |
-| DIMASSOC | `Dimension` associativity | 2 | ◐ | S1; osnap point data (72, 73) rewritten |
+| DICTIONARY, ACDBDICTIONARYWDFLT | written by CADCraft with kept handles, or kept raw | 19 + 1 | ✓ | the named object dictionary also lists CADCraft's own entries; a multiline style key comes back upper case |
+| ACDBPLACEHOLDER | written by CADCraft | 1 | ✓ | |
+| LAYOUT (with its PLOTSETTINGS) | `Layout` | 2 | ◐ | paper name and size, plot type, standard scale, shade plot mode/resolution/DPI, tab order |
+| SCALE | `AnnoScale` | 17 | ◐ | one flag (290) |
+| MLINESTYLE | `MLineStyle` | 1 | ✓ | |
+| MLEADERSTYLE | `MLeaderStyle` | 1 | ◐ | 298 and a block content group |
+| TABLESTYLE | `TableStyle` | 1 | ◐ | cell styles (1, 90, 91 groups) rewritten |
+| CELLSTYLEMAP | kept raw, in the table style's extension dictionary | 1 | R ✓ | |
+| DIMASSOC | `Dimension` associativity | 2 | ◐ | osnap point data (72, 73) rewritten |
 | GROUP | `Group` | – | · | |
 | SORTENTSTABLE | draw order of the store | – | · | rebuilt |
 | IMAGEDEF, IMAGEDEF_REACTOR, RASTERVARIABLES | `Image` | – | · | |
 | WIPEOUTVARIABLES | – | – | · | |
-| XRECORD | layer states, constraints and others | 20 | ◐ R | 8 of 21 come back with values rewritten (270, 271, 300–303) |
-| DICTIONARYVAR | kept raw | 5 | ◐ R | 3 of 5 values changed |
-| VISUALSTYLE | kept raw | 24 | R ✓ | values same; handles S1 |
-| MATERIAL | kept raw | 3 | R ◐ | 2 of 3 changed (group 1) |
+| XRECORD | layer states, constraints and others | 20 | R ✓ | |
+| DICTIONARYVAR | kept raw | 5 | R ✓ | |
+| VISUALSTYLE | kept raw | 24 | R ✓ | |
+| MATERIAL | kept raw | 3 | R ✓ | |
 | ACDBDETAILVIEWSTYLE, ACDBSECTIONVIEWSTYLE | kept raw | 1 + 1 | R ✓ | |
 | FIELD, FIELDLIST, DATALINK, GEODATA, SUN, LIGHTLIST, LAYER_FILTER, LAYER_INDEX, SPATIAL_FILTER, SPATIAL_INDEX, IDBUFFER, the ACDBASSOC* network, dynamic block parameters, proxy objects | kept raw | – | R · | |
 
@@ -203,3 +208,4 @@ On the corpus only the 2018 files go through BlackCAD both ways. §5 removes bot
 ## Revision history
 
 - 2026-10-23: first map, from the MI-201 corpus and the reader's code.
+- 2026-10-23: S1–S4 done: kept handles, header group codes, the dictionary tree, reactors.

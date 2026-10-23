@@ -2000,7 +2000,23 @@ fn tags_for(d: &Drawing, version: Version, target: Version) -> Vec<Tag> {
             if let EntityKind::Dimension(dm) = &e.kind {
                 let (flags, refs) = std_assoc_refs(d, dm);
                 if !refs.is_empty() {
-                    cx.assoc.insert(e.handle, AssocObj { xdict: w.h(), handle: w.h(), flags, refs });
+                    let own = e.handle.hex();
+                    let xdict = w.keep(Handle(0), ("XDICT", &own));
+                    let handle = w.keep(Handle(0), ("DIMASSOC", &own));
+                    cx.assoc.insert(e.handle, AssocObj { xdict, handle, flags, refs });
+                }
+            }
+        }
+    }
+    // The geometry a dimension follows names its DIMASSOC as a persistent reactor (S4).
+    let mut assoc_sorted: Vec<(&Handle, &AssocObj)> = cx.assoc.iter().collect();
+    assoc_sorted.sort_by_key(|(h, _)| **h);
+    for (_, a) in assoc_sorted {
+        for r in &a.refs {
+            for target in std::iter::once(r.main).chain(r.other) {
+                let list = w.reactors.entry(target).or_default();
+                if !list.contains(&a.handle) {
+                    list.push(a.handle.clone());
                 }
             }
         }
@@ -2552,6 +2568,7 @@ fn tags_for(d: &Drawing, version: Version, target: Version) -> Vec<Tag> {
     // Multileader styles.
     w.s(0, "DICTIONARY");
     w.s(5, mleader_dict.clone());
+    w.group("ACAD_REACTORS", 330, &[&root_dict]);
     w.s(330, root_dict.clone());
     w.s(100, "AcDbDictionary");
     w.i(281, 1);
@@ -2568,6 +2585,7 @@ fn tags_for(d: &Drawing, version: Version, target: Version) -> Vec<Tag> {
     // Table styles.
     w.s(0, "DICTIONARY");
     w.s(5, table_style_dict.clone());
+    w.group("ACAD_REACTORS", 330, &[&root_dict]);
     w.s(330, root_dict.clone());
     w.s(100, "AcDbDictionary");
     w.i(281, 1);
@@ -2618,7 +2636,6 @@ fn tags_for(d: &Drawing, version: Version, target: Version) -> Vec<Tag> {
         let dh = dim.hex();
         w.s(0, "DICTIONARY");
         w.s(5, a.xdict.clone());
-        w.group("ACAD_REACTORS", 330, &[&dh]);
         w.s(330, dh.clone());
         w.s(100, "AcDbDictionary");
         w.i(280, 1);
@@ -2654,14 +2671,19 @@ fn tags_for(d: &Drawing, version: Version, target: Version) -> Vec<Tag> {
     }
     w.s(0, "DICTIONARY");
     w.s(5, layout_dict.clone());
+    w.group("ACAD_REACTORS", 330, &[&root_dict]);
     w.s(330, root_dict.clone());
     w.s(100, "AcDbDictionary");
     w.i(281, 1);
-    w.s(3, "Model");
-    w.s(350, model_layout.clone());
+    // Entries in key order, as AutoCAD writes them.
+    let mut entries: Vec<(&str, String)> = vec![("Model", model_layout.clone())];
     for (i, (_, _, l)) in ps_brs.iter().enumerate() {
-        w.s(3, &l.name);
-        w.s(350, layout_handles.get(i).cloned().unwrap_or_default());
+        entries.push((l.name.as_str(), layout_handles.get(i).cloned().unwrap_or_default()));
+    }
+    entries.sort_by(|a, b| a.0.cmp(b.0));
+    for (name, h) in entries {
+        w.s(3, name);
+        w.s(350, h);
     }
     let layout_obj = |w: &mut W, h: &str, name: &str, tab: i64, brh: &str, flags: i64, page: &PageSetup, view: Option<(Vec2, f64)>| {
         // Plot scale: a standard scale when fitting or 1:1, otherwise custom (142 paper units
@@ -2942,8 +2964,24 @@ fn scale_list(w: &mut W, scales: &[(&cadcraft_doc::AnnoScale, String)], dict: &s
     w.s(330, root);
     w.s(100, "AcDbDictionary");
     w.i(281, 1);
-    for (i, (_, h)) in scales.iter().enumerate() {
-        w.s(3, format!("S{i}"));
+    // Each scale under the key it had in the file (AutoCAD's `A0`, `B1`…), others `S0`, `S1`…
+    let kept: HashMap<String, String> =
+        w.roles.iter().filter(|((kind, _), _)| kind == "NOD/ACAD_SCALELIST").map(|((_, key), h)| (h.hex(), key.clone())).collect();
+    let mut keys: Vec<String> = scales.iter().filter_map(|(_, h)| kept.get(h).cloned()).collect();
+    let mut n = 0;
+    for (_, h) in scales {
+        let key = match kept.get(h) {
+            Some(k) => k.clone(),
+            None => loop {
+                let k = format!("S{n}");
+                n += 1;
+                if !keys.contains(&k) {
+                    keys.push(k.clone());
+                    break k;
+                }
+            },
+        };
+        w.s(3, key);
         w.s(350, h.clone());
     }
     for (s, h) in scales {

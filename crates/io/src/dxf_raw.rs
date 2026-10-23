@@ -333,9 +333,11 @@ pub(crate) fn read(secs: &[Section], d: &mut Drawing) {
         ents.entry(e.handle.hex()).or_insert(matches!(e.kind, EntityKind::Unknown(_)));
     }
     let ids = identities(&tables, &blocks, &objects);
-    // Extension dictionaries of entities and records: owner → dictionary.
+    // Extension dictionaries of entities, records and the objects CADCraft writes itself (those
+    // with a role, such as a table style): owner → dictionary.
     let mut xdict_of: HashMap<String, String> = HashMap::new();
-    for (kind, _, t) in tables.iter().chain(&blocks).chain(&entities) {
+    let role_objects = objects.iter().filter(|(_, _, t)| head(t).handle.is_some_and(|h| ids.contains_key(&h)));
+    for (kind, _, t) in tables.iter().chain(&blocks).chain(&entities).chain(role_objects) {
         if kind == "ENDBLK" {
             continue;
         }
@@ -359,7 +361,7 @@ pub(crate) fn read(secs: &[Section], d: &mut Drawing) {
         let Some((_, _, t)) = objects.get(k) else { return false };
         let hd = head(t);
         let (Some(h), Some(o)) = (hd.handle, hd.owner) else { return false };
-        !by_handle.contains_key(&o) && xdict_of.get(&o) == Some(&h) && (ents.contains_key(&o) || ids.contains_key(&o))
+        (!by_handle.contains_key(&o) || ids.contains_key(&o)) && xdict_of.get(&o) == Some(&h) && (ents.contains_key(&o) || ids.contains_key(&o))
     };
     let modelled_entry = |t: &[Tag], h: &str| entries(t).iter().any(|(k, eh)| eh == h && MODELLED_XDICT_KEYS.contains(&up(k).as_str()));
     // Which objects to keep: those under a named object dictionary entry CADCraft doesn't model,
@@ -387,6 +389,10 @@ pub(crate) fn read(secs: &[Section], d: &mut Drawing) {
             if Some(&o) == root.as_ref() {
                 break root_key(&h).is_some_and(|k| !modelled_key(&k));
             }
+            // The extension dictionary of an object CADCraft writes itself (a table style's).
+            if ids.contains_key(&o) && by_handle.contains_key(&o) && is_xdict(cur) {
+                break entries(t).iter().any(|(k, _)| !MODELLED_XDICT_KEYS.contains(&up(k).as_str()));
+            }
             if let Some(&j) = by_handle.get(&o) {
                 if is_xdict(j) && objects.get(j).is_some_and(|p| modelled_entry(p.2, &h)) {
                     break false;
@@ -410,6 +416,23 @@ pub(crate) fn read(secs: &[Section], d: &mut Drawing) {
             && f.handles.len() < MAX_OBJECTS
         {
             f.handles.entry(k.clone()).and_modify(|x| *x = (*x).min(hh)).or_insert(hh);
+        }
+    }
+    // Extension dictionaries of entities and records, and the DIMASSOC objects in them, which
+    // CADCraft writes itself for dimensions: by the owner's handle (S1).
+    let owner_of_xdict: HashMap<&String, &String> = xdict_of.iter().map(|(o, x)| (x, o)).collect();
+    for (o, x) in &xdict_of {
+        if let (Some(oh), Some(xh)) = (handle(o), handle(x)) {
+            f.handles.entry(("XDICT".into(), oh.hex())).or_insert(xh);
+        }
+    }
+    for (kind, _, t) in &objects {
+        let hd = head(t);
+        if kind == "DIMASSOC"
+            && let (Some(h), Some(x)) = (hd.handle.as_deref().and_then(handle), hd.owner.as_ref())
+            && let Some(dim) = owner_of_xdict.get(x).and_then(|o| handle(o))
+        {
+            f.handles.entry(("DIMASSOC".into(), dim.hex())).or_insert(h);
         }
     }
     let mut kept: HashSet<String> = HashSet::new();
@@ -453,6 +476,18 @@ pub(crate) fn read(secs: &[Section], d: &mut Drawing) {
     for (kind, _, t) in tables.iter().chain(blocks.iter().filter(|(k, _, _)| k == "BLOCK")) {
         let Some(key) = head(t).handle.and_then(|h| ids.get(&h).cloned()) else { continue };
         let x = extra(kind, t, kind == "BLOCK", false, &kept);
+        if !x.is_empty() {
+            f.records.entry(key).or_insert(x);
+        }
+    }
+    // Extras of the objects CADCraft writes itself (a table style's extension dictionary…).
+    for (kind, _, t) in &objects {
+        let Some(h) = head(t).handle else { continue };
+        if kept.contains(&h) || is_dictionary(kind) {
+            continue;
+        }
+        let Some(key) = ids.get(&h).cloned() else { continue };
+        let x = extra(kind, t, false, false, &kept);
         if !x.is_empty() {
             f.records.entry(key).or_insert(x);
         }
@@ -730,8 +765,17 @@ impl Map<'_> {
 }
 
 /// The extras of a written record, if the drawing keeps any for it.
-fn extra_for<'a>(f: &'a Foreign, xd: &XdataOf, rec: &Rec, body: &[Tag], block: &str) -> Option<Cow<'a, ForeignExtra>> {
+fn extra_for<'a>(
+    f: &'a Foreign,
+    xd: &XdataOf,
+    rec: &Rec,
+    body: &[Tag],
+    block: &str,
+    ids: &HashMap<String, ForeignKey>,
+) -> Option<Cow<'a, ForeignExtra>> {
     match (rec.sec.as_str(), rec.kind.as_str()) {
+        // Objects CADCraft writes itself (styles, layouts, scales…), by the role of their handle.
+        ("OBJECTS", _) => f.records.get(ids.get(&head(body).handle?)?).map(Cow::Borrowed),
         ("BLOCKS", "BLOCK") => f.records.get(&("BLOCK".to_string(), block.to_string())).map(Cow::Borrowed),
         ("BLOCKS", "ENDBLK") => None,
         ("ENTITIES" | "BLOCKS", _) => entity_extra(f, xd, handle(&head(body).handle?)?),
@@ -779,8 +823,9 @@ pub(crate) fn finish(tags: &mut Vec<Tag>, d: &Drawing) {
     };
     let (tables, blocks, objects) = (by_sec("TABLES"), by_sec("BLOCKS"), by_sec("OBJECTS"));
     let mut roles: HashMap<ForeignKey, String> = HashMap::new();
-    for (h, k) in identities(&tables, &blocks, &objects) {
-        roles.entry(k).or_insert(h);
+    let written_ids = identities(&tables, &blocks, &objects);
+    for (h, k) in &written_ids {
+        roles.entry(k.clone()).or_insert(h.clone());
     }
     let mut written: HashSet<String> = recs.iter().filter_map(|r| head(body(r)).handle).collect();
     // Entities of types CADCraft doesn't model, placed among the written ones.
@@ -800,7 +845,7 @@ pub(crate) fn finish(tags: &mut Vec<Tag>, d: &Drawing) {
         if r.kind == "BLOCK" {
             block = up(&val(body(r), 2).unwrap_or_default());
         }
-        if let Some(x) = extra_for(f, &xd, r, body(r), &block)
+        if let Some(x) = extra_for(f, &xd, r, body(r), &block, &written_ids)
             && let Some(xd) = x.xdict
             && head(body(r)).xdict.is_none()
         {
@@ -895,7 +940,7 @@ pub(crate) fn finish(tags: &mut Vec<Tag>, d: &Drawing) {
             record(&map, &ur, ub, x.as_deref(), true, false, &mut out);
         }
         out.extend(tags.get(r.start).cloned());
-        let x = extra_for(f, &xd, r, b, &block);
+        let x = extra_for(f, &xd, r, b, &block, &written_ids);
         if x.is_none() && Some(r.start) != root {
             out.extend(b.iter().cloned());
             continue;
@@ -978,6 +1023,7 @@ fn plan_unknown(d: &Drawing, recs: &[Rec], tags: &[Tag], roles: &HashMap<Foreign
 /// A written record with its kept extras, remapped references (unknown entities) and kept
 /// dictionary entries (the named object dictionary).
 fn record(map: &Map, r: &Rec, b: &[Tag], x: Option<&ForeignExtra>, unknown: bool, root: bool, out: &mut Vec<Tag>) {
+    let start = out.len();
     let h = head(b);
     let entity = matches!(r.sec.as_str(), "ENTITIES" | "BLOCKS") && r.kind != "BLOCK";
     let xdata_at = b.iter().position(|t| t.code == 1001).unwrap_or(b.len());
@@ -1058,6 +1104,25 @@ fn record(map: &Map, r: &Rec, b: &[Tag], x: Option<&ForeignExtra>, unknown: bool
                 out.push(Tag::s(3, key.clone()));
                 out.push(Tag::s(350, nh.clone()));
             }
+        }
+        sort_entries(out.get_mut(start..).unwrap_or(&mut []));
+    }
+}
+
+/// A dictionary's entries (`3` key, `350`/`360` handle pairs) in key order, as AutoCAD writes
+/// the named object dictionary; every other group stays where it is.
+fn sort_entries(rec: &mut [Tag]) {
+    let at: Vec<usize> = (0..rec.len().saturating_sub(1))
+        .filter(|&i| rec.get(i).is_some_and(|t| t.code == 3) && rec.get(i + 1).is_some_and(|t| matches!(t.code, 350 | 360)))
+        .collect();
+    let mut pairs: Vec<(Tag, Tag)> = at.iter().filter_map(|&i| Some((rec.get(i)?.clone(), rec.get(i + 1)?.clone()))).collect();
+    pairs.sort_by_key(|p| p.0.str());
+    for (&i, (k, v)) in at.iter().zip(pairs) {
+        if let Some(t) = rec.get_mut(i) {
+            *t = k;
+        }
+        if let Some(t) = rec.get_mut(i + 1) {
+            *t = v;
         }
     }
 }
