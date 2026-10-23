@@ -1,0 +1,205 @@
+# CADCraft's drawing model against DWG — the map
+
+> **Status:** first map, 2026-10-23 (branch `cad-native`) · **Measurements:** `crates/io/tests/model_map.rs`
+> · **Format:** [`cad-format.md`](cad-format.md)
+
+This is the plan for making CADCraft's own drawing model (`cadcraft-doc`) the one model that DWG,
+DXF and `.cad` all read into and write from. Everything below is measured or read from the code.
+
+## 1. Decisions (owner, 2026-10-22)
+
+1. **CADCraft's model is the model.** DWG maps straight onto `cadcraft-doc`: no BlackCAD model
+   in between, and no DXF text in between.
+2. **CADCraft gets its own DWG reader and writer** in `crates/dwg`. The low-level parts (bit
+   streams, compression, checksums, the containers, the object map) are ported from BlackCAD's open
+   `cad-dwg` crate (MIT OR Apache-2.0, same owner) and credited in `NOTICE`. The object decoders
+   and encoders are rewritten to read and write CADCraft's types.
+3. **`.cad` keeps BlackCAD's container** (`cad-native`). Its records stay CADCraft's own.
+4. **The work is done here first, on `cad-native`.** The model additions and the DWG reader and
+   writer then go to `dwg-fidelity` and the upstream PR. The `.cad` format stays on this branch
+   until it is shared later. By then it already sits on the same model and the same DWG mapping.
+
+## 2. How it is measured
+
+`model_map.rs` takes AutoCAD-saved files (the MI-201 corpus, never committed) and does this:
+
+- Reads each DXF into the model and writes it back as DXF.
+- Matches the two files record by record: by handle, then by name, then by position.
+- Compares each record's values. References to other objects are left out of that comparison,
+  because tables and objects get new handles; whether a record kept its handle is counted
+  separately.
+- Writes the model to `.cad` and back, and fails if that changes anything.
+
+For DWG it lists the object types each file holds.
+
+**What `.cad` holds:** everything the model holds, in all eight versions (the test passes). So
+`.cad` is as good as the model, and every gap below is a gap in the model or in the DXF writer.
+
+### 2.1 Results (MI-201, one part saved in every version)
+
+| File | Records with the same values | Header variables kept |
+|---|---|---|
+| R12 DXF (AC1009) | 0 of 63* | 72 of 133 |
+| 2000 DXF (AC1015) | 170 of 265 | 103 of 199 |
+| 2004 DXF (AC1018) | 164 of 256 | 103 of 211 |
+| 2007 DXF (AC1021) | 162 of 248 | 107 of 251 |
+| 2010 DXF (AC1024) | 161 of 246 | 107 of 252 |
+| 2013 DXF (AC1027) | 123 of 198 | 107 of 253 |
+| 2018 DXF (AC1032) | 124 of 194 | 107 of 253 |
+
+\* R12 files have no handles on most records and CADCraft writes them as a later version, so
+nothing matches one to one. R12 is measured for header variables only.
+
+What every drawing in the corpus keeps: all entities (34 in model space), layers, linetypes, text
+styles, blocks and their contents, and every handle of an entity. What it loses is below.
+
+## 3. Structural gaps
+
+These cut across every type. DWG needs all of them; DXF and `.cad` benefit too.
+
+| # | Gap | Measured | What DWG needs | Change to the model |
+|---|---|---|---|---|
+| S1 | **Handles of tables, blocks, layouts, dictionaries and styles** are not kept: CADCraft gives them new ones when it writes. | Every table record, block and object that comes back gets a new one (2018: 138 of 138) | The object map is keyed by handle, and other objects, xrefs, data links and sheet sets point at handles. | A `handle` on every table record, block record, layout, style and kept object; the writer keeps it and only hands out new ones for new objects. |
+| S2 | **Header variables:** the model holds all of them, but the DXF writer only writes the 107 it knows. | 146 of 253 lost on save (2018) | DWG's header is a fixed list per version, so the DWG writer needs a value for every one. | Keep each unmodelled variable's group code next to its value, so any writer can write it. Add the public DXF reference's full variable table (name, code, default). |
+| S3 | **The dictionary tree** (named object dictionary, extension dictionaries, ownership flags) is rebuilt by the writer, not kept. | 19 of 20 dictionaries rewritten (2018); entries renamed or reordered | DWG stores the tree as objects with owners and hard/soft pointers. | Keep the tree: each dictionary's handle, owner, entries (name → handle), hard-owner and duplicate-record flags. CADCraft's own entries are added into it rather than replacing it. |
+| S4 | **Reactors on entities** (`102 {ACAD_REACTORS}`) are lost on entities that a dimension follows. | 4 of 20 lines and arcs lose them (2018) | DIMASSOC and associative hatches need their reactors on both ends. | Entities keep reactors and their extension dictionary in `ForeignExtra`, as table records already do. |
+| S5 | **DWG-only data:** control objects, the class list with DWG class numbers, the preview image, summary info, app info, file dependencies, revision history, the auxiliary header, VX_CONTROL. | Not in DXF, so not measured; all 8 DWGs have control objects and classes | Writing a DWG needs every one; keeping them makes DWG → DWG lossless. | A `dwg` part in `Foreign`: the sections the model doesn't model, kept as the file's bytes with the version they came from. |
+| S6 | **Objects kept raw are kept only as DXF groups.** | 7 types kept raw in the corpus (§4) | A DWG writer has to re-encode groups into DWG bits for every kept type, and that encoding is where BlackCAD's writer failed (group-order errors, §6). | A kept object holds its DXF groups and, when it came from a DWG, its DWG bits and version. Saving to the same DWG layout writes the bits back unchanged. |
+
+## 4. Type by type
+
+**Status:**
+- **✓** = modelled, values come back the same.
+- **◐** = modelled, with the field gaps listed.
+- **R** = kept raw as DXF groups.
+- **✗** = dropped.
+- **·** = not in the corpus, so the status comes from the reader's code.
+
+"In corpus" counts the 2018 DWG.
+
+### 4.1 Entities
+
+| DWG / DXF type | CADCraft model | In corpus | Status | Gaps |
+|---|---|---|---|---|
+| LINE | `Line` | 22 | ◐ | reactors (S4) |
+| ARC | `Arc` | 6 | ◐ | reactors (S4) |
+| CIRCLE | `Circle` | 4 | ✓ | |
+| POINT | `Point` | 6 | ✓ | |
+| SOLID, TRACE | `Solid`, `Trace` | 4 | ✓ | |
+| TEXT | `Text` | 8 | ✓ | writes the style (group 7) even when it is the default: harmless |
+| MTEXT | `MText` | 2 | ◐ | defined annotation height (46) |
+| DIMENSION (all seven DWG types) | `Dimension` | 2 linear | ◐ | 71 (text attachment), 73–75, 280 (dimension version) lost; style overrides written as xdata rather than as read |
+| INSERT, MINSERT, ATTRIB | `Insert` | – | · | |
+| ATTDEF | `AttDef` | – | · | |
+| LWPOLYLINE | `LwPolyline` | – | · | |
+| POLYLINE 2D, VERTEX 2D | `LwPolyline` | – | · | converted: the 2D/LW distinction and fit/spline vertices aren't kept |
+| POLYLINE 3D, VERTEX 3D | `Polyline3d` | – | · | |
+| POLYLINE PFACE / MESH, their VERTEXes | `Unknown` | – | R · | not modelled |
+| ELLIPSE | `Ellipse` | – | · | |
+| SPLINE | `Spline` (2D) | – | · | Z of 3D splines |
+| RAY, XLINE | `Ray`, `XLine` | – | · | |
+| 3DFACE | `Face3d` | – | · | |
+| HATCH | `Hatch` | – | · | |
+| LEADER | `Leader` | – | · | |
+| MULTILEADER | `MLeader` | – | · | |
+| MLINE | `MLine` | – | · | |
+| TOLERANCE | `Tolerance` | – | · | |
+| VIEWPORT | `Viewport` | – | · | |
+| IMAGE | `Image` | – | · | |
+| WIPEOUT | `Wipeout` | – | · | |
+| ACAD_TABLE | `Table` | – | · | |
+| HELIX | `Helix` | – | · | |
+| REGION | `Region` (bulge loops) | – | · | its ACIS body is kept raw |
+| 3DSOLID, BODY, SURFACE types | `Unknown` | – | R · | ACIS bodies: kept raw |
+| SHAPE, OLE2FRAME, LIGHT, PDF/DWF/DGN UNDERLAY, proxy entities | `Unknown` | – | R · | |
+
+### 4.2 Tables (each with its control object in DWG)
+
+| DWG / DXF type | CADCraft model | In corpus | Status | Gaps |
+|---|---|---|---|---|
+| LAYER | `Layer` | 7 | ◐ | handle (S1) |
+| LTYPE | `Linetype` | 3 | ◐ | handle (S1); one linetype's description and name came back changed |
+| STYLE | `TextStyle` | 1 | ◐ | handle (S1) |
+| DIMSTYLE | `DimStyle` | 1 | ◐ | handle (S1); the writer adds groups for defaults (40–48, 71, 72) |
+| BLOCK_HEADER (BLOCK_RECORD), BLOCK, ENDBLK | `Block` | 4 | ◐ | handle (S1); insertion units (70), explodable (280), scale uniformly (281) |
+| VPORT | `VportConfig` | 1 | ◐ | handle (S1); the active view's centre, height, aspect, clipping, grid and view mode come back changed |
+| APPID | written from xdata | 4 | ◐ | handle (S1); 2 written that weren't in the file |
+| VIEW | `NamedView` | – | · | |
+| UCS | `Ucs` | – | · | |
+| VX_TABLE_RECORD (VX_CONTROL) | – | 1 (R14, 2000) | ✗ | S5 |
+
+### 4.3 Objects
+
+| DWG / DXF type | CADCraft model | In corpus | Status | Gaps |
+|---|---|---|---|---|
+| DICTIONARY, ACDBDICTIONARYWDFLT | rebuilt | 19 + 1 | ◐ | S3 |
+| ACDBPLACEHOLDER | rebuilt | 1 | ◐ | S1 |
+| LAYOUT (with its PLOTSETTINGS) | `Layout` | 2 | ◐ | S1; paper name and size, plot type, standard scale, shade plot mode/resolution/DPI, tab order |
+| SCALE | `AnnoScale` | 17 | ◐ | S1; one flag (290) |
+| MLINESTYLE | `MLineStyle` | 1 | ✓ | S1 |
+| MLEADERSTYLE | `MLeaderStyle` | 1 | ◐ | S1; 298 and a block content group |
+| TABLESTYLE | `TableStyle` | 1 | ◐ | S1; cell styles (1, 90, 91 groups) rewritten |
+| CELLSTYLEMAP | – | 1 | ✗ | dropped |
+| DIMASSOC | `Dimension` associativity | 2 | ◐ | S1; osnap point data (72, 73) rewritten |
+| GROUP | `Group` | – | · | |
+| SORTENTSTABLE | draw order of the store | – | · | rebuilt |
+| IMAGEDEF, IMAGEDEF_REACTOR, RASTERVARIABLES | `Image` | – | · | |
+| WIPEOUTVARIABLES | – | – | · | |
+| XRECORD | layer states, constraints and others | 20 | ◐ R | 8 of 21 come back with values rewritten (270, 271, 300–303) |
+| DICTIONARYVAR | kept raw | 5 | ◐ R | 3 of 5 values changed |
+| VISUALSTYLE | kept raw | 24 | R ✓ | values same; handles S1 |
+| MATERIAL | kept raw | 3 | R ◐ | 2 of 3 changed (group 1) |
+| ACDBDETAILVIEWSTYLE, ACDBSECTIONVIEWSTYLE | kept raw | 1 + 1 | R ✓ | |
+| FIELD, FIELDLIST, DATALINK, GEODATA, SUN, LIGHTLIST, LAYER_FILTER, LAYER_INDEX, SPATIAL_FILTER, SPATIAL_INDEX, IDBUFFER, the ACDBASSOC* network, dynamic block parameters, proxy objects | kept raw | – | R · | |
+
+## 5. DWG reader and writer in CADCraft
+
+`crates/dwg` becomes CADCraft's own codec on layer 2 (it depends on `doc`, `geom` and `color`).
+It is ported from BlackCAD's open `cad-dwg` (§1):
+
+| BlackCAD module | Lines | Coupled to BlackCAD's model? | Here |
+|---|---|---|---|
+| `bits.rs`, `crc.rs`, `lz77.rs`, `objmap.rs`, `section.rs` | 2,000 | no | ported as is |
+| `r2000.rs`, `r2004.rs`, `container.rs`, `streams.rs`, `write/container.rs` | 1,130 | barely | ported, model types removed |
+| `classes.rs`, `eed.rs`, `header.rs`, `hvars.rs` | 1,990 | yes | ported; the header goes to `Header` with codes (S2) |
+| `object.rs` (the common object and entity header) | 1,210 | lightly | ported; owners, reactors and xdictionaries go to S1/S3/S4 |
+| `entities.rs`, `tables.rs`, `nongraphic.rs`, `styles.rs` | 3,800 | yes | rewritten to produce CADCraft's types; field layouts kept |
+| `write/objects.rs`, `write/sections.rs`, `write/mod.rs` | 2,920 | yes | rewritten from CADCraft's types, not from DXF groups (S6) |
+
+The rule for every type is that kept DWG bits are written back unchanged when the file is saved
+in the same layout. Otherwise the type is encoded from the model. DXF groups are used only for
+kept objects that came from a DXF.
+
+`acadrust` stays behind it for what the new codec doesn't do yet (2007 and versions it can't
+write), exactly as today, and leaves when the codec covers every version.
+
+## 6. Why the current bridge loses data (for the record)
+
+On `dwg-fidelity` today, a DWG goes DWG → BlackCAD's model → DXF text → CADCraft's DXF reader. It
+saves the reverse way. Two separate losses add up:
+
+- **BlackCAD's model:** it can't convert some objects, so the file goes to `acadrust`. Every
+  version before 2018 does.
+- **Re-encoding DXF:** BlackCAD's writer expects groups in its own order, and refuses MATERIAL,
+  VISUALSTYLE and the view styles in the order `acadrust` and AutoCAD write them.
+
+On the corpus only the 2018 files go through BlackCAD both ways. §5 removes both translations.
+
+## 7. Order of work
+
+1. **S1 handles, S2 header, S3 dictionaries, S4 reactors** in the model, with `.cad`, DXF read and
+   DXF write following. Measured with `model_map.rs`: the corpus should come back with the same
+   values and the same handles.
+2. **The field gaps of §4,** type by type, each with a synthetic test from the public DXF
+   reference.
+3. **The codec, read side:** port the low level, map every type to the model, keep DWG bits (S5,
+   S6). Every corpus DWG from R14 to 2018 should open with nothing left out.
+4. **The codec, write side:** 2018 first (byte-checked against AutoCAD), then 2013 and 2010
+   (same container), then 2004 and 2000.
+5. **Tests:** value-level round trips (this test, extended to DWG), synthetic drawings for
+   every type in §4 not in the corpus, damaged files.
+6. **Bring it to `dwg-fidelity` and the PR,** without the `.cad` format.
+
+## Revision history
+
+- 2026-10-23: first map, from the MI-201 corpus and the reader's code.
