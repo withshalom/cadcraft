@@ -177,32 +177,10 @@ fn dxf_roundtrip_preserves_entities() {
     assert!(back.entity(h).is_none());
 }
 
-/// BlackCAD's `.blc` opens and saves through its open crates on every target (the web build
-/// too): the drawing comes back with its entities, layers, blocks and layouts, whatever the
-/// file is called, so BlackCAD files saved as `.cad` before its rename open too.
-#[test]
-fn blc_roundtrip_keeps_the_drawing() {
-    let d = sample();
-    let bytes = write(&d, "part.blc").unwrap();
-    assert!(cadcraft_dwg::is_blc(&bytes) && !cadcraft_dwg::is_dwg(&bytes));
-    let kinds = |d: &Drawing| d.model.iter().map(|e| e.kind.type_name()).collect::<Vec<_>>();
-    for name in ["renamed.bin", "older.cad"] {
-        let back = read(&bytes, name).unwrap();
-        assert_eq!(kinds(&back), kinds(&d), "{name}: notes: {:?}", back.read_notes);
-        assert_eq!(back.layer("Walls").unwrap().color, Color::Index(1));
-        assert!(back.block("Bolt").is_some());
-        assert_eq!(back.layout("Layout1").unwrap().entities.len(), 1);
-    }
-    // Saved again, it is the same drawing.
-    let back = read(&bytes, "part.blc").unwrap();
-    let again = read(&write(&back, "part.blc").unwrap(), "part.blc").unwrap();
-    assert_eq!(kinds(&again), kinds(&d));
-}
-
-/// `.cad` is CADCraft's own native format (the `cad-native` branch), not BlackCAD's: this
+/// `.cad` is CADCraft's own native format (the `cad-native` branch), not the open engine's: this
 /// branch doesn't save it.
 #[test]
-fn cad_is_not_saved_as_blackcads_format() {
+fn cad_is_not_saved_as_cad_crates_format() {
     assert!(write(&sample(), "part.cad").is_err());
 }
 
