@@ -660,6 +660,7 @@ dependencies = [
 name = "cadcraft-engine"
 version = "0.10.0"
 dependencies = [
+ "cad-native",
  "cadcraft-color",
  "cadcraft-constraints",
  "cadcraft-doc",
@@ -699,6 +700,7 @@ version = "0.10.0"
 dependencies = [
  "acadrust",
  "cad-dwg",
+ "cad-native",
  "cadcraft-color",
  "cadcraft-doc",
  "cadcraft-dwg",

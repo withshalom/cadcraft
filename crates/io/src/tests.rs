@@ -199,11 +199,15 @@ fn blc_roundtrip_keeps_the_drawing() {
     assert_eq!(kinds(&again), kinds(&d));
 }
 
-/// `.cad` is CADCraft's own native format (the `cad-native` branch), not BlackCAD's: this
-/// branch doesn't save it.
+/// `.cad` is CADCraft's own native format, not BlackCAD's: saved under that name it holds
+/// CADCraft's records (docs/cad-format.md), and it reopens as the same drawing.
 #[test]
 fn cad_is_not_saved_as_blackcads_format() {
-    assert!(write(&sample(), "part.cad").is_err());
+    let bytes = write(&sample(), "part.cad").unwrap();
+    assert!(cad_file::is_cad(&bytes));
+    assert!(!cadcraft_dwg::is_blc(&bytes));
+    let back = read(&bytes, "part.cad").unwrap();
+    assert_eq!(kinds(&back), kinds(&sample()));
 }
 
 #[test]

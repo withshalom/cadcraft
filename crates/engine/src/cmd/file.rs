@@ -2,6 +2,8 @@
 //! registered by the host (desktop/CLI) via [`crate::cmd::file::set_io`]. On the web, where there is
 //! no file system, saved files reach the user through the host's [`crate::cmd::file::set_deliver`].
 
+/// The `.cdl` lock beside an open `.cad` drawing.
+pub mod lock;
 mod pgp;
 mod template;
 
@@ -307,6 +309,8 @@ fn add_read(s: &mut Session, drawing: Drawing, binary_dxf: bool, name: &str, pat
     for note in notes {
         s.echo(note);
     }
+    // A `.cad` drawing takes its `.cdl` lock, or opens read-only.
+    lock::after_open(s, i);
     i
 }
 
@@ -315,15 +319,20 @@ pub(crate) fn open_bytes(s: &mut Session, bytes: &[u8], name: &str, path: Option
     Ok(add_read(s, drawing, binary_dxf, &name, path))
 }
 
-/// OPEN's reply: the drawing's index and what reading it left out.
+/// OPEN's reply: the drawing's index, what reading it left out, and who holds its file when it
+/// opened read-only.
 fn opened(s: &Session, i: usize, entities: bool) -> Value {
     let d = s.docs.get(i).map(|st| &st.doc);
     let warnings = d.map(|d| d.read_notes.clone()).unwrap_or_default();
-    if entities {
+    let mut r = if entities {
         json!({ "index": i, "entities": d.map(|d| d.entity_count()), "warnings": warnings })
     } else {
         json!({ "index": i, "warnings": warnings })
+    };
+    if let Some(h) = s.docs.get(i).and_then(|st| st.lock.holder()) {
+        r["readOnly"] = json!({ "user": h.user, "host": h.host, "app": h.app, "opened": h.opened, "by": lock::describe(h) });
     }
+    r
 }
 
 fn run_open(s: &mut Session, p: &Value) -> Result<Value> {
@@ -383,10 +392,17 @@ fn save_as(s: &mut Session, cmd: &str, path: &str, opts: &SaveAs) -> Result<usiz
     if s.doc()?.refedit.is_some() {
         return Err(bad(cmd, "A block reference is being edited in place: finish with REFCLOSE (Save or Discard) before saving."));
     }
+    // A drawing file someone else has open isn't saved over; a `.cad` file takes its lock first.
+    let new_lock = if is_drawing_file(path) { Some(lock::before_save(s, cmd, path)?) } else { None };
     let bytes = write_bytes(s, cmd, path, opts)?;
     let n = commit_save(s, path, &bytes, store)?;
     if is_drawing_file(path) {
         let st = s.state_mut()?;
+        // The drawing now lives at `path`: its old file's lock goes (unless another drawing of
+        // the session shares it), the new file's stays.
+        if let Some(l) = new_lock {
+            st.lock = l;
+        }
         st.binary_dxf = opts.binary;
         if let Some(v) = opts.version
             && st.drawing().header.get("ACADVER").and_then(cadcraft_doc::HVal::as_str) != Some(v.code())
@@ -547,10 +563,11 @@ pub fn drops_unknown(path: &str) -> bool {
         .is_some_and(|e| e.eq_ignore_ascii_case("dwg") || e.eq_ignore_ascii_case("dwt") || e.eq_ignore_ascii_case("blc"))
 }
 
-/// Whether `path` is saved as a drawing (DXF, DWG, `.blc`) rather than exported as an image.
+/// Whether `path` is saved as a drawing (DXF, DWG, `.cad`, `.blc`) rather than exported as an
+/// image.
 fn is_drawing_file(path: &str) -> bool {
     let ext = std::path::Path::new(path).extension().map(|e| e.to_string_lossy().to_ascii_lowercase()).unwrap_or_default();
-    matches!(ext.as_str(), "dxf" | "dwg" | "dwt" | "blc" | "")
+    matches!(ext.as_str(), "dxf" | "dwg" | "dwt" | "cad" | "blc" | "")
 }
 
 /// Say on the command line what the file couldn't keep, and list it in the result's `notSaved`.

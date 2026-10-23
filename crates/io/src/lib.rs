@@ -1,10 +1,13 @@
-//! CADCraft file formats: DXF, DWG and `.blc` (BlackCAD's native format) read and write, SVG and
-//! SVGZ import, SVG/PNG/PDF export (plotting).
+//! CADCraft file formats: DXF, DWG, `.cad` (CADCraft's native format) and `.blc` (BlackCAD's)
+//! read and write, SVG and SVGZ import, SVG/PNG/PDF export (plotting).
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 #![forbid(unsafe_code)]
 
 /// What a DXF file holds that CADCraft doesn't model, kept and written back (#528).
 mod dxf_raw;
+
+/// CADCraft's native format, `.cad` (docs/cad-format.md).
+pub mod cad_file;
 
 mod dxf_ext;
 mod dxf_image;
@@ -58,11 +61,14 @@ fn ext(name: &str) -> String {
     std::path::Path::new(name).extension().map(|e| e.to_string_lossy().to_ascii_lowercase()).unwrap_or_default()
 }
 
-/// Read a drawing; the format comes from the content (DXF ASCII/binary, DWG, `.blc`) or the name
-/// (SVG and gzip-compressed SVGZ).
+/// Read a drawing; the format comes from the content (DXF ASCII/binary, DWG, `.cad`, `.blc`) or
+/// the name (SVG and gzip-compressed SVGZ).
 pub fn read(bytes: &[u8], name: &str) -> Result<Drawing> {
     if cadcraft_dwg::is_dwg(bytes) {
         return read_dwg(bytes);
+    }
+    if cad_file::is_cad(bytes) {
+        return cad_file::read(bytes);
     }
     if cadcraft_dwg::is_blc(bytes) {
         return read_blc(bytes);
@@ -113,7 +119,8 @@ fn read_blc(bytes: &[u8]) -> Result<Drawing> {
 
 /// Write a drawing in the format chosen by the name's extension. Images (PNG, SVG, PDF) show
 /// model space fitted to its extents. DXF and DWG are written in the drawing's version
-/// ([`save_version`]), DXF as ASCII; `.blc` always holds the 2018 drawing, with a preview.
+/// ([`save_version`]), DXF as ASCII; `.cad` holds CADCraft's drawing exactly, `.blc` the 2018
+/// drawing as BlackCAD reads it, both with a preview.
 pub fn write(d: &Drawing, name: &str) -> Result<Vec<u8>> {
     write_framed(d, name, None)
 }
@@ -138,6 +145,9 @@ pub fn write_with(d: &Drawing, name: &str, opts: &SaveOptions) -> Result<Vec<u8>
             let version = opts.version.unwrap_or_else(|| version.max(Version::R2004));
             write_dwg_noted(d, version).map(|w| w.dwg)
         }
+        // `.cad` (CADCraft's native format) holds the drawing exactly as CADCraft's model has it,
+        // with model space as an SVG preview.
+        "cad" if !opts.binary => cad_file::write(d, Some(svg::export_window(d, &Space::Model, None))),
         // `.blc` (BlackCAD's native format) holds the drawing as BlackCAD's model reads our 2018
         // DXF, with model space as an SVG preview for file browsers and Open dialogs.
         "blc" if !opts.binary => {
@@ -178,7 +188,7 @@ pub fn write_framed(d: &Drawing, name: &str, window: Option<Bounds2>) -> Result<
         check_window(w)?;
     }
     match ext(name).as_str() {
-        "dxf" | "" | "dwg" | "blc" => write_with(d, name, &SaveOptions::default()),
+        "dxf" | "" | "dwg" | "blc" | "cad" => write_with(d, name, &SaveOptions::default()),
         "svg" => Ok(svg::export_window(d, &Space::Model, window).into_bytes()),
         "png" => png_framed(d, &Space::Model, 2400, 1600, window),
         "pdf" => pdf::pdf(d, &Space::Model, &PdfOptions { compress: true, window, ..PdfOptions::default() }),

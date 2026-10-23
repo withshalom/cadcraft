@@ -87,6 +87,11 @@ impl CadApp {
         if let Some(wait) = self.autosave.as_mut().and_then(|s| s.tick(&self.session)) {
             _ctx.request_repaint_after(wait);
         }
+        // The heartbeat of the `.cdl` locks of open `.cad` drawings, so other copies see them live.
+        #[cfg(not(target_arch = "wasm32"))]
+        if let Some(wait) = cadcraft_engine::cmd::file::lock::refresh_locks(&mut self.session) {
+            _ctx.request_repaint_after(wait);
+        }
     }
 
     /// Every frame: after a GPU error or device loss, autosave unsaved drawings at once (the
@@ -102,12 +107,14 @@ impl CadApp {
         ctx.request_repaint();
     }
 
-    /// The app closes normally: this app's autosave files are not needed any more.
+    /// The app closes normally: this app's autosave files are not needed any more, and the
+    /// locks of its open `.cad` drawings are removed.
     pub fn shutdown_autosave(&mut self) {
         #[cfg(not(target_arch = "wasm32"))]
         if let Some(s) = &mut self.autosave {
             s.shutdown();
         }
+        cadcraft_engine::cmd::file::lock::release_locks(&mut self.session);
     }
 }
 

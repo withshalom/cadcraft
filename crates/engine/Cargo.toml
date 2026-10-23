@@ -17,6 +17,8 @@ cadcraft-constraints = { workspace = true }
 cadcraft-fonts = { workspace = true }
 cadcraft-render = { workspace = true }
 craft-docpath = { workspace = true }
+# The `.cdl` lock beside an open `.cad` drawing (BlackCAD's open lock files; MIT OR Apache-2.0).
+cad-native = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }

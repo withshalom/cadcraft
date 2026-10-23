@@ -70,7 +70,13 @@ pub fn title_and_toolbar(app: &mut CadApp, ui: &mut egui::Ui) {
         let r = ui.max_rect();
         if title_h > 0.0 {
             let title = match app.session.state() {
-                Ok(st) if !app.ui.start_tab => format!("CADCraft      {}{}", st.title, if st.title.contains('.') { "" } else { ".dwg" }),
+                Ok(st) if !app.ui.start_tab => format!(
+                    "CADCraft      {}{}{}",
+                    st.title,
+                    if st.title.contains('.') { "" } else { ".dwg" },
+                    // Someone else has the file open (its `.cdl` lock): AutoCAD's marking.
+                    if st.lock.holder().is_some() { "  [Read Only]" } else { "" }
+                ),
                 _ => format!("CADCraft      {}", crate::tl!("Start")),
             };
             // Centred on the traffic lights' centre line (the row's middle): with the system font

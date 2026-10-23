@@ -1,6 +1,6 @@
 # File-format parity
 
-> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-21 · **Change:** minor (DWG through BlackCAD's open DWG crates first, acadrust second) · **Target:** Autodesk AutoCAD 2027
+> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-22 · **Change:** minor (CADCraft's native `.cad` and its `.cdl` lock, branch `cad-native`) · **Target:** Autodesk AutoCAD 2027
 
 Every format AutoCAD 2027 reads or writes, with CADCraft's support, fidelity and tests. Work
 items are in [gaps.md](gaps.md#file-formats); the weighted score feeds
@@ -133,6 +133,7 @@ on read with a note, so such files no longer exceed the DXF limit (#1482). **DWG
 | Format | AutoCAD 2027 | CADCraft | Hours to parity (est.) |
 |---|---|---|---|
 | DWT templates | open, save | NEW/QNEW from `.dwt` and `.dxf` templates, SAVEAS `.dwt` (#552) | 0–1 |
+| CADCraft `.cad` (CADCraft's native format; not an AutoCAD format) | — | open and save (branch `cad-native`): the drawing exactly as CADCraft's model holds it, every entity type, table and setting, reals bit for bit, with what files held that CADCraft doesn't model kept; in the container of BlackCAD's open `cad-native` crate, marked as CADCraft's; an SVG preview of model space (up to 1 MiB). While open, a `.cdl` lock beside it says who has it; a drawing someone else has open opens read-only. Format: [cad-format.md](cad-format.md); tests: `cad_file::tests` (every entity kind, foreign data, the example drawings and the MI-201 corpus open → `.cad` → open unchanged, damaged files), `crates/engine/tests/cad_lock.rs` | — |
 | BlackCAD `.blc` (not an AutoCAD format; `.cad` before BlackCAD 0.16.0) | — | open and save (branch `dwg-native`; older BlackCAD files named `.cad` open too) through BlackCAD's open `cad-native` crate, on the DWG bridge: the drawing as BlackCAD's model reads our 2018 DXF, with an SVG preview of model space. The format adds a change journal, a SHA-256 hash chain and recovery data; CADCraft writes whole snapshots only | — |
 | DWS standards | open, save, CHECKSTANDARDS | no | 6–10 |
 | PDF output (PLOT, EXPORTPDF) | multi-sheet, layers, searchable text, hyperlinks | vector PDF with lineweights, real text in embedded TrueType subsets, layers (OCG), several sheets per file and hyperlinks (#567, #571); object transparency as PDF alpha when "Plot transparency" is on (the option isn't saved in DXF/DWG: no public plot layout flag) | 1–2 |
@@ -171,6 +172,7 @@ DWG's objects.
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-10-22 | minor | Branch `cad-native`: CADCraft's native `.cad` (records 1.0, docs/cad-format.md) opens and saves the drawing exactly; the `.cdl` lock beside an open `.cad` drawing, read-only when someone else has it open |
 | 2026-10-22 | minor | Branch `dwg-native`: BlackCAD's `.cad` opens and saves through its open `cad-native` crate; a real-file DWG round-trip test on BlackCAD's MI-201 corpus |
 | 2026-10-22 | minor | Branch `dwg-native`: BlackCAD 0.17.0. BlackCAD's format is `.blc` (`.cad` is CADCraft's own native format, developed on `cad-native`); BlackCAD files named `.cad` still open, told apart by content |
 | 2026-10-21 | minor | DWG: BlackCAD's open DWG and DXF crates (MIT OR Apache-2.0) convert first and are used when they carry the drawing over whole; acadrust converts the rest. The web build reads and writes DWG through BlackCAD |
