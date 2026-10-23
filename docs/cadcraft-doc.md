@@ -1,6 +1,6 @@
 # CADCraft's drawing model against DWG — the map
 
-> **Status:** S1–S4 and the field gaps of §4 done, 2026-10-23 (branch `cad-native`) · **Measurements:** `crates/io/tests/model_map.rs`
+> **Status:** S1–S4 and the field gaps of §4 done, 2026-10-23 (branch `cad-native`) · **Measurements:** `crates/io/tests/it/model_map.rs`
 > · **Format:** [`cad-format.md`](cad-format.md)
 
 This is the plan for making CADCraft's own drawing model (`cadcraft-doc`) the one model that DWG,

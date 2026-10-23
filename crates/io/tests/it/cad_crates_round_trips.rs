@@ -1,5 +1,5 @@
 //! What CADCraft's own fixes keep when the open engine writes the file (dwg-fidelity branch): checks of
-//! upstream fixes that DXF tests alone cover, run through DWG as well.
+//! upstream fixes that DXF tests alone cover, run through DWG.
 
 use cadcraft_doc::{Drawing, Layout, PageSetup};
 use cadcraft_io::{Version, read, write_dwg_noted};
@@ -26,7 +26,7 @@ fn window_of(d: &Drawing) -> (String, [f64; 4]) {
 
 /// Upstream #1667 (plot window corners kept in DXF), through a 2018 DWG that the open engine writes.
 #[test]
-fn plot_window_corners_round_trip_through_cad_cratess_dwg() {
+fn plot_window_corners_round_trip_through_cad_crates_dwg() {
     let w = write_dwg_noted(&windowed(), Version::R2018).unwrap();
     assert_eq!(w.engine, cadcraft_dwg::Engine::CadCrates, "{:?}", w.notes);
     let back = read(&w.dwg, "win.dwg").unwrap();
