@@ -46,14 +46,14 @@ bridge repairs two acadrust gaps in 2010+ DWG: merged table cells and table-styl
 suppression.
 
 With the open engine 0.18.0, the open engine both opens and saves real 2018 files whole: the round trip of an
-AutoCAD-saved corpus (`crates/io/tests/dwg_corpus.rs`, below) keeps every object CADCraft sees, and
+AutoCAD-saved corpus (`crates/io/tests/it/dwg_corpus.rs`, below) keeps every object CADCraft sees, and
 the saved file holds AutoCAD's objects plus CADCraft's own four. Its model also holds geometric
 tolerances, raster images and wipeouts (with their image definitions, reactors and raster
 variables) and multilines. The bridge reports which engine wrote a DWG and why the open engine stepped
 aside (`dxf_to_dwg_written`, `io::write_dwg_noted`). Older versions are still opened by acadrust
 (the open engine keeps some of their objects only as DWG records), and the style objects acadrust's
 conversion gives (materials, visual, section and detail view styles) are not written by the open engine,
-so those saves still go to acadrust. `crates/io/tests/cad_crates_round_trips.rs` checks the plot
+so those saves still go to acadrust. `crates/io/tests/it/cad_crates_round_trips.rs` checks the plot
 window corners of #1667 through the open engine's DWG too.
 
 | DWG version | Code | AutoCAD 2027 | CADCraft read | CADCraft write | Tested how |
@@ -153,7 +153,7 @@ external validator runs in CI (ezdxf's audit was run by hand once, 2026-10-06). 
 a licensed real-file corpus with an open → save → re-open → compare test per file, and checking
 our output in AutoCAD black-box.
 
-`crates/io/tests/dwg_corpus.rs` is that test for DWG: with `MI201_CORPUS` naming a folder of
+`crates/io/tests/it/dwg_corpus.rs` is that test for DWG: with `MI201_CORPUS` naming a folder of
 DWG files (for example the MI-201 corpus, one part saved by AutoCAD from R14 to 2018, never
 committed here), it opens each file, saves it as 2018 DWG, opens that again, and reports what
 changed, in CADCraft's document and in the DWG's objects.
