@@ -38,12 +38,9 @@
 #![forbid(unsafe_code)]
 
 mod blackcad;
-mod blc;
 
 #[cfg(not(target_arch = "wasm32"))]
 mod acadrust_bridge;
-
-pub use blc::{EXTENSION as BLC_EXTENSION, blc_to_dxf, dxf_to_blc, is_blc};
 
 /// DWG version codes we can write.
 pub const VERSIONS: &[(&str, &str)] =

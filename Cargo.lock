@@ -568,15 +568,6 @@ version = "0.17.0"
 source = "git+https://github.com/withshalom/CAD?rev=8b06c8eb6248818fe37eafba3f31d486f4813155#8b06c8eb6248818fe37eafba3f31d486f4813155"
 
 [[package]]
-name = "cad-native"
-version = "0.17.0"
-source = "git+https://github.com/withshalom/CAD?rev=8b06c8eb6248818fe37eafba3f31d486f4813155#8b06c8eb6248818fe37eafba3f31d486f4813155"
-dependencies = [
- "cad-dwg",
- "cad-model",
-]
-
-[[package]]
 name = "cadcraft"
 version = "0.12.0"
 dependencies = [
@@ -646,7 +637,6 @@ dependencies = [
  "acadrust",
  "cad-dwg",
  "cad-dxf",
- "cad-native",
 ]
 
 [[package]]

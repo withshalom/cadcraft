@@ -1,9 +1,9 @@
 //! What a real DWG keeps when CADCraft opens it and saves it again as DWG.
 //!
-//! Runs only when `BLACKCAD_CORPUS` names a folder of DWG files. In CI that is BlackCAD's MI-201
-//! corpus (`corpus/mosaiciron-mi201` in withshalom/CAD): one part saved by AutoCAD in every version
-//! from R14 to 2018. The files are AutoCAD's, so they are never committed here; without the
-//! variable the test does nothing.
+//! Runs only when `BLACKCAD_CORPUS` names a folder of DWG files, for example BlackCAD's MI-201
+//! corpus (`corpus/mosaiciron-mi201` in https://github.com/withshalom/CAD): one part saved by
+//! AutoCAD in every version from R14 to 2018. The files are AutoCAD's, so they are never committed
+//! here; without the variable the test does nothing.
 //!
 //! For each file it opens the DWG, saves it as 2018 DWG, opens that again, and prints a report:
 //! which engine converted the file; CADCraft's entities, layers and blocks before and after; and

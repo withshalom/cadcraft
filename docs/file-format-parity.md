@@ -1,6 +1,6 @@
 # File-format parity
 
-> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-21 · **Change:** minor (DWG through BlackCAD's open DWG crates first, acadrust second) · **Target:** Autodesk AutoCAD 2027
+> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-22 · **Change:** minor (DWG through BlackCAD's open DWG crates first, acadrust second) · **Target:** Autodesk AutoCAD 2027
 
 Every format AutoCAD 2027 reads or writes, with CADCraft's support, fidelity and tests. Work
 items are in [gaps.md](gaps.md#file-formats); the weighted score feeds
@@ -45,23 +45,16 @@ mainly 2018 files of what it models: it keeps some objects of older files only a
 bridge repairs two acadrust gaps in 2010+ DWG: merged table cells and table-style title/header
 suppression.
 
-On the `dwg-fidelity` branch (BlackCAD 0.17.0), BlackCAD both opens and saves real 2018 files
-whole: the MI-201 corpus round trip (`crates/io/tests/dwg_corpus.rs`) keeps every object
-CADCraft sees, and the saved file holds AutoCAD's objects plus CADCraft's own four. Getting there
-fixed four things in BlackCAD that CADCraft's tests caught once BlackCAD wrote the saves (table
-and multileader styles and dimension associations as CADCraft writes them, attribute lock
-position, MEASUREMENT, hatch boundary objects). The bridge now reports which engine wrote a DWG
-and why BlackCAD stepped aside (`dxf_to_dwg_written`, `io::write_dwg_noted`). Older versions are
-still opened by acadrust (BlackCAD keeps some of their objects only as DWG records), and the
-style objects acadrust's conversion gives (materials, visual, section and detail view styles)
-are not written by BlackCAD, so those saves still go to acadrust and lose dictionaries and
-extended records.
-
-From BlackCAD 0.13.0 to 0.15.0 its drawing model also holds geometric tolerances, raster images
-and wipeouts (with their image definitions, reactors and raster variables) and multilines, which
-it kept only as DWG records before and dropped from DXF. Drawings with them now open and save
-through BlackCAD, and BlackCAD's `.blc` keeps them; `crates/io/tests/blackcad_round_trips.rs` checks
-upstream fixes (the plot window corners of #1667) through BlackCAD's DWG and `.blc` too.
+With BlackCAD 0.18.0, BlackCAD both opens and saves real 2018 files whole: the round trip of an
+AutoCAD-saved corpus (`crates/io/tests/dwg_corpus.rs`, below) keeps every object CADCraft sees, and
+the saved file holds AutoCAD's objects plus CADCraft's own four. Its model also holds geometric
+tolerances, raster images and wipeouts (with their image definitions, reactors and raster
+variables) and multilines. The bridge reports which engine wrote a DWG and why BlackCAD stepped
+aside (`dxf_to_dwg_written`, `io::write_dwg_noted`). Older versions are still opened by acadrust
+(BlackCAD keeps some of their objects only as DWG records), and the style objects acadrust's
+conversion gives (materials, visual, section and detail view styles) are not written by BlackCAD,
+so those saves still go to acadrust. `crates/io/tests/blackcad_round_trips.rs` checks the plot
+window corners of #1667 through BlackCAD's DWG too.
 
 | DWG version | Code | AutoCAD 2027 | CADCraft read | CADCraft write | Tested how |
 |---|---|---|---|---|---|
@@ -73,7 +66,7 @@ upstream fixes (the plot window corners of #1667) through BlackCAD's DWG and `.b
 | 2007–2009 | AC1021 | read, write | via bridge | yes | `dwg_at_every_version_reads_back` |
 | 2010–2012 | AC1024 | read, write | via bridge | yes | `dwg_at_every_version_reads_back`, `ac1024_dwg_with_many_entities_opens` |
 | 2013–2017 | AC1027 | read, write | via bridge | yes | `dwg_at_every_version_reads_back` |
-| 2018–2027 | AC1032 | read, write (default) | via bridge: BlackCAD first; on `dwg-fidelity`, AutoCAD's MI-201 files open and save through BlackCAD whole | yes (default for new drawings): BlackCAD writes it when it carries the drawing over whole | `dwg_at_every_version_reads_back` (synthetic), `blackcad_writes_and_reads_2018_whole`, `corpus_dwg_round_trips` (real files, `dwg-fidelity`) |
+| 2018–2027 | AC1032 | read, write (default) | via bridge: BlackCAD first; AutoCAD-saved 2018 files open and save through BlackCAD whole | yes (default for new drawings): BlackCAD writes it when it carries the drawing over whole | `dwg_at_every_version_reads_back` (synthetic), `blackcad_writes_and_reads_2018_whole`, `corpus_dwg_round_trips` (real files, with `BLACKCAD_CORPUS`) |
 | Web build | — | — | BlackCAD's whole conversions (R13–2018 except 2007) | 2018, when BlackCAD carries the drawing over whole | `blackcad_writes_and_reads_2018_whole` (host) |
 
 Everything lost in the DXF read/write paths below is also lost through DWG, plus whatever
@@ -133,7 +126,6 @@ on read with a note, so such files no longer exceed the DXF limit (#1482). **DWG
 | Format | AutoCAD 2027 | CADCraft | Hours to parity (est.) |
 |---|---|---|---|
 | DWT templates | open, save | NEW/QNEW from `.dwt` and `.dxf` templates, SAVEAS `.dwt` (#552) | 0–1 |
-| BlackCAD `.blc` (not an AutoCAD format; `.cad` before BlackCAD 0.16.0) | — | open and save (branch `dwg-fidelity`; older BlackCAD files named `.cad` open too) through BlackCAD's open `cad-native` crate, on the DWG bridge: the drawing as BlackCAD's model reads our 2018 DXF, with an SVG preview of model space. The format adds a change journal, a SHA-256 hash chain and recovery data; CADCraft writes whole snapshots only | — |
 | DWS standards | open, save, CHECKSTANDARDS | no | 6–10 |
 | PDF output (PLOT, EXPORTPDF) | multi-sheet, layers, searchable text, hyperlinks | vector PDF with lineweights, real text in embedded TrueType subsets, layers (OCG), several sheets per file and hyperlinks (#567, #571); object transparency as PDF alpha when "Plot transparency" is on (the option isn't saved in DXF/DWG: no public plot layout flag) | 1–2 |
 | PDF import (PDFIMPORT) and PDF underlays (PDFATTACH) | yes | no | 15–25 |
@@ -161,19 +153,16 @@ external validator runs in CI (ezdxf's audit was run by hand once, 2026-10-06). 
 a licensed real-file corpus with an open → save → re-open → compare test per file, and checking
 our output in AutoCAD black-box.
 
-On the `dwg-fidelity` branch, `crates/io/tests/dwg_corpus.rs` is that test for DWG: with
-`BLACKCAD_CORPUS` naming a folder of DWG files (in CI, BlackCAD's MI-201 corpus, one part saved by
-AutoCAD from R14 to 2018, cloned at run time and never committed here), it opens each file, saves
-it as 2018 DWG, opens that again, and reports what changed, in CADCraft's document and in the
-DWG's objects.
+`crates/io/tests/dwg_corpus.rs` is that test for DWG: with `BLACKCAD_CORPUS` naming a folder of
+DWG files (for example BlackCAD's MI-201 corpus, one part saved by AutoCAD from R14 to 2018, never
+committed here), it opens each file, saves it as 2018 DWG, opens that again, and reports what
+changed, in CADCraft's document and in the DWG's objects.
 
 ## Revision history
 
 | Date | Change | Summary |
 |---|---|---|
-| 2026-10-22 | minor | Branch `dwg-fidelity` (then `dwg-native`): BlackCAD's `.cad` opens and saves through its open `cad-native` crate; a real-file DWG round-trip test on BlackCAD's MI-201 corpus |
-| 2026-10-22 | minor | Branch `dwg-fidelity`: BlackCAD 0.17.0. BlackCAD's format is `.blc` (`.cad` is CADCraft's own native format, developed on `cad-native`); BlackCAD files named `.cad` still open, told apart by content |
-| 2026-10-21 | minor | DWG: BlackCAD's open DWG and DXF crates (MIT OR Apache-2.0) convert first and are used when they carry the drawing over whole; acadrust converts the rest. The web build reads and writes DWG through BlackCAD |
+| 2026-10-22 | minor | DWG: BlackCAD's open DWG and DXF crates (MIT OR Apache-2.0, 0.18.0) convert first and are used when they carry the drawing over whole; acadrust converts the rest. The web build reads and writes DWG through BlackCAD. A real-file DWG round-trip test (`dwg_corpus.rs`) |
 | 2026-10-17 | minor | DWG read: DGN line style components no line style definition reaches are left out before the DXF bridge, with a read note; an 83 MB site plan with 888,483 of them (1.2 GB of DXF, over the limit) now opens (#1482) |
 | 2026-10-12 | minor | PDF output: object transparency plotted as PDF alpha (`/ExtGState` `/ca` `/CA`) when the page setup's or the plot's "Plot transparency" is on; PNG plots blend it, SVG uses `opacity`; plots without it are unchanged byte for byte |
 | 2026-10-12 | minor | DXF/DWG save: the Model layout's plot settings are written as CADCraft plots model space, drawing extents scaled to fit (PLOTSETTINGS 74 = 1, 75 = 0), instead of plot type 5 "Layout information", which other programs' Plot dialogs can't use for model space |
