@@ -110,8 +110,7 @@ fn linetype(app: &mut CadApp, ctx: &egui::Context, open: &mut bool) -> Action {
             .filter(|l| !l.name.eq_ignore_ascii_case("ByLayer") && !l.name.eq_ignore_ascii_case("ByBlock"))
             .map(|l| (l.name.clone(), l.description.clone(), l.pattern.iter().map(|e| e.length).collect())),
     );
-    let library: Vec<String> =
-        cadcraft_model::library::standard_linetypes().into_iter().map(|l| l.name).filter(|n| d.linetype(n).is_none()).collect();
+    let library: Vec<String> = cadcraft_doc::library::standard_linetypes().into_iter().map(|l| l.name).filter(|n| d.linetype(n).is_none()).collect();
     let mut sel = temp::<String>(ctx, "ltmgr_sel").filter(|s| rows.iter().any(|r| r.0.eq_ignore_ascii_case(s))).unwrap_or_else(|| current.clone());
     let mut action = None;
     egui::Window::new("Linetype Manager").open(open).default_size(vec2(520.0, 360.0)).resizable(true).show(ctx, |ui| {
@@ -325,7 +324,7 @@ fn text_style(app: &mut CadApp, ctx: &egui::Context, open: &mut bool) -> Action 
         })
         .collect();
     if styles.is_empty() {
-        let s = cadcraft_model::TextStyle::default();
+        let s = cadcraft_doc::TextStyle::default();
         styles.push(Style { name: s.name, fields: Vec::new() });
     }
     let current = d.header.str("TEXTSTYLE", "Standard");
@@ -351,7 +350,7 @@ fn table_style(app: &mut CadApp, ctx: &egui::Context, open: &mut bool) -> Action
         })
         .collect();
     if styles.is_empty() {
-        let s = cadcraft_model::TableStyle::default();
+        let s = cadcraft_doc::TableStyle::default();
         styles.push(Style { name: s.name, fields: Vec::new() });
     }
     let current = d.header.str("CTABLESTYLE", "Standard");
@@ -379,7 +378,7 @@ fn mleader_style(app: &mut CadApp, ctx: &egui::Context, open: &mut bool) -> Acti
         })
         .collect();
     if styles.is_empty() {
-        let s = cadcraft_model::MLeaderStyle::default();
+        let s = cadcraft_doc::MLeaderStyle::default();
         styles.push(Style { name: s.name, fields: Vec::new() });
     }
     let current = d.header.str("CMLEADERSTYLE", "Standard");
@@ -473,8 +472,7 @@ fn page_setup(app: &mut CadApp, ctx: &egui::Context, open: &mut bool) -> Action 
         no_drawing(ctx, "Page Setup Manager", open);
         return None;
     };
-    let mut layouts: Vec<(u32, String, cadcraft_model::PageSetup)> =
-        d.layouts.iter().map(|l| (l.tab_order, l.name.clone(), l.page.clone())).collect();
+    let mut layouts: Vec<(u32, String, cadcraft_doc::PageSetup)> = d.layouts.iter().map(|l| (l.tab_order, l.name.clone(), l.page.clone())).collect();
     layouts.sort_by_key(|l| l.0);
     let shown = app.session.layout_space().layout().map(str::to_string);
     let mut sel = temp::<String>(ctx, "pagesetup_sel")
@@ -526,20 +524,20 @@ struct PageRows {
 
 /// The devices and plot style tables the page-setup rows offer.
 struct PageChoices {
-    devices: std::sync::Arc<Vec<cadcraft_model::PlotterConfig>>,
+    devices: std::sync::Arc<Vec<cadcraft_doc::PlotterConfig>>,
     styles: Vec<String>,
 }
 
 impl PageChoices {
-    fn new(ctx: &egui::Context, d: &cadcraft_model::Drawing) -> Self {
-        PageChoices { devices: device_choices(ctx), styles: cadcraft_model::plot_style_table_names(d) }
+    fn new(ctx: &egui::Context, d: &cadcraft_doc::Drawing) -> Self {
+        PageChoices { devices: device_choices(ctx), styles: cadcraft_doc::plot_style_table_names(d) }
     }
 }
 
 /// The plotter devices (built-in, then the user's files), read again at most every 2 s: the
 /// dialogs ask every frame and user devices are files.
-fn device_choices(ctx: &egui::Context) -> std::sync::Arc<Vec<cadcraft_model::PlotterConfig>> {
-    type Cached = (f64, std::sync::Arc<Vec<cadcraft_model::PlotterConfig>>);
+fn device_choices(ctx: &egui::Context) -> std::sync::Arc<Vec<cadcraft_doc::PlotterConfig>> {
+    type Cached = (f64, std::sync::Arc<Vec<cadcraft_doc::PlotterConfig>>);
     let now = crate::now_ms();
     if let Some((at, list)) = temp::<Cached>(ctx, "plot_devices")
         && now - at < 2000.0
@@ -552,13 +550,13 @@ fn device_choices(ctx: &egui::Context) -> std::sync::Arc<Vec<cadcraft_model::Plo
 }
 
 /// A page setup's device, or `"None"` (plot to PDF on the page's paper).
-fn device_label(page: &cadcraft_model::PageSetup) -> &str {
+fn device_label(page: &cadcraft_doc::PageSetup) -> &str {
     if page.device.trim().is_empty() { "None" } else { page.device.as_str() }
 }
 
 /// A page setup's plot style table, or `"None"`.
-fn style_label(page: &cadcraft_model::PageSetup) -> &str {
-    if cadcraft_model::no_plot_style_table(&page.plot_style_table) { "None" } else { page.plot_style_table.as_str() }
+fn style_label(page: &cadcraft_doc::PageSetup) -> &str {
+    if cadcraft_doc::no_plot_style_table(&page.plot_style_table) { "None" } else { page.plot_style_table.as_str() }
 }
 
 fn area_label(a: &str) -> &str {
@@ -589,7 +587,7 @@ fn parse_ratio(t: &str) -> Option<f64> {
 fn page_rows(
     ui: &mut egui::Ui,
     salt: egui::Id,
-    page: &cadcraft_model::PageSetup,
+    page: &cadcraft_doc::PageSetup,
     rows: &PageRows,
     choices: &PageChoices,
     placement: Option<(&mut bool, &mut [f64; 2], bool)>,
@@ -738,7 +736,7 @@ fn page_rows(
 /// Apply a [`page_rows`] change to a page setup held by a dialog.
 /// Device and paper changes follow PAGESETUP's rules (`plotters::page_device`): a device brings
 /// its papers, orientation and printable areas.
-fn apply_page_change(page: &mut cadcraft_model::PageSetup, key: &str, v: &Value) {
+fn apply_page_change(page: &mut cadcraft_doc::PageSetup, key: &str, v: &Value) {
     use cadcraft_engine::cmd::plotters::page_device;
     match key {
         "device" => {
@@ -810,7 +808,7 @@ struct PlotState {
     generation: u32,
     /// "Model" or a layout name.
     target: String,
-    page: cadcraft_model::PageSetup,
+    page: cadcraft_doc::PageSetup,
     /// Plot area "window" corners in drawing units: [x1, y1, x2, y2].
     window: [f64; 4],
     /// Model-space placement; stays outside PageSetup so layouts keep their existing behavior.
@@ -820,13 +818,13 @@ struct PlotState {
 
 /// The page setup a plot of `target` starts from: the layout's, or model-space defaults (fitted
 /// extents on A4 in metric drawings, ANSI A otherwise).
-fn plot_page(d: &cadcraft_model::Drawing, target: &str) -> cadcraft_model::PageSetup {
+fn plot_page(d: &cadcraft_doc::Drawing, target: &str) -> cadcraft_doc::PageSetup {
     if let Some(l) = d.layouts.iter().find(|l| l.name == target) {
         let mut page = l.page.clone();
         page.plot_area = "layout".into();
         return page;
     }
-    let mut page = cadcraft_model::PageSetup { plot_area: "extents".into(), scale_to_fit: true, ..Default::default() };
+    let mut page = cadcraft_doc::PageSetup { plot_area: "extents".into(), scale_to_fit: true, ..Default::default() };
     if cadcraft_render::paper::paper_unit_mm(d) == 1.0
         && let Some(a4) = cadcraft_render::paper_size("A4")
     {
@@ -913,7 +911,7 @@ fn plot(app: &mut CadApp, ctx: &egui::Context, open: &mut bool) -> Action {
     let generation = PLOT_GEN.load(Ordering::Relaxed);
     let mut st = temp::<PlotState>(ctx, "plot_state").filter(|s| s.generation == generation && targets.contains(&s.target)).unwrap_or_else(|| {
         let target = app.session.layout_space().tab_name().to_string();
-        let mut ext = d.extents(&cadcraft_model::Space::Model);
+        let mut ext = d.extents(&cadcraft_doc::Space::Model);
         if ext.is_empty() {
             ext = cadcraft_geom::Bounds2::new(cadcraft_geom::Vec2::ZERO, cadcraft_geom::Vec2::new(12.0, 9.0));
         }
@@ -1058,7 +1056,7 @@ fn plot(app: &mut CadApp, ctx: &egui::Context, open: &mut bool) -> Action {
 }
 
 /// The sheet in the chosen orientation with its printable area, and its size.
-fn sheet_sketch(ui: &mut egui::Ui, page: &cadcraft_model::PageSetup, t: &Tokens) {
+fn sheet_sketch(ui: &mut egui::Ui, page: &cadcraft_doc::PageSetup, t: &Tokens) {
     let (w, h) = if page.landscape { (page.height_mm, page.width_mm) } else { (page.width_mm, page.height_mm) };
     ui.vertical(|ui| {
         let (rect, _) = ui.allocate_exact_size(vec2(120.0, 120.0), Sense::hover());
@@ -1084,7 +1082,7 @@ fn constraint_settings(app: &mut CadApp, ctx: &egui::Context, open: &mut bool) -
         return None;
     };
     let s = d.parametric.settings.clone();
-    let types = cadcraft_model::ParametricSettings::default().auto_types;
+    let types = cadcraft_doc::ParametricSettings::default().auto_types;
     let mut action = None;
     let set = |k: &str, v: Value| Some(("constraintsettings", json!({ k: v })));
     egui::Window::new("Constraint Settings").open(open).collapsible(false).resizable(false).show(ctx, |ui| {
@@ -1147,7 +1145,7 @@ mod plot_dialog_tests {
     use cadcraft_engine::Session;
 
     fn state(target: &str) -> PlotState {
-        let d = cadcraft_model::Drawing::new_metric();
+        let d = cadcraft_doc::Drawing::new_metric();
         PlotState {
             generation: 0,
             page: plot_page(&d, target),
@@ -1228,7 +1226,7 @@ mod plot_dialog_tests {
         );
 
         st.target = "Layout1".into();
-        st.page = plot_page(&cadcraft_model::Drawing::new_metric(), "Layout1");
+        st.page = plot_page(&cadcraft_doc::Drawing::new_metric(), "Layout1");
         let params = plot_params(&st, None);
         assert!(params.get("center").is_none() && params.get("offset").is_none(), "layout plots retain their page setup mapping");
     }

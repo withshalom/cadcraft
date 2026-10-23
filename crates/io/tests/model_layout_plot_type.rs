@@ -4,8 +4,8 @@
 //! scale for Model.
 #![cfg(not(target_arch = "wasm32"))]
 
+use cadcraft_doc::*;
 use cadcraft_geom::Vec3;
-use cadcraft_model::*;
 
 /// The (code, value) pairs of every `kind` record in DXF text.
 fn records(text: &str, kind: &str) -> Vec<Vec<(String, String)>> {

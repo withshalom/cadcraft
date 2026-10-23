@@ -3,7 +3,7 @@
 //! step.
 
 use cadcraft_color::Color;
-use cadcraft_model::Lineweight;
+use cadcraft_doc::Lineweight;
 use serde_json::{Value, json};
 
 use super::super::find_command;

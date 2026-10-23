@@ -1,10 +1,10 @@
 //! Multilines (#510): the MLINE entity with its style's elements, MLSTYLE, MLEDIT, and the
 //! edits, grips, snaps, selection and rendering every object gets.
 
+use cadcraft_doc::{EntityKind, Handle, MLine, Space};
 use cadcraft_engine::Session;
 use cadcraft_engine::snap::{self, mode};
 use cadcraft_geom::Vec2;
-use cadcraft_model::{EntityKind, Handle, MLine, Space};
 use serde_json::{Value, json};
 
 fn h(v: &Value) -> Handle {

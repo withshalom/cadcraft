@@ -16,8 +16,8 @@ use cad_native::RECORDS_CADCRAFT;
 use cad_native::cad_model::model::Handle as TagHandle;
 use cad_native::container::{Builder, Container, Encoding};
 use cad_native::tags::{TagWriter, Value, put_record, records};
-use cadcraft_model::foreign::{Foreign, ForeignExtra, ForeignObject};
-use cadcraft_model::{Block, Drawing, Entity, HVal, Handle, Header, RawTag, XrefStatus};
+use cadcraft_doc::foreign::{Foreign, ForeignExtra, ForeignObject};
+use cadcraft_doc::{Block, Drawing, Entity, HVal, Handle, Header, RawTag, XrefStatus};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 
@@ -361,7 +361,7 @@ fn field(body: &mut Vec<(String, Node)>, name: &str) -> Option<Node> {
 #[derive(Default)]
 struct Parts {
     d: Drawing,
-    parametric: Option<cadcraft_model::Parametric>,
+    parametric: Option<cadcraft_doc::Parametric>,
     foreign: Foreign,
     entities: Vec<(Entity, Option<String>, Option<String>)>,
 }

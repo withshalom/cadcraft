@@ -16,8 +16,8 @@
 
 use std::collections::HashMap;
 
+use cadcraft_doc::{Drawing, EntityKind, GeomRef, Handle, Insert, Sub};
 use cadcraft_geom::{Spline as GSpline, Vec2, ccw_sweep};
-use cadcraft_model::{Drawing, EntityKind, GeomRef, Handle, Insert, Sub};
 
 use crate::curves::{Ell, Frame, clamped, spline_end};
 
@@ -619,8 +619,8 @@ impl Model {
 #[cfg(test)]
 mod budget_tests {
     use super::*;
+    use cadcraft_doc::{Block, Common, Entity, Line, Space};
     use cadcraft_geom::Vec3;
-    use cadcraft_model::{Block, Common, Entity, Line, Space};
     use std::sync::Arc;
 
     /// Writing an unchanged model back leaves partial rational weights and the original spline geometry intact.

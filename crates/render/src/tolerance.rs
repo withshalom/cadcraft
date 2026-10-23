@@ -1,10 +1,10 @@
-//! TOLERANCE: feature control frames. The layout lives in `cadcraft_model::gdt`; here the text is
+//! TOLERANCE: feature control frames. The layout lives in `cadcraft_doc::gdt`; here the text is
 //! measured with the dimension style's font and everything is drawn: the boxes with DIMCLRD,
 //! symbols and text with DIMCLRT (ByBlock = the entity's own colour, as for dimensions).
 
 use cadcraft_color::Color;
+use cadcraft_doc::{Drawing, Entity, GdtLayout, GdtPrim, Tolerance};
 use cadcraft_geom::{Arc as GArc, Circle as GCircle, Segment, Vec2};
-use cadcraft_model::{Drawing, Entity, GdtLayout, GdtPrim, Tolerance};
 
 use crate::{Builder, Ctx, Ink, ink};
 

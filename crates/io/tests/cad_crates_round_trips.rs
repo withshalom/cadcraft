@@ -1,8 +1,8 @@
 //! What CADCraft's own fixes keep when the open engine writes the file (dwg-fidelity branch): checks of
 //! upstream fixes that DXF tests alone cover, run through DWG as well.
 
+use cadcraft_doc::{Drawing, Layout, PageSetup};
 use cadcraft_io::{Version, read, write_dwg_noted};
-use cadcraft_model::{Drawing, Layout, PageSetup};
 
 fn windowed() -> Drawing {
     let mut d = Drawing::new_metric();

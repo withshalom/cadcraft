@@ -24,8 +24,8 @@ mod svg_read;
 /// Multilines and their styles (MLINE, MLINESTYLE).
 mod dxf_mline;
 
+use cadcraft_doc::{Drawing, Space};
 use cadcraft_geom::Bounds2;
-use cadcraft_model::{Drawing, Space};
 
 pub use cadcraft_dxf::Version;
 pub use dxf_read::entity_from_groups;
@@ -44,7 +44,7 @@ pub struct SaveOptions {
 /// The version a drawing is saved in when none is asked for: the version of the file it was
 /// read from (`$ACADVER`, the nearest one CADCraft writes), and 2018 for a new drawing.
 pub fn save_version(d: &Drawing) -> Version {
-    d.header.get("ACADVER").and_then(cadcraft_model::HVal::as_str).and_then(Version::for_acadver).unwrap_or_default()
+    d.header.get("ACADVER").and_then(cadcraft_doc::HVal::as_str).and_then(Version::for_acadver).unwrap_or_default()
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -98,7 +98,7 @@ fn read_dwg(bytes: &[u8]) -> Result<Drawing> {
     if c.engine == Engine::CadCrates
         && let Some(v) = cadcraft_dwg::version(bytes)
     {
-        d.header.set("ACADVER", cadcraft_model::HVal::Str(v));
+        d.header.set("ACADVER", cadcraft_doc::HVal::Str(v));
     }
     d.read_notes = c.notes;
     Ok(d)

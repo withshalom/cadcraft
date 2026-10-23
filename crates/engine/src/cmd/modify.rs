@@ -1,10 +1,10 @@
 //! Modify commands: ERASE, MOVE, COPY, ROTATE, SCALE, MIRROR, OFFSET, TRIM, EXTEND, FILLET,
 //! CHAMFER, EXPLODE, STRETCH, BREAK, JOIN (arrays: `array`; draw order: `draworder`).
 
+use cadcraft_doc::{Entity, EntityKind, Handle, Prim};
 use cadcraft_geom::{
     Arc, Circle, Line, Mat3, PolyVertex, Polyline, Segment, TAU, Vec2, angle_in_sweep, ccw_sweep, intersect_ext, line_line_infinite, norm_angle,
 };
-use cadcraft_model::{Entity, EntityKind, Handle, Prim};
 use serde_json::{Value, json};
 
 use super::helpers::*;
@@ -632,7 +632,7 @@ pub(crate) fn offset_kind(k: &EntityKind, dist: f64, side: Vec2) -> Option<Entit
             let ln = Line::new(r.base.xy(), r.base.xy() + r.dir.xy());
             let sgn = if ln.side(side) >= 0.0 { 1.0 } else { -1.0 };
             let o = ln.offset(dist * sgn);
-            let rl = cadcraft_model::RayLine { base: v3(o.a), dir: r.dir };
+            let rl = cadcraft_doc::RayLine { base: v3(o.a), dir: r.dir };
             Some(if matches!(k, EntityKind::XLine(_)) { EntityKind::XLine(rl) } else { EntityKind::Ray(rl) })
         }
         _ => None,
@@ -989,7 +989,7 @@ fn sub_polyline(segs: &[Segment], a: f64, b: f64) -> Vec<PolyVertex> {
     out
 }
 
-fn trim_polyline(p: &cadcraft_model::LwPolyline, cut: &[Segment], pick: Vec2) -> Result<Vec<EntityKind>> {
+fn trim_polyline(p: &cadcraft_doc::LwPolyline, cut: &[Segment], pick: Vec2) -> Result<Vec<EntityKind>> {
     let pl = Polyline { vertices: p.vertices.clone(), closed: p.closed };
     let segs = pl.segments();
     let total: f64 = segs.iter().map(Segment::len).sum();
@@ -1250,11 +1250,11 @@ fn run_chamfer(s: &mut Session, p: &Value) -> Result<Value> {
 
 // ---------------- explode / array / order / break / join ----------------
 
-pub(crate) fn explode_kind(d: &cadcraft_model::Drawing, e: &Entity) -> Option<Vec<Entity>> {
+pub(crate) fn explode_kind(d: &cadcraft_doc::Drawing, e: &Entity) -> Option<Vec<Entity>> {
     // An annotative object explodes into plain objects as it draws at the current annotation scale.
-    if cadcraft_model::is_annotative(e) {
+    if cadcraft_doc::is_annotative(e) {
         let mut se = match d.anno_draw(e) {
-            cadcraft_model::AnnoDraw::Scaled(f) => cadcraft_model::anno_scaled(e, f),
+            cadcraft_doc::AnnoDraw::Scaled(f) => cadcraft_doc::anno_scaled(e, f),
             _ => e.clone(),
         };
         se.common.anno_scales.clear();
@@ -1305,7 +1305,7 @@ pub(crate) fn explode_kind(d: &cadcraft_model::Drawing, e: &Entity) -> Option<Ve
             p.points
                 .windows(2)
                 .filter_map(|w| {
-                    let kind = EntityKind::Line(cadcraft_model::Line { a: *w.first()?, b: *w.get(1)? });
+                    let kind = EntityKind::Line(cadcraft_doc::Line { a: *w.first()?, b: *w.get(1)? });
                     Some(Entity { handle: Handle(0), common: e.common.clone(), kind })
                 })
                 .collect(),
@@ -1320,7 +1320,7 @@ pub(crate) fn explode_kind(d: &cadcraft_model::Drawing, e: &Entity) -> Option<Ve
                     Entity {
                         handle: Handle(0),
                         common: e.common.clone(),
-                        kind: EntityKind::Text(cadcraft_model::Text {
+                        kind: EntityKind::Text(cadcraft_doc::Text {
                             insert: v3(at),
                             align_pt: None,
                             height: m.height,
@@ -1373,7 +1373,7 @@ pub(crate) fn explode_kind(d: &cadcraft_model::Drawing, e: &Entity) -> Option<Ve
                     v.push(Entity {
                         handle: Handle(0),
                         common: e.common.clone(),
-                        kind: EntityKind::Solid(cadcraft_model::Solid { corners: [v3(*a), v3(*b), v3(*c), v3(*c)] }),
+                        kind: EntityKind::Solid(cadcraft_doc::Solid { corners: [v3(*a), v3(*b), v3(*c), v3(*c)] }),
                     });
                 }
             }
@@ -1381,7 +1381,7 @@ pub(crate) fn explode_kind(d: &cadcraft_model::Drawing, e: &Entity) -> Option<Ve
                 v.push(Entity {
                     handle: Handle(0),
                     common: e.common.clone(),
-                    kind: EntityKind::MText(cadcraft_model::MText {
+                    kind: EntityKind::MText(cadcraft_doc::MText {
                         defined_height: Default::default(),
                         insert: v3(g.text_pos),
                         height: g.text_height,
@@ -1412,7 +1412,7 @@ fn explode(s: &mut Session, hs: &[Handle]) -> Result<Vec<Handle>> {
 pub(crate) fn explode_with(
     s: &mut Session,
     hs: &[Handle],
-    pieces: impl Fn(&cadcraft_model::Drawing, &Entity) -> Option<Vec<Entity>>,
+    pieces: impl Fn(&cadcraft_doc::Drawing, &Entity) -> Option<Vec<Entity>>,
 ) -> Result<Vec<Handle>> {
     let space = s.space();
     let mut out = Vec::new();
@@ -1474,10 +1474,10 @@ pub(crate) fn break_entity(s: &mut Session, h: Handle, p1: Vec2, p2: Vec2) -> Re
             let at3 = |t: f64| ln.at(t).to3(l.a.z + (l.b.z - l.a.z) * t);
             let mut v = Vec::new();
             if t1 > 1e-12 {
-                v.push(EntityKind::Line(cadcraft_model::Line { a: l.a, b: at3(t1) }));
+                v.push(EntityKind::Line(cadcraft_doc::Line { a: l.a, b: at3(t1) }));
             }
             if t2 < 1.0 - 1e-12 {
-                v.push(EntityKind::Line(cadcraft_model::Line { a: at3(t2), b: l.b }));
+                v.push(EntityKind::Line(cadcraft_doc::Line { a: at3(t2), b: l.b }));
             }
             v
         }
@@ -2210,7 +2210,7 @@ struct OffsetM {
     /// Multiple mode: each side point offsets the newest copy again, until Enter.
     multiple: bool,
     /// Undo: the drawing before each offset, with the object picked then.
-    undo: Vec<(std::sync::Arc<cadcraft_model::Drawing>, Option<Handle>)>,
+    undo: Vec<(std::sync::Arc<cadcraft_doc::Drawing>, Option<Handle>)>,
 }
 
 impl OffsetM {
@@ -2470,7 +2470,7 @@ struct FilletM {
     /// Multiple: keep asking for pairs until Enter.
     multiple: bool,
     /// Undo: the drawing before each fillet/chamfer made in this command.
-    undo: Vec<std::sync::Arc<cadcraft_model::Drawing>>,
+    undo: Vec<std::sync::Arc<cadcraft_doc::Drawing>>,
 }
 
 impl FilletM {
@@ -2479,7 +2479,7 @@ impl FilletM {
     }
 
     /// One fillet/chamfer done: carry on in Multiple mode, else finish.
-    fn next(&mut self, s: &mut Session, before: std::sync::Arc<cadcraft_model::Drawing>) -> Step {
+    fn next(&mut self, s: &mut Session, before: std::sync::Arc<cadcraft_doc::Drawing>) -> Step {
         self.undo.push(before);
         self.first = None;
         self.polyline = false;

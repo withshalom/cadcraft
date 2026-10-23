@@ -3,9 +3,9 @@
 //! CADCraft read MEASUREMENT only, took the paper as inches and plotted everything 25.4 times too
 //! large, off the page.
 
+use cadcraft_doc::{Common, Drawing, EntityKind, Layout, LwPolyline, PageSetup, Space};
 use cadcraft_geom::{PolyVertex, Vec2};
 use cadcraft_io::{PdfOptions, pdf, read, write_dxf};
-use cadcraft_model::{Common, Drawing, EntityKind, Layout, LwPolyline, PageSetup, Space};
 
 /// An imperial drawing (MEASUREMENT 0) with an A4 landscape layout in millimetres and a frame
 /// 10 mm inside the sheet.

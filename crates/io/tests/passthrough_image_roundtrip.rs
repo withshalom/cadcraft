@@ -2,9 +2,9 @@
 //! display settings, and its IMAGEDEF (file path and name), written with the IMAGEDEF_REACTOR,
 //! RASTERVARIABLES and dictionaries the DXF Reference describes.
 
+use cadcraft_doc::{Drawing, EntityKind, Image};
 use cadcraft_dxf::{Tag, records, sections};
 use cadcraft_geom::Vec2;
-use cadcraft_model::{Drawing, EntityKind, Image};
 
 /// A small DXF as another program writes it: a line, an image on layer `Pics` pointing at an
 /// IMAGEDEF named `logo`, and an MLINE without vertices.
@@ -169,7 +169,7 @@ fn image_and_its_definition_survive_save_and_reopen() {
 fn images_of_one_file_share_a_definition() {
     let mut d = cadcraft_io::read_dxf(foreign_dxf().as_bytes()).unwrap();
     let e = d.model.iter().find(|e| matches!(e.kind, EntityKind::Image(_))).unwrap().as_ref().clone();
-    d.add(&cadcraft_model::Space::Model, e.common.clone(), e.kind.clone()).unwrap();
+    d.add(&cadcraft_doc::Space::Model, e.common.clone(), e.kind.clone()).unwrap();
     let saved = cadcraft_io::write_dxf(&d);
     let objs = section(&saved, "OBJECTS");
     assert_eq!(objs.iter().filter(|(k, _)| k == "IMAGEDEF").count(), 1);

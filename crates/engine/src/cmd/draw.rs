@@ -1,8 +1,8 @@
 //! Draw commands: LINE, PLINE, CIRCLE, ARC, RECTANG, POLYGON, ELLIPSE, POINT, XLINE, RAY,
 //! SPLINE, DONUT, TEXT, MTEXT. Each has a JSON form and an interactive prompt sequence.
 
+use cadcraft_doc::{EntityKind, HAlign, MText, Point, RayLine, Text, VAlign};
 use cadcraft_geom::{Arc, Circle, Ellipse, PolyVertex, Polyline, Spline, Vec2, arc_to_bulge, bulge_to_arc};
-use cadcraft_model::{EntityKind, HAlign, MText, Point, RayLine, Text, VAlign};
 use serde_json::{Value, json};
 
 use super::helpers::*;
@@ -93,7 +93,7 @@ pub fn specs() -> Vec<CommandSpec> {
     ]
 }
 
-fn added(h: cadcraft_model::Handle) -> Result<Value> {
+fn added(h: cadcraft_doc::Handle) -> Result<Value> {
     Ok(json!({ "handle": h.hex() }))
 }
 
@@ -236,7 +236,7 @@ fn run_ellipse(s: &mut Session, p: &Value) -> Result<Value> {
     }
     let start = f64_or(p, "start", 0.0).to_radians();
     let end = f64_or(p, "end", 360.0).to_radians();
-    added(s.add_entity(EntityKind::Ellipse(cadcraft_model::Ellipse { center: v3(c), major: v3(m), ratio, start, end }))?)
+    added(s.add_entity(EntityKind::Ellipse(cadcraft_doc::Ellipse { center: v3(c), major: v3(m), ratio, start, end }))?)
 }
 
 fn run_point(s: &mut Session, p: &Value) -> Result<Value> {
@@ -392,7 +392,7 @@ fn run_mtext(s: &mut Session, p: &Value) -> Result<Value> {
 #[derive(Default)]
 struct LineM {
     pts: Vec<Vec2>,
-    handles: Vec<cadcraft_model::Handle>,
+    handles: Vec<cadcraft_doc::Handle>,
     /// A first point picked as a deferred tangent/perpendicular, resolved by the next point.
     first: Option<snap::Deferred>,
 }
@@ -508,7 +508,7 @@ struct PlineM {
     /// Total width at the start and end of the next segment (Width / Halfwidth answers).
     start_w: f64,
     end_w: f64,
-    handle: Option<cadcraft_model::Handle>,
+    handle: Option<cadcraft_doc::Handle>,
     /// 1 = asking the starting width, 2 = the ending width.
     asking_width: u8,
     /// The widths are being asked as half-widths (centre line to edge).
@@ -1025,7 +1025,7 @@ impl EllipseM {
             self.ellipse = Some(e);
             return Ok(Step::Continue);
         }
-        s.add_entity(EntityKind::Ellipse(cadcraft_model::Ellipse {
+        s.add_entity(EntityKind::Ellipse(cadcraft_doc::Ellipse {
             center: v3(e.center),
             major: v3(e.major),
             ratio: e.ratio,
@@ -1095,7 +1095,7 @@ impl Interactive for EllipseM {
                     return Ok(Step::Continue);
                 }
                 Some(st) => {
-                    s.add_entity(EntityKind::Ellipse(cadcraft_model::Ellipse {
+                    s.add_entity(EntityKind::Ellipse(cadcraft_doc::Ellipse {
                         center: v3(e.center),
                         major: v3(e.major),
                         ratio: e.ratio,
@@ -1158,7 +1158,7 @@ impl Interactive for EllipseM {
         }
         let e = if self.rotation { self.axis().and_then(|(ctr, _)| self.rotated((c - ctr).angle())) } else { self.build(c) };
         e.map(|e| {
-            vec![EntityKind::Ellipse(cadcraft_model::Ellipse {
+            vec![EntityKind::Ellipse(cadcraft_doc::Ellipse {
                 center: v3(e.center),
                 major: v3(e.major),
                 ratio: e.ratio,

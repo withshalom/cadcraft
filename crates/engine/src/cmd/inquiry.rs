@@ -1,7 +1,7 @@
 //! Inquiry: DIST, ID, LIST, AREA, drawing inspection for agents.
 
+use cadcraft_doc::{Entity, EntityKind, Handle};
 use cadcraft_geom::{Polyline, Vec2, Vec3};
-use cadcraft_model::{Entity, EntityKind, Handle};
 use serde_json::{Value, json};
 
 use super::*;
@@ -167,7 +167,7 @@ fn entity_z(e: &Entity, p: Vec2) -> Option<f64> {
         // Read in world coordinates already.
         EntityKind::Circle(c) => Some(c.center.z),
         EntityKind::Arc(a) => Some(a.center.z),
-        EntityKind::Text(t) | EntityKind::AttDef(cadcraft_model::Attrib { text: t, .. }) => Some(t.insert.z),
+        EntityKind::Text(t) | EntityKind::AttDef(cadcraft_doc::Attrib { text: t, .. }) => Some(t.insert.z),
         EntityKind::MText(t) => Some(t.insert.z),
         EntityKind::Insert(i) => Some(i.insert.z),
         EntityKind::Face3d(f) => face_z(&f.corners, p).or_else(|| along(&f.corners, true)),
@@ -351,7 +351,7 @@ fn run_time(s: &mut Session, _p: &Value) -> Result<Value> {
 
 fn run_status(s: &mut Session, _p: &Value) -> Result<Value> {
     let d = s.doc()?;
-    let ext = d.extents(&cadcraft_model::Space::Model);
+    let ext = d.extents(&cadcraft_doc::Space::Model);
     let msg = format!(
         "{} objects in {}\nModel space limits are X: {}  Y: {}  (Off)\nModel space uses X: {}  Y: {}\n                 X: {}  Y: {}\nCurrent layer: {}\nCurrent color: {}\nCurrent linetype: {}",
         d.entity_count(),
@@ -369,7 +369,7 @@ fn run_status(s: &mut Session, _p: &Value) -> Result<Value> {
     Ok(json!({ "message": msg }))
 }
 
-fn entity_summary(e: &cadcraft_model::Entity) -> Value {
+fn entity_summary(e: &cadcraft_doc::Entity) -> Value {
     json!({ "handle": e.handle.hex(), "type": e.kind.type_name(), "layer": e.common.layer, "color": e.common.color.name(), "transparency": super::props::transparency_value(e.common.transparency), "geometry": e.kind })
 }
 
@@ -446,7 +446,7 @@ fn run_entities(s: &mut Session, p: &Value) -> Result<Value> {
     let Some(store) = d.space(&st.space) else { return Ok(json!({ "count": 0, "returned": 0, "entities": [] })) };
     let tol = window.as_ref().map(crate::select::window_tol).unwrap_or(0.0);
     let selection: std::collections::HashSet<Handle> = if selected { st.selection.iter().copied().collect() } else { Default::default() };
-    let matches: Vec<&std::sync::Arc<cadcraft_model::Entity>> = store
+    let matches: Vec<&std::sync::Arc<cadcraft_doc::Entity>> = store
         .iter()
         .filter(|e| !selected || selection.contains(&e.handle))
         .filter(|e| ty.as_ref().is_none_or(|t| e.kind.type_name().to_ascii_lowercase() == *t || e.kind.dxf_name().to_ascii_lowercase() == *t))

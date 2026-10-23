@@ -2,8 +2,8 @@
 
 use std::collections::BTreeMap;
 
+use cadcraft_doc::{AnnoScale, Common, Entity, EntityKind, Layout, Lineweight, Space, Transparency};
 use cadcraft_geom::{Vec2, Vec3};
-use cadcraft_model::{AnnoScale, Common, Entity, EntityKind, Layout, Lineweight, Space, Transparency};
 use serde_json::json;
 
 use super::*;
@@ -190,7 +190,7 @@ fn every_kind() -> Vec<EntityKind> {
 fn rich_common(i: usize) -> Common {
     Common {
         layer: "PARTS".into(),
-        color: cadcraft_model::color::Color::Index(u8::try_from(i % 255 + 1).unwrap()),
+        color: cadcraft_doc::color::Color::Index(u8::try_from(i % 255 + 1).unwrap()),
         linetype: "HIDDEN".into(),
         lineweight: Lineweight::Mm100(35),
         ltscale: 0.5,
@@ -231,7 +231,7 @@ fn full_drawing() -> Drawing {
         serde_json::from_value(json!({"name": "TILTED", "origin": p3(1.0, 0.0, 0.0), "xAxis": p3(0.0, 1.0, 0.0), "yAxis": p3(-1.0, 0.0, 0.0)}))
             .unwrap(),
     );
-    d.layer_states.push(cadcraft_model::LayerState { name: "ALL OFF".into(), layers: d.layers.clone() });
+    d.layer_states.push(cadcraft_doc::LayerState { name: "ALL OFF".into(), layers: d.layers.clone() });
     d
 }
 

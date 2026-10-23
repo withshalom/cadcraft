@@ -25,7 +25,7 @@ fn click_rectangle(ortho: bool) -> ((Vec2, Vec2), (Vec2, Vec2)) {
     let c = hover(&mut s, Vec2::new(10.0, 3.0));
     let mut pv = cadcraft_geom::Bounds2::EMPTY;
     for e in s.preview(c) {
-        pv = pv.union(&cadcraft_model::entity_bounds(s.doc().unwrap(), &e, 0));
+        pv = pv.union(&cadcraft_doc::entity_bounds(s.doc().unwrap(), &e, 0));
     }
     s.input(Input::Point(c)).unwrap();
     assert!(s.current_prompt().is_none(), "RECTANG is done, still at {:?}", s.current_prompt().map(|p| p.message));

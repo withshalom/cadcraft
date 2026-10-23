@@ -622,9 +622,20 @@ dependencies = [
 name = "cadcraft-constraints"
 version = "0.12.0"
 dependencies = [
+ "cadcraft-doc",
  "cadcraft-geom",
- "cadcraft-model",
  "serde",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "cadcraft-doc"
+version = "0.12.0"
+dependencies = [
+ "cadcraft-color",
+ "cadcraft-geom",
+ "serde",
+ "serde_json",
  "thiserror 2.0.21",
 ]
 
@@ -654,11 +665,11 @@ dependencies = [
  "cad-native",
  "cadcraft-color",
  "cadcraft-constraints",
+ "cadcraft-doc",
  "cadcraft-dxf",
  "cadcraft-fonts",
  "cadcraft-geom",
  "cadcraft-io",
- "cadcraft-model",
  "cadcraft-render",
  "chrono",
  "craft-docpath",
@@ -695,11 +706,11 @@ dependencies = [
  "cad-dwg",
  "cad-native",
  "cadcraft-color",
+ "cadcraft-doc",
  "cadcraft-dwg",
  "cadcraft-dxf",
  "cadcraft-fonts",
  "cadcraft-geom",
- "cadcraft-model",
  "cadcraft-render",
  "miniz_oxide 0.8.9",
  "quick-xml",
@@ -722,24 +733,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "cadcraft-model"
-version = "0.12.0"
-dependencies = [
- "cadcraft-color",
- "cadcraft-geom",
- "serde",
- "serde_json",
- "thiserror 2.0.21",
-]
-
-[[package]]
 name = "cadcraft-render"
 version = "0.12.0"
 dependencies = [
  "cadcraft-color",
+ "cadcraft-doc",
  "cadcraft-fonts",
  "cadcraft-geom",
- "cadcraft-model",
  "lyon_tessellation",
  "rayon",
  "serde_json",
@@ -751,10 +751,10 @@ name = "cadcraft-ui-egui"
 version = "0.12.0"
 dependencies = [
  "cadcraft-color",
+ "cadcraft-doc",
  "cadcraft-engine",
  "cadcraft-fonts",
  "cadcraft-geom",
- "cadcraft-model",
  "cadcraft-render",
  "chrono",
  "craft-ui",

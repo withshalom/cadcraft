@@ -7,7 +7,7 @@
 
 use std::sync::{Mutex, MutexGuard, OnceLock, PoisonError};
 
-use cadcraft_model::Drawing;
+use cadcraft_doc::Drawing;
 use serde_json::{Value, json};
 
 use super::*;
@@ -49,7 +49,7 @@ pub(super) fn run_new(s: &mut Session, p: &Value) -> Result<Option<Value>> {
     let i = s.open_drawing(d, &title, None);
     // An empty template shows its drawing limits.
     if let Some(st) = s.docs.get_mut(i)
-        && st.doc.extents(&cadcraft_model::Space::Model).is_empty()
+        && st.doc.extents(&cadcraft_doc::Space::Model).is_empty()
         && let (Some(lo), Some(hi)) = (st.doc.header.point("LIMMIN"), st.doc.header.point("LIMMAX"))
         && lo.x.is_finite()
         && lo.y.is_finite()

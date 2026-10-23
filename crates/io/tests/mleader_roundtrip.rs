@@ -1,8 +1,8 @@
 //! Multileaders are saved as native MULTILEADER entities (with their MLEADERSTYLE) and read
 //! back as multileaders (#459), instead of being broken into LEADER + MTEXT / INSERT.
 
+use cadcraft_doc::*;
 use cadcraft_geom::Vec3;
-use cadcraft_model::*;
 
 /// Saved as 2007 DXF: older versions have no MULTILEADER (they get LEADER + MTEXT / INSERT).
 fn roundtrip(d: &Drawing) -> (String, Drawing) {

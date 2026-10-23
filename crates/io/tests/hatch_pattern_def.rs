@@ -1,10 +1,10 @@
 //! HATCH pattern definition lines (groups 78, 53, 43–46, 79, 49) of a pattern the library
 //! doesn't define survive a DXF read and save (issue #290).
 
+use cadcraft_doc::library::PatternLine;
+use cadcraft_doc::*;
 use cadcraft_geom::{PolyVertex, Vec2};
 use cadcraft_io::{read_dxf, write_dxf};
-use cadcraft_model::library::PatternLine;
-use cadcraft_model::*;
 
 fn square() -> HatchLoop {
     let v = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)].into_iter().map(|(x, y)| PolyVertex::new(Vec2::new(x, y))).collect();

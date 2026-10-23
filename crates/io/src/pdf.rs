@@ -14,8 +14,8 @@
 use std::fmt::Write as _;
 
 use cadcraft_color::Rgb;
+use cadcraft_doc::{Drawing, Handle, PageSetup, Space};
 use cadcraft_geom::{Bounds2, Vec2};
-use cadcraft_model::{Drawing, Handle, PageSetup, Space};
 use cadcraft_render::{Kind, Sheet, clip, paper};
 use serde_json::Value;
 
@@ -397,7 +397,7 @@ fn sheet(d: &Drawing, space: &Space, o: &PdfOptions, links_to: &[(Handle, String
     let unit_mm = paper::page_unit_mm(d, &page);
     let sheet = Sheet::from_page(&page, unit_mm);
     let lineweights = o.lineweights.unwrap_or(if space.is_paper() { page.lineweights } else { true });
-    let plot_style_table = cadcraft_model::plot_style_table(d, &page.plot_style_table).map(std::sync::Arc::new);
+    let plot_style_table = cadcraft_doc::plot_style_table(d, &page.plot_style_table).map(std::sync::Arc::new);
     let ropts = cadcraft_render::Options {
         transparency: o.plot_transparency.unwrap_or(page.plot_transparency),
         tolerance: 0.001,
@@ -499,7 +499,7 @@ fn all_links(d: &Drawing, o: &PdfOptions) -> Vec<(Handle, String)> {
 
 /// The link target of `PE_URL` extended data: the first string (group 1000) after
 /// `1001 PE_URL`, before the next application's data.
-fn pe_url(xdata: &[cadcraft_model::RawTag]) -> Option<String> {
+fn pe_url(xdata: &[cadcraft_doc::RawTag]) -> Option<String> {
     let start = xdata.iter().position(|t| t.code == 1001 && t.value.trim().eq_ignore_ascii_case("PE_URL"))?;
     let url = xdata.get(start + 1..)?.iter().take_while(|t| t.code != 1001).find(|t| t.code == 1000)?.value.trim();
     (!url.is_empty() && url.len() <= MAX_URL).then(|| url.to_string())

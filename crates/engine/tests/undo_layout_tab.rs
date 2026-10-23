@@ -1,8 +1,8 @@
 //! Undo and redo keep the session on a layout that exists (#371): undoing a rename of the current
 //! layout stays on that tab under its old name; undoing its creation returns to the Model tab.
 
+use cadcraft_doc::Space;
 use cadcraft_engine::Session;
-use cadcraft_model::Space;
 use serde_json::json;
 
 fn paper(n: &str) -> Space {

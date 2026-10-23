@@ -17,8 +17,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Receiver, TryRecvError};
 
 use cadcraft_color::Rgb;
+use cadcraft_doc::{Drawing, Space};
 use cadcraft_geom::{Bounds2, Vec2};
-use cadcraft_model::{Drawing, Space};
 use cadcraft_render::{DisplayList, Kind, Options};
 
 /// What a build needs: the drawing (shared, never copied), the space and the options.
@@ -173,8 +173,8 @@ mod tests {
     fn worker_build_matches_a_synchronous_one() {
         use cadcraft_geom::Vec3;
         let mut d = Drawing::new_imperial();
-        let line = cadcraft_model::Line { a: Vec3::new(0.0, 0.0, 0.0), b: Vec3::new(10.0, 5.0, 0.0) };
-        let Ok(_) = d.add(&Space::Model, cadcraft_model::Common::default(), cadcraft_model::EntityKind::Line(line)) else { panic!("add") };
+        let line = cadcraft_doc::Line { a: Vec3::new(0.0, 0.0, 0.0), b: Vec3::new(10.0, 5.0, 0.0) };
+        let Ok(_) = d.add(&Space::Model, cadcraft_doc::Common::default(), cadcraft_doc::EntityKind::Line(line)) else { panic!("add") };
         let doc = Arc::new(d);
         let opts = Options::default();
         let sync = cadcraft_render::build(&doc, &Space::Model, &opts);

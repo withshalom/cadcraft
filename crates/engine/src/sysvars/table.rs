@@ -182,7 +182,7 @@ fn set_header(s: &mut Session, name: &str, kind: Kind, v: &Value, bad: impl Fn(S
             s.doc_mut()?.header.set_f64(name, cadcraft_geom::norm_angle(a));
         }
         Kind::Pattern => {
-            let p = v.as_str().map(|t| t.trim().to_ascii_uppercase()).filter(|p| cadcraft_model::library::pattern(p).is_some());
+            let p = v.as_str().map(|t| t.trim().to_ascii_uppercase()).filter(|p| cadcraft_doc::library::pattern(p).is_some());
             let p = p.ok_or_else(|| bad("a hatch pattern name".into()))?;
             s.doc_mut()?.header.set_str(name, &p);
         }
@@ -199,7 +199,7 @@ fn set_header(s: &mut Session, name: &str, kind: Kind, v: &Value, bad: impl Fn(S
 /// Add the table variables and the dimension variables of the current style to a `SETVAR ?` list.
 pub(super) fn list(s: &Session, m: &mut serde_json::Map<String, Value>) {
     let names = SETTINGS.iter().map(|(n, _, _)| *n).chain(HEADER.iter().map(|(n, _, _)| *n));
-    for n in names.chain(cadcraft_model::DIMVARS.iter().map(|(n, _)| *n)) {
+    for n in names.chain(cadcraft_doc::DIMVARS.iter().map(|(n, _)| *n)) {
         if !m.contains_key(n)
             && let Some(v) = super::get(s, n)
         {

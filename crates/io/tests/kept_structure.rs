@@ -1,12 +1,12 @@
-//! The object structure around a drawing survives saving and reopening (docs/cadcraft-model.md, S3
+//! The object structure around a drawing survives saving and reopening (docs/cadcraft-doc.md, S3
 //! and S4): a dimension's extension dictionary and DIMASSOC keep their handles, the geometry the
 //! dimension follows names the DIMASSOC as a persistent reactor, and the named object dictionary
 //! and the layout dictionary list their entries in key order.
 
+use cadcraft_doc::*;
 use cadcraft_dxf::{Tag, parse, records, sections};
 use cadcraft_geom::Vec3;
 use cadcraft_io::{read_dxf, write_dxf};
-use cadcraft_model::*;
 
 fn drawing() -> (Drawing, Handle, Handle) {
     let mut d = Drawing::new_imperial();

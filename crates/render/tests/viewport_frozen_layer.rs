@@ -1,8 +1,8 @@
 //! A layout viewport whose own layer is frozen shows neither its border nor its contents, on
 //! screen and when plotting; turned off, the layer hides only the border (issue #395).
 
+use cadcraft_doc::{Circle, Common, Drawing, EntityKind, Space, Viewport};
 use cadcraft_geom::{Vec2, Vec3};
-use cadcraft_model::{Circle, Common, Drawing, EntityKind, Space, Viewport};
 use cadcraft_render::{DisplayList, Options, VIEWPORT_CONTENT, build, build_plot};
 
 fn drawing() -> Drawing {

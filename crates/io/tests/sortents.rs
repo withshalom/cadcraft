@@ -1,7 +1,7 @@
 //! Draw order from DXF files (#439): a SORTENTSTABLE reorders its space by sort handle, and the
 //! order CADCraft writes (the order of the entity records) reads back unchanged.
 
-use cadcraft_model::*;
+use cadcraft_doc::*;
 
 fn line(h: &str, y: f64) -> String {
     format!("0\nLINE\n5\n{h}\n330\n1F\n8\n0\n10\n0\n20\n{y}\n30\n0\n11\n10\n21\n{y}\n31\n0\n")

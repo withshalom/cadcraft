@@ -16,7 +16,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::{Arc, Mutex, Weak};
 
-use cadcraft_model::Drawing;
+use cadcraft_doc::Drawing;
 use serde::Serialize;
 
 use crate::Session;

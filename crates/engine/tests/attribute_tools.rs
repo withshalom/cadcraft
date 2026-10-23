@@ -1,7 +1,7 @@
 //! Attribute tools: BATTMAN editing (definitions edited, removed, reordered; references follow).
 
+use cadcraft_doc::{EntityKind, Handle};
 use cadcraft_engine::Session;
-use cadcraft_model::{EntityKind, Handle};
 use serde_json::{Value, json};
 
 /// Block B with attribute definitions A, B, C (defaults a, b, c) and a line, plus two references.

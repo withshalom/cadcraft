@@ -1,7 +1,7 @@
 //! ATTDISP (ATTMODE, honoured by the display) and ATTSYNC.
 
+use cadcraft_doc::{Attrib, EntityKind, Handle, Space};
 use cadcraft_engine::Session;
-use cadcraft_model::{Attrib, EntityKind, Handle, Space};
 use serde_json::{Value, json};
 
 /// Make block `name` from what is in model space now (the objects are removed).

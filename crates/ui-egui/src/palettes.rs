@@ -1,7 +1,7 @@
 //! Tool Sets (left) and the Layers / Properties palettes (right).
 
 use cadcraft_color::{Color, Rgb};
-use cadcraft_model::EntityKind;
+use cadcraft_doc::EntityKind;
 use egui::{Color32, Rect, Sense, Stroke, pos2, vec2};
 use serde_json::{Value, json};
 
@@ -762,14 +762,14 @@ pub(crate) fn properties_section(app: &mut CadApp, ui: &mut egui::Ui) {
             }
         });
         prop_row(ui, "Lineweight", |ui| {
-            ui.menu_button(crate::i18n::t(&cadcraft_model::Lineweight::from_dxf(h.i64("CELWEIGHT", -1) as i16).name()), |ui| {
+            ui.menu_button(crate::i18n::t(&cadcraft_doc::Lineweight::from_dxf(h.i64("CELWEIGHT", -1) as i16).name()), |ui| {
                 for n in ["ByLayer", "ByBlock", "Default"] {
                     if ui.button(crate::i18n::t(n)).clicked() {
                         act("lweight", json!({ "lineweight": n }));
                         ui.close();
                     }
                 }
-                for v in cadcraft_model::Lineweight::STANDARD {
+                for v in cadcraft_doc::Lineweight::STANDARD {
                     if ui.button(format!("{:.2} mm", f64::from(v) / 100.0)).clicked() {
                         act("lweight", json!({ "lineweight": f64::from(v) / 100.0 }));
                         ui.close();
@@ -812,7 +812,7 @@ pub(crate) fn properties_section(app: &mut CadApp, ui: &mut egui::Ui) {
         // The current layout's plot style table; named tables give the current plot style.
         let space = app.session.layout_space();
         let layout = space.layout().and_then(|n| d.layout(n).map(|l| (n.to_string(), l.page.plot_style_table.clone())));
-        let table = layout.as_ref().and_then(|(_, t)| cadcraft_model::plot_style_table(d, t));
+        let table = layout.as_ref().and_then(|(_, t)| cadcraft_doc::plot_style_table(d, t));
         match table.as_ref().filter(|t| !t.is_color_dependent()) {
             Some(t) => prop_row(ui, "Plot style", |ui| {
                 let items = ["ByLayer", "ByBlock"].map(String::from).into_iter().chain(t.styles.iter().map(|s| s.name.clone()));
@@ -825,7 +825,7 @@ pub(crate) fn properties_section(app: &mut CadApp, ui: &mut egui::Ui) {
         match &layout {
             Some((name, current)) => prop_row(ui, "Plot style table", |ui| {
                 let shown = if current.trim().is_empty() { "None".to_string() } else { current.clone() };
-                let items = std::iter::once("None".to_string()).chain(cadcraft_model::plot_style_table_names(d));
+                let items = std::iter::once("None".to_string()).chain(cadcraft_doc::plot_style_table_names(d));
                 if let Some(n) = pick_menu(ui, &shown, items) {
                     act("pagesetup", json!({ "layout": name, "plotStyleTable": n }));
                 }
@@ -849,7 +849,7 @@ pub(crate) fn properties_section(app: &mut CadApp, ui: &mut egui::Ui) {
     // Selected objects: common + geometry for a single object.
     let first = sel.first().and_then(|h| d.entity(*h)).map(|e| (**e).clone());
     let Some(e) = first else { return };
-    let same = |f: &dyn Fn(&cadcraft_model::Entity) -> String| -> String {
+    let same = |f: &dyn Fn(&cadcraft_doc::Entity) -> String| -> String {
         let vals: Vec<String> = sel.iter().filter_map(|h| d.entity(*h)).map(|e| f(e)).collect();
         match vals.first() {
             Some(v0) if vals.iter().all(|v| v == v0) => v0.clone(),
@@ -858,7 +858,7 @@ pub(crate) fn properties_section(app: &mut CadApp, ui: &mut egui::Ui) {
     };
     let selected_color = Some(e.common.color).filter(|c| sel.iter().filter_map(|h| d.entity(*h)).all(|e| e.common.color == *c));
     let color = selected_color.map_or_else(|| "*VARIES*".into(), Color::name);
-    let effective_color = |e: &cadcraft_model::Entity| {
+    let effective_color = |e: &cadcraft_doc::Entity| {
         let layer = d.layer(&e.common.layer).map_or(Color::WHITE, |l| l.color);
         e.common.color.resolve(layer, Color::WHITE)
     };
@@ -936,7 +936,7 @@ pub(crate) fn properties_section(app: &mut CadApp, ui: &mut egui::Ui) {
                     ui.close();
                 }
             }
-            for v in cadcraft_model::Lineweight::STANDARD {
+            for v in cadcraft_doc::Lineweight::STANDARD {
                 if ui.button(format!("{:.2} mm", f64::from(v) / 100.0)).clicked() {
                     set = Some(json!({ "handles": ids, "lineweight": f64::from(v) / 100.0 }));
                     ui.close();

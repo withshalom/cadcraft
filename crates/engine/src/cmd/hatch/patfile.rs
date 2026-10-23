@@ -8,8 +8,8 @@
 
 use std::sync::{Mutex, MutexGuard, OnceLock, PoisonError};
 
-use cadcraft_model::library::files::{UserPattern, parse_pat};
-use cadcraft_model::library::{PatternLine, pattern, standard_patterns};
+use cadcraft_doc::library::files::{UserPattern, parse_pat};
+use cadcraft_doc::library::{PatternLine, pattern, standard_patterns};
 use serde_json::{Value, json};
 
 use super::super::helpers::support_text;

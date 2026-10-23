@@ -6,8 +6,8 @@
 //! entity (a closed polyline, circle, ellipse or spline) whose outline clips what it shows
 //! ([`Viewport::clip`], DXF group 340).
 
+use cadcraft_doc::{Drawing, EntityKind, Handle, Space, Viewport, VportConfig, VportTile};
 use cadcraft_geom::{Bounds2, PolyVertex, Vec2};
-use cadcraft_model::{Drawing, EntityKind, Handle, Space, Viewport, VportConfig, VportTile};
 use serde_json::{Value, json};
 
 use super::super::curves::{self, handle_value};
@@ -101,7 +101,7 @@ fn check_boundary(cmd: &str, d: &Drawing, space: &Space, h: Handle) -> Result<Bo
     }
     let b = boundary_bounds(&e.kind).ok_or_else(|| bad(cmd, "the object must be a closed polyline, circle, ellipse or spline"))?;
     // The exact extents (the tessellated outline runs just inside curves).
-    let eb = cadcraft_model::entity_bounds(d, e, 0);
+    let eb = cadcraft_doc::entity_bounds(d, e, 0);
     let b = if eb.is_empty() || !eb.min.is_finite() || !eb.max.is_finite() { b } else { b.union(&eb) };
     if b.width() > 1e7 || b.height() > 1e7 {
         return Err(bad(cmd, "the viewport is too large"));

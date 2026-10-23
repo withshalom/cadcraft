@@ -2,8 +2,8 @@
 //! however light or dark, is drawn as its own RGB (issue #272).
 
 use cadcraft_color::{Color, Rgb, aci_rgb};
+use cadcraft_doc::{Block, Common, Drawing, Entity, EntityKind, Handle, Insert, Line, Space};
 use cadcraft_geom::{Vec2, Vec3};
-use cadcraft_model::{Block, Common, Drawing, Entity, EntityKind, Handle, Insert, Line, Space};
 use cadcraft_render::raster::{RasterOptions, View, render};
 use cadcraft_render::{Options, build};
 

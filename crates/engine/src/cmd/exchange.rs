@@ -11,8 +11,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
 use cadcraft_color::Rgb;
+use cadcraft_doc::{Drawing, Entity, EntityKind, PageSetup, Space};
 use cadcraft_geom::{Bounds2, Mat3, Vec2};
-use cadcraft_model::{Drawing, Entity, EntityKind, PageSetup, Space};
 use cadcraft_render::paper::{self, Sheet};
 use cadcraft_render::raster::{RasterOptions, View};
 use serde_json::{Value, json};
@@ -150,7 +150,7 @@ fn import_drawing(s: &mut Session, src: &Drawing, at: Vec2, scale: f64, file: &s
     for (from, to) in &renames {
         let Some(b) = src.blocks.get(from) else { continue };
         let mut nb = (**b).clone();
-        cadcraft_model::KeepsHandle::forget_handle(&mut nb);
+        cadcraft_doc::KeepsHandle::forget_handle(&mut nb);
         nb.name = to.clone();
         nb.entities = Default::default();
         for e in b.entities.iter() {
@@ -194,7 +194,7 @@ fn read_file(_path: &str) -> Result<Vec<u8>> {
 /// Add the source's layers, linetypes and styles that this drawing doesn't have (a name that
 /// exists keeps this drawing's definition). Returns how many layers and how many other records were added.
 fn merge_tables(d: &mut Drawing, src: &Drawing) -> (usize, usize) {
-    fn merge<T: Clone + cadcraft_model::KeepsHandle>(ours: &mut Vec<T>, theirs: &[T], name: fn(&T) -> &str) -> usize {
+    fn merge<T: Clone + cadcraft_doc::KeepsHandle>(ours: &mut Vec<T>, theirs: &[T], name: fn(&T) -> &str) -> usize {
         let mut n = 0;
         for t in theirs {
             if !ours.iter().any(|o| name(o).eq_ignore_ascii_case(name(t))) {
@@ -461,7 +461,7 @@ fn frame_books(d: &Drawing, frame_height: f64, unit: f64) -> (Vec<Vec<Frame>>, u
         if !pl.closed {
             continue;
         }
-        let b = cadcraft_model::entity_bounds(d, e, 0);
+        let b = cadcraft_doc::entity_bounds(d, e, 0);
         if b.is_empty() || !b.width().is_finite() || !b.height().is_finite() {
             continue;
         }
@@ -542,8 +542,8 @@ fn run_pdfbook(s: &mut Session, p: &Value) -> Result<Value> {
 
 #[cfg(test)]
 mod tests {
+    use cadcraft_doc::{Block, Circle, Common, Handle, Insert, Layer, Line};
     use cadcraft_geom::Vec3;
-    use cadcraft_model::{Block, Circle, Common, Handle, Insert, Layer, Line};
 
     use super::super::file::{IoHooks, set_io};
     use super::*;

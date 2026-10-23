@@ -3,8 +3,8 @@
 #![cfg(not(target_arch = "wasm32"))]
 
 use cadcraft_color::{Color, Rgb};
+use cadcraft_doc::*;
 use cadcraft_geom::{Vec2, Vec3};
-use cadcraft_model::*;
 
 fn through_dwg(d: &Drawing) -> Drawing {
     let dwg = cadcraft_io::write(d, "x.dwg").unwrap();

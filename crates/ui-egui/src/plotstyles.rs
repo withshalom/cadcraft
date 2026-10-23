@@ -50,7 +50,7 @@ fn window(app: &mut CadApp, ctx: &egui::Context, open: &mut bool) -> Action {
         });
         return None;
     };
-    let names = cadcraft_model::plot_style_table_names(d);
+    let names = cadcraft_doc::plot_style_table_names(d);
     let space = app.session.layout_space();
     let layout = space.layout().and_then(|n| d.layout(n).map(|l| (n.to_string(), l.page.plot_style_table.clone(), l.page.show_plot_styles)));
     let mut sel = temp::<String>(ctx, "pstyle_sel")
@@ -58,7 +58,7 @@ fn window(app: &mut CadApp, ctx: &egui::Context, open: &mut bool) -> Action {
         .or_else(|| layout.as_ref().map(|l| l.1.clone()).filter(|n| names.iter().any(|x| x.eq_ignore_ascii_case(n))))
         .or_else(|| names.first().cloned())
         .unwrap_or_default();
-    let table = cadcraft_model::plot_style_table(d, &sel);
+    let table = cadcraft_doc::plot_style_table(d, &sel);
     let in_drawing = d.plot_style_tables.iter().any(|x| x.name.eq_ignore_ascii_case(&sel));
     let linetypes: Vec<String> =
         d.linetypes.iter().map(|l| l.name.clone()).filter(|n| !n.eq_ignore_ascii_case("ByLayer") && !n.eq_ignore_ascii_case("ByBlock")).collect();
@@ -181,7 +181,7 @@ fn window(app: &mut CadApp, ctx: &egui::Context, open: &mut bool) -> Action {
                         }
                     });
                     if named {
-                        let normal = st.name.eq_ignore_ascii_case(cadcraft_model::NORMAL_STYLE);
+                        let normal = st.name.eq_ignore_ascii_case(cadcraft_doc::NORMAL_STYLE);
                         if ui.add_enabled(!normal, egui::Button::new(crate::tl!("Remove"))).clicked() {
                             action = Some(("stylesmanager", json!({ "action": "set", "name": table.name, "removeStyle": st.name })));
                         }

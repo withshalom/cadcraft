@@ -12,8 +12,8 @@
 use std::collections::HashMap;
 
 use cadcraft_color::Color;
+use cadcraft_doc::{ArrayParams, AssocSnap, Constraint, DimAssoc, DimStyle, Handle, LayerState, Parametric, PlotStyleTable};
 use cadcraft_dxf::{Tag, Version};
-use cadcraft_model::{ArrayParams, AssocSnap, Constraint, DimAssoc, DimStyle, Handle, LayerState, Parametric, PlotStyleTable};
 use cadcraft_render::Arrowhead;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -465,7 +465,7 @@ pub(crate) fn arclen_xdata(center: cadcraft_geom::Vec3) -> Vec<Tag> {
 /// and a point; `1000 JOGGED`, the centre and the jog point; `1000 BREAK`, a point, `1040` size
 /// and `1070` auto; `1000 INSPECT`, `1070` shape, `1000` label and `1000` rate. Points are
 /// `1010/1020/1030`. The oblique angle is the standard group 52 instead.
-pub(crate) fn marks_xdata(m: &cadcraft_model::DimMarks) -> Vec<Tag> {
+pub(crate) fn marks_xdata(m: &cadcraft_doc::DimMarks) -> Vec<Tag> {
     let pt = |v: &mut Vec<Tag>, p: cadcraft_geom::Vec3| v.extend([Tag::f(1010, p.x), Tag::f(1020, p.y), Tag::f(1030, p.z)]);
     let mut v = Vec::new();
     if let Some(j) = m.jog_line {
@@ -496,10 +496,10 @@ pub(crate) fn marks_xdata(m: &cadcraft_model::DimMarks) -> Vec<Tag> {
 
 /// The marks written by [`marks_xdata`] (no oblique angle); empty for other writers. Damaged
 /// items are skipped.
-pub(crate) fn read_marks(tags: &[Tag]) -> cadcraft_model::DimMarks {
+pub(crate) fn read_marks(tags: &[Tag]) -> cadcraft_doc::DimMarks {
     let list = xdata_list(xdata(tags, APP), "MARKS");
     let list = list.get(..list.len().min(MAX_XDATA_ITEMS)).unwrap_or(&[]);
-    let mut m = cadcraft_model::DimMarks::default();
+    let mut m = cadcraft_doc::DimMarks::default();
     let num = |i: usize, code: i32| list.get(i).filter(|t| t.code == code).map(Tag::f64).filter(|x| x.is_finite());
     let point = |i: usize| Some(cadcraft_geom::Vec3::new(num(i, 1010)?, num(i + 1, 1020)?, num(i + 2, 1030)?));
     let text = |i: usize| list.get(i).filter(|t| t.code == 1000).map(Tag::str);
@@ -511,20 +511,20 @@ pub(crate) fn read_marks(tags: &[Tag]) -> cadcraft_model::DimMarks {
             "JOGLINE" => m.jog_line = point(i + 1).or(m.jog_line),
             "JOGGED" => {
                 if let (Some(center), Some(jog)) = (point(i + 1), point(i + 4)) {
-                    m.jogged = Some(cadcraft_model::JoggedRadius { center, jog });
+                    m.jogged = Some(cadcraft_doc::JoggedRadius { center, jog });
                 }
             }
             "BREAK" => {
                 let size = list.get(i + 4).filter(|t| t.code == 1040).map(Tag::f64).filter(|x| x.is_finite() && *x > 0.0);
                 let auto = list.get(i + 5).filter(|t| t.code == 1070).is_some_and(|t| t.i64() != 0);
                 if let (Some(at), Some(size)) = (point(i + 1), size) {
-                    m.breaks.push(cadcraft_model::DimBreak { at, size, auto });
+                    m.breaks.push(cadcraft_doc::DimBreak { at, size, auto });
                 }
             }
             "INSPECT" => {
                 let shape = list.get(i + 1).filter(|t| t.code == 1070).and_then(|t| u8::try_from(t.i64()).ok()).filter(|s| *s <= 2);
                 if let (Some(shape), Some(label), Some(rate)) = (shape, text(i + 2), text(i + 3)) {
-                    m.inspect = Some(cadcraft_model::Inspection { shape, label, rate });
+                    m.inspect = Some(cadcraft_doc::Inspection { shape, label, rate });
                 }
             }
             _ => {}
@@ -779,7 +779,7 @@ pub(crate) struct AnnoPayload {
 #[derive(Serialize, Deserialize)]
 struct AnnoObject {
     handle: String,
-    scales: Vec<cadcraft_model::AnnoScale>,
+    scales: Vec<cadcraft_doc::AnnoScale>,
 }
 
 /// Most annotative objects read from one file.
@@ -787,7 +787,7 @@ const MAX_ANNO_OBJECTS: usize = 1_000_000;
 
 /// JSON chunks for the annotative scaling XRECORD, or `None` when nothing differs from a new
 /// drawing (1:1, ANNOALLVISIBLE 1, no annotative objects or blocks).
-pub(crate) fn anno_chunks(d: &cadcraft_model::Drawing) -> Option<Vec<String>> {
+pub(crate) fn anno_chunks(d: &cadcraft_doc::Drawing) -> Option<Vec<String>> {
     let cannoscale = d.header.str("CANNOSCALE", "1:1");
     let annoallvisible = d.header.i64("ANNOALLVISIBLE", 1);
     let blocks: Vec<String> = d.blocks.values().filter(|b| b.annotative).map(|b| b.name.clone()).collect();
@@ -795,7 +795,7 @@ pub(crate) fn anno_chunks(d: &cadcraft_model::Drawing) -> Option<Vec<String>> {
         .model
         .iter()
         .chain(d.layouts.iter().flat_map(|l| l.entities.iter()))
-        .filter(|e| cadcraft_model::is_annotative(e))
+        .filter(|e| cadcraft_doc::is_annotative(e))
         .map(|e| AnnoObject { handle: e.handle.hex(), scales: e.common.anno_scales.clone() })
         .collect();
     if cannoscale == "1:1" && annoallvisible == 1 && blocks.is_empty() && objects.is_empty() {
@@ -816,7 +816,7 @@ pub(crate) fn parse_anno(text: &str) -> Option<AnnoPayload> {
 
 /// Apply a parsed annotative scaling record: variables, annotative blocks and each object's
 /// scales (invalid scales and objects that can't be annotative are skipped).
-pub(crate) fn apply_anno(d: &mut cadcraft_model::Drawing, p: AnnoPayload) {
+pub(crate) fn apply_anno(d: &mut cadcraft_doc::Drawing, p: AnnoPayload) {
     if let Some(c) = p.cannoscale.filter(|c| !c.trim().is_empty() && c.len() <= 255) {
         d.header.set_str("CANNOSCALE", &c);
     }
@@ -833,14 +833,14 @@ pub(crate) fn apply_anno(d: &mut cadcraft_model::Drawing, p: AnnoPayload) {
     }
     for o in p.objects {
         let Some(h) = Handle::parse_hex(&o.handle) else { continue };
-        let mut scales: Vec<cadcraft_model::AnnoScale> = Vec::new();
+        let mut scales: Vec<cadcraft_doc::AnnoScale> = Vec::new();
         for s in o.scales.into_iter().filter(|s| s.is_valid() && !s.name.trim().is_empty()) {
-            if scales.len() < cadcraft_model::MAX_SCALES && !scales.iter().any(|x| x.name.eq_ignore_ascii_case(&s.name)) {
+            if scales.len() < cadcraft_doc::MAX_SCALES && !scales.iter().any(|x| x.name.eq_ignore_ascii_case(&s.name)) {
                 scales.push(s);
             }
         }
         let _ = d.modify_entity(h, |e| {
-            if cadcraft_model::can_be_annotative(&e.kind) {
+            if cadcraft_doc::can_be_annotative(&e.kind) {
                 e.common.anno_scales = scales;
             }
         });
@@ -849,10 +849,10 @@ pub(crate) fn apply_anno(d: &mut cadcraft_model::Drawing, p: AnnoPayload) {
 
 /// A SCALE object (DXF Reference, OBJECTS section): name (300), paper units (140), drawing
 /// units (141); `None` when unusable.
-pub(crate) fn read_scale(tags: &[Tag]) -> Option<cadcraft_model::AnnoScale> {
+pub(crate) fn read_scale(tags: &[Tag]) -> Option<cadcraft_doc::AnnoScale> {
     let name = tags.iter().find(|t| t.code == 300).map(Tag::str)?;
     let num = |c: i32| tags.iter().find(|t| t.code == c).map(Tag::f64);
-    let mut s = cadcraft_model::AnnoScale::new(name.trim(), num(140)?, num(141)?);
+    let mut s = cadcraft_doc::AnnoScale::new(name.trim(), num(140)?, num(141)?);
     s.unit_scale = tags.iter().find(|t| t.code == 290).map(|t| t.i64() != 0);
     (s.is_valid() && !s.name.is_empty() && s.name.len() <= 255).then_some(s)
 }
@@ -875,7 +875,7 @@ mod tests {
 
     #[test]
     fn every_dimvar_has_a_code() {
-        for (_, field) in cadcraft_model::DIMVARS {
+        for (_, field) in cadcraft_doc::DIMVARS {
             assert!(dim_code(field).is_some(), "{field} has no DXF group code");
         }
     }

@@ -1,7 +1,7 @@
 //! Interactive commands: prompts, inputs and the command-line coordinate grammar.
 
+use cadcraft_doc::{EntityKind, Handle};
 use cadcraft_geom::{Mat3, Vec2};
-use cadcraft_model::{EntityKind, Handle};
 use serde::Serialize;
 
 use crate::{Result, Session};
@@ -229,7 +229,7 @@ pub trait Interactive: Send {
     /// Preview objects drawn with their own properties (colour, layer, linetype) rather than
     /// the current layer's, as [`Interactive::preview`]'s are: a block reference re-evaluated
     /// under the cursor, drawn as it will look. Drawn under the rubber band.
-    fn preview_objects(&self, _s: &Session, _cursor: Vec2) -> Vec<cadcraft_model::Entity> {
+    fn preview_objects(&self, _s: &Session, _cursor: Vec2) -> Vec<cadcraft_doc::Entity> {
         Vec::new()
     }
     /// The preview as existing objects under one transform, when it is that (MOVE, COPY,
@@ -240,7 +240,7 @@ pub trait Interactive: Send {
     }
     /// The multiline text being typed (MTEXT, once its box is known) with empty contents: where
     /// the UI places its in-place editor and with which height, width and justification.
-    fn editing_mtext(&self) -> Option<cadcraft_model::MText> {
+    fn editing_mtext(&self) -> Option<cadcraft_doc::MText> {
         None
     }
 }

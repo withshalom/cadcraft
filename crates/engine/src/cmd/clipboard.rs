@@ -13,8 +13,8 @@
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::sync::Arc;
 
+use cadcraft_doc::{Block, Drawing, Entity, EntityKind, HVal, Handle};
 use cadcraft_geom::{Mat3, Vec2};
-use cadcraft_model::{Block, Drawing, Entity, EntityKind, HVal, Handle};
 
 use super::{bad, has_doc};
 use crate::{Result, Session};
@@ -296,7 +296,7 @@ fn merge(d: &mut Drawing, defs: &Drawing) -> BTreeMap<String, String> {
     for (from, to) in &renames {
         let Some(b) = defs.blocks.get(from) else { continue };
         let mut nb = (**b).clone();
-        cadcraft_model::KeepsHandle::forget_handle(&mut nb);
+        cadcraft_doc::KeepsHandle::forget_handle(&mut nb);
         nb.name = to.clone();
         nb.entities = Default::default();
         for e in b.entities.iter() {

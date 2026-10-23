@@ -1,8 +1,8 @@
 //! Snap/grid spacing uses legacy HEADER variables and the current *ACTIVE VPORT (#607).
 
+use cadcraft_doc::{Drawing, HVal};
 use cadcraft_dxf::{Tag, records, sections};
 use cadcraft_geom::{Vec2, Vec3};
-use cadcraft_model::{Drawing, HVal};
 
 fn header(snap: Vec2, grid: Vec2) -> Vec<Tag> {
     let mut tags = Vec::new();

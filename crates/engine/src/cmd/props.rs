@@ -6,8 +6,8 @@ mod rename;
 pub use matchprop::MatchProps;
 
 use cadcraft_color::Color;
+use cadcraft_doc::{EntityKind, Lineweight, Transparency};
 use cadcraft_geom::Vec3;
-use cadcraft_model::{EntityKind, Lineweight, Transparency};
 use serde_json::{Value, json};
 
 use super::*;
@@ -72,7 +72,7 @@ pub fn specs() -> Vec<CommandSpec> {
     ]
 }
 
-pub(super) fn entity_props(d: &cadcraft_model::Drawing, e: &cadcraft_model::Entity) -> Value {
+pub(super) fn entity_props(d: &cadcraft_doc::Drawing, e: &cadcraft_doc::Entity) -> Value {
     let mut v = json!({
         "handle": e.handle.hex(),
         "type": e.kind.type_name(),
@@ -84,16 +84,16 @@ pub(super) fn entity_props(d: &cadcraft_model::Drawing, e: &cadcraft_model::Enti
         "transparency": transparency_value(e.common.transparency),
         "visible": e.common.visible,
     });
-    if cadcraft_model::can_be_annotative(&e.kind)
+    if cadcraft_doc::can_be_annotative(&e.kind)
         && let Some(o) = v.as_object_mut()
     {
-        o.insert("annotative".into(), json!(cadcraft_model::is_annotative(e)));
+        o.insert("annotative".into(), json!(cadcraft_doc::is_annotative(e)));
         o.insert("annotativeScales".into(), json!(e.common.anno_scales.iter().map(|s| s.name.clone()).collect::<Vec<_>>()));
     }
     let geo = serde_json::to_value(&e.kind).unwrap_or(Value::Null);
     if let (Some(o), Some(g)) = (v.as_object_mut(), geo.as_object()) {
         o.insert("geometry".into(), Value::Object(g.clone()));
-        let b = cadcraft_model::entity_bounds(d, e, 0);
+        let b = cadcraft_doc::entity_bounds(d, e, 0);
         if !b.is_empty() {
             o.insert("bounds".into(), json!([[b.min.x, b.min.y], [b.max.x, b.max.y]]));
         }
@@ -209,7 +209,7 @@ fn run_set(s: &mut Session, p: &Value) -> Result<Value> {
         d.modify_entity(*h, |e| {
             // Annotative: Yes supports the current annotation scale; No drops every scale.
             if let Some(a) = p.get("annotative").and_then(Value::as_bool) {
-                cadcraft_model::set_annotative(e, a, &anno_scale);
+                cadcraft_doc::set_annotative(e, a, &anno_scale);
             }
             if let Some(l) = str_param(p, "layer") {
                 e.common.layer = l.to_string();
@@ -432,7 +432,7 @@ fn run_linetype(s: &mut Session, p: &Value) -> Result<Value> {
     }
     let d = s.doc_mut()?;
     if let Some(load) = str_param(p, "load") {
-        let lib = cadcraft_model::library::standard_linetypes_for(d);
+        let lib = cadcraft_doc::library::standard_linetypes_for(d);
         let mut n = 0;
         for lt in lib {
             if (load == "*" || lt.name.eq_ignore_ascii_case(load)) && d.linetype(&lt.name).is_none() {
@@ -451,7 +451,7 @@ fn run_linetype(s: &mut Session, p: &Value) -> Result<Value> {
         d.header.set_str("CELTYPE", cur);
     }
     Ok(
-        json!({ "loaded": d.linetypes.iter().map(|l| json!({"name": l.name, "description": l.description})).collect::<Vec<_>>(), "library": cadcraft_model::library::standard_linetypes().iter().map(|l| l.name.clone()).collect::<Vec<_>>() }),
+        json!({ "loaded": d.linetypes.iter().map(|l| json!({"name": l.name, "description": l.description})).collect::<Vec<_>>(), "library": cadcraft_doc::library::standard_linetypes().iter().map(|l| l.name.clone()).collect::<Vec<_>>() }),
     )
 }
 
@@ -526,12 +526,12 @@ fn run_limits(s: &mut Session, p: &Value) -> Result<Value> {
     let a = point_req("limits", p, "min")?;
     let b = point_req("limits", p, "max")?;
     let d = s.doc_mut()?;
-    d.header.set("LIMMIN", cadcraft_model::HVal::Point(a.to3(0.0)));
-    d.header.set("LIMMAX", cadcraft_model::HVal::Point(b.to3(0.0)));
+    d.header.set("LIMMIN", cadcraft_doc::HVal::Point(a.to3(0.0)));
+    d.header.set("LIMMAX", cadcraft_doc::HVal::Point(b.to3(0.0)));
     ok()
 }
 
-fn style_json(st: &cadcraft_model::TextStyle, current: &str) -> Value {
+fn style_json(st: &cadcraft_doc::TextStyle, current: &str) -> Value {
     json!({
         "name": st.name,
         "font": st.font,
@@ -548,7 +548,7 @@ fn style_json(st: &cadcraft_model::TextStyle, current: &str) -> Value {
     })
 }
 
-fn styles_json(d: &cadcraft_model::Drawing) -> Value {
+fn styles_json(d: &cadcraft_doc::Drawing) -> Value {
     let cur = d.header.str("TEXTSTYLE", "Standard");
     json!({ "current": cur, "styles": d.text_styles.iter().map(|t| style_json(t, &cur)).collect::<Vec<_>>() })
 }
@@ -562,7 +562,7 @@ fn run_style(s: &mut Session, p: &Value) -> Result<Value> {
     let idx = match d.text_styles.iter().position(|t| t.name.eq_ignore_ascii_case(&name)) {
         Some(i) => i,
         None => {
-            d.text_styles.push(cadcraft_model::TextStyle { name: name.clone(), ..Default::default() });
+            d.text_styles.push(cadcraft_doc::TextStyle { name: name.clone(), ..Default::default() });
             d.text_styles.len() - 1
         }
     };
@@ -613,7 +613,7 @@ fn run_style_current(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 /// Text style names used by entities (in model, paper spaces and blocks) and dimension styles.
-pub(super) fn text_styles_in_use(d: &cadcraft_model::Drawing) -> Vec<String> {
+pub(super) fn text_styles_in_use(d: &cadcraft_doc::Drawing) -> Vec<String> {
     let mut out: Vec<String> = d.dim_styles.iter().map(|s| s.text_style.clone()).collect();
     out.extend(d.mleader_styles.iter().map(|s| s.text_style.clone()));
     let stores = std::iter::once(&d.model).chain(d.layouts.iter().map(|l| &l.entities)).chain(d.blocks.values().map(|b| &b.entities));
@@ -671,14 +671,14 @@ fn run_style_rename(s: &mut Session, p: &Value) -> Result<Value> {
         EntityKind::MLeader(m) => m.text.iter_mut().for_each(|t| fix(&mut t.style)),
         _ => {}
     };
-    let mut hs: Vec<cadcraft_model::Handle> = d.model.iter().filter(|e| uses(&e.kind)).map(|e| e.handle).collect();
+    let mut hs: Vec<cadcraft_doc::Handle> = d.model.iter().filter(|e| uses(&e.kind)).map(|e| e.handle).collect();
     hs.extend(d.layouts.iter().flat_map(|l| l.entities.iter().filter(|e| uses(&e.kind)).map(|e| e.handle)));
     for h in hs {
         d.modify_entity(h, |e| repoint(&mut e.kind))?;
     }
     // Block definitions too, so their text keeps resolving to the renamed style.
     for block in d.blocks.values_mut() {
-        let hs: Vec<cadcraft_model::Handle> = block.entities.iter().filter(|e| uses(&e.kind)).map(|e| e.handle).collect();
+        let hs: Vec<cadcraft_doc::Handle> = block.entities.iter().filter(|e| uses(&e.kind)).map(|e| e.handle).collect();
         if !hs.is_empty() {
             let b = std::sync::Arc::make_mut(block);
             for h in hs {
@@ -709,7 +709,7 @@ fn run_style_delete(s: &mut Session, p: &Value) -> Result<Value> {
     Ok(styles_json(d))
 }
 
-fn dimstyles_json(d: &cadcraft_model::Drawing) -> Value {
+fn dimstyles_json(d: &cadcraft_doc::Drawing) -> Value {
     json!({ "current": d.header.str("DIMSTYLE", "Standard"), "styles": d.dim_styles.iter().map(|s| s.name.clone()).collect::<Vec<_>>() })
 }
 
@@ -723,7 +723,7 @@ fn run_dimstyle(s: &mut Session, p: &Value) -> Result<Value> {
     let idx = match d.dim_styles.iter().position(|t| t.name.eq_ignore_ascii_case(&name)) {
         Some(i) => i,
         None => {
-            d.dim_styles.push(cadcraft_model::DimStyle { name: name.clone(), ..base });
+            d.dim_styles.push(cadcraft_doc::DimStyle { name: name.clone(), ..base });
             d.dim_styles.len() - 1
         }
     };
@@ -756,7 +756,7 @@ fn run_dimstyle_list(s: &mut Session, p: &Value) -> Result<Value> {
         let st = d.dim_style(n).ok_or_else(|| bad("dimstyle.list", format!("no dimension style `{n}`")))?;
         let vars: serde_json::Map<String, Value> = {
             let v = serde_json::to_value(st).unwrap_or(Value::Null);
-            cadcraft_model::DIMVARS.iter().filter_map(|(var, field)| v.get(*field).map(|x| ((*var).to_string(), x.clone()))).collect()
+            cadcraft_doc::DIMVARS.iter().filter_map(|(var, field)| v.get(*field).map(|x| ((*var).to_string(), x.clone()))).collect()
         };
         if let Some(o) = out.as_object_mut() {
             o.insert("style".into(), serde_json::to_value(st).unwrap_or(Value::Null));
@@ -775,9 +775,9 @@ fn run_dimstyle_current(s: &mut Session, p: &Value) -> Result<Value> {
     Ok(dimstyles_json(d))
 }
 
-fn dims_using(d: &cadcraft_model::Drawing, name: &str) -> Vec<(cadcraft_model::Space, cadcraft_model::Handle)> {
+fn dims_using(d: &cadcraft_doc::Drawing, name: &str) -> Vec<(cadcraft_doc::Space, cadcraft_doc::Handle)> {
     let mut out = Vec::new();
-    for space in std::iter::once(cadcraft_model::Space::Model).chain(d.layouts.iter().map(|l| cadcraft_model::Space::Paper(l.name.clone()))) {
+    for space in std::iter::once(cadcraft_doc::Space::Model).chain(d.layouts.iter().map(|l| cadcraft_doc::Space::Paper(l.name.clone()))) {
         if let Some(st) = d.space(&space) {
             for e in st.iter() {
                 let uses = match &e.kind {
@@ -796,7 +796,7 @@ fn dims_using(d: &cadcraft_model::Drawing, name: &str) -> Vec<(cadcraft_model::S
 }
 
 /// Dimensions and leaders inside block definitions that use the style (block name, entity handle).
-fn block_dims_using(d: &cadcraft_model::Drawing, name: &str) -> Vec<(String, cadcraft_model::Handle)> {
+fn block_dims_using(d: &cadcraft_doc::Drawing, name: &str) -> Vec<(String, cadcraft_doc::Handle)> {
     let mut out = Vec::new();
     for (bname, b) in &d.blocks {
         for e in b.entities.iter() {
@@ -898,12 +898,12 @@ pub(super) fn dim_override(s: &mut Session, p: &Value) -> Result<Value> {
         .map(|o| o.iter().filter(|(k, _)| !matches!(k.as_str(), "handles" | "handle" | "clear")).map(|(k, v)| (k.clone(), v.clone())).collect())
         .unwrap_or_default();
     // Validate against a scratch style; store canonical field names.
-    let mut scratch = cadcraft_model::DimStyle::default();
+    let mut scratch = cadcraft_doc::DimStyle::default();
     let rejected = scratch.apply_fields(&fields);
     let good: serde_json::Map<String, Value> = fields
         .iter()
         .filter(|(k, _)| !rejected.contains(k))
-        .filter_map(|(k, v)| cadcraft_model::DimStyle::field_name(k).map(|f| (f.to_string(), v.clone())))
+        .filter_map(|(k, v)| cadcraft_doc::DimStyle::field_name(k).map(|f| (f.to_string(), v.clone())))
         .collect();
     if !clear && good.is_empty() {
         return Err(bad("dimoverride", format!("no valid dimension variables given (ignored: {})", rejected.join(", "))));
@@ -933,7 +933,7 @@ fn run_tablestyle(s: &mut Session, p: &Value) -> Result<Value> {
         let idx = match d.table_styles.iter().position(|t| t.name.eq_ignore_ascii_case(name)) {
             Some(i) => i,
             None => {
-                d.table_styles.push(cadcraft_model::TableStyle { name: name.to_string(), ..Default::default() });
+                d.table_styles.push(cadcraft_doc::TableStyle { name: name.to_string(), ..Default::default() });
                 d.table_styles.len() - 1
             }
         };
@@ -965,7 +965,7 @@ fn run_mleaderstyle(s: &mut Session, p: &Value) -> Result<Value> {
         let idx = match d.mleader_styles.iter().position(|t| t.name.eq_ignore_ascii_case(name)) {
             Some(i) => i,
             None => {
-                d.mleader_styles.push(cadcraft_model::MLeaderStyle { name: name.to_string(), ..Default::default() });
+                d.mleader_styles.push(cadcraft_doc::MLeaderStyle { name: name.to_string(), ..Default::default() });
                 d.mleader_styles.len() - 1
             }
         };
@@ -1054,7 +1054,7 @@ fn run_rename(s: &mut Session, p: &Value) -> Result<Value> {
             if d.header.str("CELTYPE", "ByLayer").eq_ignore_ascii_case(&from) {
                 d.header.set_str("CELTYPE", &to);
             }
-            let users = |st: &cadcraft_model::EntityStore| -> Vec<cadcraft_model::Handle> {
+            let users = |st: &cadcraft_doc::EntityStore| -> Vec<cadcraft_doc::Handle> {
                 st.iter().filter(|e| e.common.linetype.eq_ignore_ascii_case(&from)).map(|e| e.handle).collect()
             };
             let mut hs = users(&d.model);

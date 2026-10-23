@@ -1,9 +1,9 @@
 //! Saving a drawing as DXF or DWG at a chosen version (2000–2018) and as binary DXF (#421).
 
 use cadcraft_color::{Color, Rgb};
+use cadcraft_doc::*;
 use cadcraft_geom::Vec3;
 use cadcraft_io::{SaveOptions, Version, read, save_version, write, write_dxf, write_with};
-use cadcraft_model::*;
 
 const INTL: &str = "图号 Café Ø 😀";
 

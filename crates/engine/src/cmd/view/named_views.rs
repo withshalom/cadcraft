@@ -5,8 +5,8 @@
 //! and round-trip through the DXF VIEW table. Restoring one is a view change like ZOOM: it goes
 //! into the view history, not the undo stack (a layer snapshot it restores is an undo step).
 
+use cadcraft_doc::{LayerState, NamedView, Space};
 use cadcraft_geom::{Bounds2, Vec2};
-use cadcraft_model::{LayerState, NamedView, Space};
 use serde_json::{Value, json};
 
 use super::super::qselect::wildcard;
@@ -374,7 +374,7 @@ impl Interactive for ViewM {
             }
         }
     }
-    fn preview(&self, _s: &Session, c: Vec2) -> Vec<cadcraft_model::EntityKind> {
+    fn preview(&self, _s: &Session, c: Vec2) -> Vec<cadcraft_doc::EntityKind> {
         match self.stage {
             Stage::WindowSecond(a) => vec![super::super::helpers::lwpoly(super::super::helpers::rect_vertices(a, c), true)],
             _ => Vec::new(),

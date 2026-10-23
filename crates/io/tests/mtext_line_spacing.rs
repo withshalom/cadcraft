@@ -1,7 +1,7 @@
 //! MTEXT line spacing style (group 73: 1 at least, 2 exactly) round-trips through DXF (#408).
 
+use cadcraft_doc::{Common, Drawing, EntityKind, MText, Space};
 use cadcraft_geom::Vec3;
-use cadcraft_model::{Common, Drawing, EntityKind, MText, Space};
 
 #[test]
 fn line_spacing_style_roundtrips() {

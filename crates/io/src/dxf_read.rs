@@ -3,9 +3,9 @@
 use std::collections::HashMap;
 
 use cadcraft_color::{Color, Rgb};
+use cadcraft_doc::*;
 use cadcraft_dxf::{Tag, records, sections};
 use cadcraft_geom::{PolyVertex, Spline, Vec2, Vec3};
-use cadcraft_model::*;
 
 use crate::{IoError, Result};
 
@@ -851,7 +851,7 @@ const MAX_PATTERN_DASHES: usize = 256;
 /// (unit scale, no hatch rotation, base point relative to the hatch origin, offset as shift
 /// along the line and spacing), which the writer and the renderer turn back. Lines with
 /// non-finite values are skipped.
-fn pattern_definition(tags: &[Tag], scale: f64, angle: f64, origin: Vec2) -> Vec<cadcraft_model::library::PatternLine> {
+fn pattern_definition(tags: &[Tag], scale: f64, angle: f64, origin: Vec2) -> Vec<cadcraft_doc::library::PatternLine> {
     let Some(at) = tags.iter().position(|x| x.code == 78) else { return Vec::new() };
     let scale = if scale.is_finite() && scale > 1e-9 { scale } else { 1.0 };
     let angle = if angle.is_finite() { angle } else { 0.0 };
@@ -884,7 +884,7 @@ fn pattern_definition(tags: &[Tag], scale: f64, angle: f64, origin: Vec2) -> Vec
         .map(|(a, base, offset, dashes)| {
             let local = (base - origin).rotate(-angle) * (1.0 / scale);
             let delta = offset.rotate(-a.to_radians()) * (1.0 / scale);
-            cadcraft_model::library::PatternLine {
+            cadcraft_doc::library::PatternLine {
                 angle: a - angle.to_degrees(),
                 origin: (local.x, local.y),
                 delta: (delta.x, delta.y),
@@ -997,7 +997,7 @@ struct Rx {
     /// Plot style name placeholder handle (upper case) → plot style name (`ACAD_PLOTSTYLENAME`).
     pstyles: HashMap<String, String>,
     /// Upper-case block name → associative array parameters from its BLOCK_RECORD.
-    block_arrays: HashMap<String, cadcraft_model::ArrayParams>,
+    block_arrays: HashMap<String, cadcraft_doc::ArrayParams>,
     /// LAYER record handle (upper case) → layer name (VIEWPORT group 341 frozen layers).
     layers: HashMap<String, String>,
 }
@@ -1344,8 +1344,8 @@ fn header(tags: &[Tag], d: &mut Drawing) {
                 continue;
             }
             let code = match vals.as_slice() {
-                [x, _, _] if x.code == 10 => cadcraft_model::POINT_3D,
-                [x, _] if x.code == 10 => cadcraft_model::POINT_2D,
+                [x, _, _] if x.code == 10 => cadcraft_doc::POINT_3D,
+                [x, _] if x.code == 10 => cadcraft_doc::POINT_2D,
                 [v] => v.code,
                 _ => 0,
             };
@@ -1384,7 +1384,7 @@ fn header(tags: &[Tag], d: &mut Drawing) {
 }
 
 /// A record's handle (group `code`: 5, or 105 for DIMSTYLE), 0 when it has none.
-fn rec_handle(t: &T, code: i32) -> cadcraft_model::KeptHandle {
+fn rec_handle(t: &T, code: i32) -> cadcraft_doc::KeptHandle {
     t.s(code).and_then(|h| Handle::parse_hex(&h)).unwrap_or_default().into()
 }
 
@@ -1855,9 +1855,9 @@ fn read_budgeted(bytes: &[u8], mut table_cells_left: usize) -> Result<Drawing> {
     // A file without $INSUNITS declares no units (#1209); only new drawings take the template's.
     d.header.set_i64("INSUNITS", 0);
     let mut rx = Rx { pstyles: plot_style_names(&secs), ..Rx::default() };
-    let mut blocks: Vec<(String, Vec3, String, Vec<(Option<String>, bool, Entity)>, i64, (cadcraft_model::KeptHandle, cadcraft_model::KeptHandle))> =
+    let mut blocks: Vec<(String, Vec3, String, Vec<(Option<String>, bool, Entity)>, i64, (cadcraft_doc::KeptHandle, cadcraft_doc::KeptHandle))> =
         Vec::new();
-    let mut layout_objs: Vec<(String, u32, String, PageSetup, cadcraft_model::KeptHandle, LayoutRecord)> = Vec::new();
+    let mut layout_objs: Vec<(String, u32, String, PageSetup, cadcraft_doc::KeptHandle, LayoutRecord)> = Vec::new();
     let mut entities = Vec::new();
     let mut objs = Objects::default();
     // Every handle another program's file already uses is taken before anything gets a new one:
@@ -1901,7 +1901,7 @@ fn read_budgeted(bytes: &[u8], mut table_cells_left: usize) -> Result<Drawing> {
                         }
                         let body = recs.get(i + 1..j).unwrap_or(&[]);
                         let ents = parse_entities(body, &mut d, &mut rx, &mut n, &mut table_cells_left);
-                        let end = recs.get(j).map_or(cadcraft_model::KeptHandle::default(), |(_, et)| rec_handle(&T(et), 5));
+                        let end = recs.get(j).map_or(cadcraft_doc::KeptHandle::default(), |(_, et)| rec_handle(&T(et), 5));
                         blocks.push((name, base, description, ents, xref, (rec_handle(&t, 5), end)));
                         i = j + 1;
                     } else {
@@ -2141,7 +2141,7 @@ struct Objects {
     /// Dictionary entry handle (upper case) → entry name.
     names: HashMap<String, String>,
     /// SCALE objects (the annotation scale list), in file order.
-    scales: Vec<cadcraft_model::AnnoScale>,
+    scales: Vec<cadcraft_doc::AnnoScale>,
     /// XRECORD handle (upper case) → its groups.
     xrecords: HashMap<String, Vec<Tag>>,
     /// TABLESTYLE objects: (handle, groups).
@@ -2164,7 +2164,7 @@ impl Objects {
     fn add(&mut self, kind: &str, tags: &[Tag]) {
         let h = T(tags).s(5).map(|h| h.trim().to_ascii_uppercase()).unwrap_or_default();
         match kind {
-            "SCALE" if self.scales.len() < cadcraft_model::MAX_SCALES => {
+            "SCALE" if self.scales.len() < cadcraft_doc::MAX_SCALES => {
                 if let Some(mut s) = crate::dxf_ext::read_scale(tags)
                     && !self.scales.iter().any(|x| x.name.eq_ignore_ascii_case(&s.name))
                 {
@@ -2247,7 +2247,7 @@ impl Objects {
                 d.table_styles
                     .iter()
                     .find(|s| s.name.eq_ignore_ascii_case(style))
-                    .map_or(cadcraft_model::TableStyle::default().text_height, |s| s.text_height)
+                    .map_or(cadcraft_doc::TableStyle::default().text_height, |s| s.text_height)
             };
             let _ = d.modify_entity(*h, |e| {
                 if let EntityKind::Table(t) = &mut e.kind {
@@ -2268,7 +2268,7 @@ impl Objects {
         if !self.scales.is_empty() {
             d.scales = self.scales.clone();
         } else if d.header.i64("MEASUREMENT", 0) == 1 {
-            d.scales = cadcraft_model::metric_scales();
+            d.scales = cadcraft_doc::metric_scales();
         }
         if let Some(p) = self.xrecord_text(crate::dxf_ext::ANNOTATION_KEY).and_then(|t| crate::dxf_ext::parse_anno(&t)) {
             crate::dxf_ext::apply_anno(d, p);

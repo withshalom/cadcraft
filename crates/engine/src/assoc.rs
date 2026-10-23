@@ -4,8 +4,8 @@
 
 use std::sync::Arc;
 
+use cadcraft_doc::{AssocSnap, DimAssoc, DimKind, Dimension, Drawing, EntityKind, Handle, Space};
 use cadcraft_geom::{Vec2, Vec3};
-use cadcraft_model::{AssocSnap, DimAssoc, DimKind, Dimension, Drawing, EntityKind, Handle, Space};
 
 /// Definition point names in the order they are tried.
 const POINTS: [&str; 5] = ["defpt", "p13", "p14", "p15", "p16"];
@@ -34,7 +34,7 @@ fn def_point_mut<'a>(d: &'a mut Dimension, name: &str) -> Option<&'a mut Vec3> {
     })
 }
 
-fn arc_geom(a: &cadcraft_model::Arc) -> cadcraft_geom::Arc {
+fn arc_geom(a: &cadcraft_doc::Arc) -> cadcraft_geom::Arc {
     cadcraft_geom::Arc::new(a.center.xy(), a.radius, a.start, a.end)
 }
 

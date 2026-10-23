@@ -795,7 +795,7 @@ fn batch_ranges(counts: impl IntoIterator<Item = u32>, range: std::ops::Range<us
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cadcraft_model::Handle;
+    use cadcraft_doc::Handle;
     use cadcraft_render::DPrim;
 
     #[test]

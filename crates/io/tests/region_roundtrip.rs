@@ -3,9 +3,9 @@
 //! DXF reader shows; `CADCRAFT` xdata on the first lets CADCraft read the region back whole.
 //! Foreign REGIONs stay unknown objects as before; hostile xdata doesn't panic.
 
+use cadcraft_doc::{Common, Drawing, EntityKind, HatchLoop, Region, Space};
 use cadcraft_dxf::{records, sections};
 use cadcraft_geom::{PolyVertex, Vec2};
-use cadcraft_model::{Common, Drawing, EntityKind, HatchLoop, Region, Space};
 
 fn regions(d: &Drawing) -> Vec<Region> {
     d.model
@@ -37,7 +37,7 @@ fn region_with_islands_survives_save_and_reopen() {
         .add(
             &Space::Model,
             Common::default(),
-            EntityKind::LwPolyline(cadcraft_model::LwPolyline {
+            EntityKind::LwPolyline(cadcraft_doc::LwPolyline {
                 vertices: square(50.0, 0.0, 1.0, true).vertices,
                 closed: true,
                 const_width: 0.0,
@@ -87,7 +87,7 @@ fn hostile_region_xdata_does_not_panic() {
     t.push_str("0\nENDSEC\n0\nEOF\n");
     let d = cadcraft_io::read_dxf(t.as_bytes()).unwrap();
     for r in regions(&d) {
-        assert!(r.loops.len() <= cadcraft_model::MAX_REGION_LOOPS);
+        assert!(r.loops.len() <= cadcraft_doc::MAX_REGION_LOOPS);
         let _ = r.area();
         let _ = r.props();
     }

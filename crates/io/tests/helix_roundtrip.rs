@@ -3,9 +3,9 @@
 //! radii, height, turns, twist and start point. Foreign helices read the same way; hostile ones
 //! don't panic.
 
+use cadcraft_doc::{Common, Drawing, EntityKind, Helix, HelixConstrain, Space};
 use cadcraft_dxf::{Tag, records, sections};
 use cadcraft_geom::Vec3;
-use cadcraft_model::{Common, Drawing, EntityKind, Helix, HelixConstrain, Space};
 
 fn helices(d: &Drawing) -> Vec<Helix> {
     d.model

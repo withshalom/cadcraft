@@ -300,7 +300,7 @@ fn canvas_reset_during_splitter_drag_discards_old_resize_and_ends_gesture() {
         .unwrap();
     h.run_steps(3);
     let drawing = h.state().session.doc().unwrap().clone();
-    let splitter = egui::Id::new("cadcraft-modelking").with(("split", Vec::<bool>::new()));
+    let splitter = egui::Id::new("cadcraft-docking").with(("split", Vec::<bool>::new()));
     let from = h.ctx.read_response(splitter).expect("rendered root divider").rect.center();
     h.event(Event::PointerMoved(from));
     h.run_steps(1);

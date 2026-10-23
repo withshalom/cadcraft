@@ -2,7 +2,7 @@
 //! the active viewport (MSPACE) or of the one selected viewport, and change it through
 //! `viewport.set`.
 
-use cadcraft_model::{EntityKind, Handle, Space, Viewport};
+use cadcraft_doc::{EntityKind, Handle, Space, Viewport};
 use egui::{Rect, Sense, pos2, vec2};
 use serde_json::json;
 

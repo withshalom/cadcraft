@@ -108,7 +108,7 @@ fn layout_tab_menu() {
     let n = layout_names(&app).len();
     choose(&mut app, &model, "New Layout");
     assert_eq!(layout_names(&app).len(), n + 1);
-    assert!(matches!(app.session.state().unwrap().space, cadcraft_model::Space::Paper(_)), "the new layout is current");
+    assert!(matches!(app.session.state().unwrap().space, cadcraft_doc::Space::Paper(_)), "the new layout is current");
 
     // Page Setup acts on the right-clicked tab.
     let g = sm::layout_tab_entries(&app, "Sheet A");

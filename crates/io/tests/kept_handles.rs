@@ -1,11 +1,11 @@
 //! Tables, blocks, layouts and dictionaries keep the handles they were read with, through DXF and
-//! through `.cad` (docs/cadcraft-model.md, S1). The fixture is synthetic, from the public DXF Reference.
+//! through `.cad` (docs/cadcraft-doc.md, S1). The fixture is synthetic, from the public DXF Reference.
 
 use std::collections::HashMap;
 
+use cadcraft_doc::{Handle, Layer};
 use cadcraft_dxf::{parse, records, sections};
 use cadcraft_io::{cad_file, read_dxf, write_dxf};
-use cadcraft_model::{Handle, Layer};
 
 /// DXF text from lines of `code value`.
 fn dxf(src: &str) -> String {

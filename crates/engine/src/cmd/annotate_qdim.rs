@@ -2,8 +2,8 @@
 //! Radius and Diameter, a datum point for Baseline and Ordinate, and Edit (add or remove
 //! dimension points). The prompt sequence runs the JSON form.
 
+use cadcraft_doc::{DimKind, EntityKind, Handle, Prim};
 use cadcraft_geom::{Segment, Vec2};
-use cadcraft_model::{DimKind, EntityKind, Handle, Prim};
 use serde_json::{Value, json};
 
 use super::machines::{SelOutcome, SelectPhase};

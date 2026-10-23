@@ -3,12 +3,12 @@
 > **Status:** S1–S4 and the field gaps of §4 done, 2026-10-23 (branch `cad-native`) · **Measurements:** `crates/io/tests/model_map.rs`
 > · **Format:** [`cad-format.md`](cad-format.md)
 
-This is the plan for making CADCraft's own drawing model (`cadcraft-model`) the one model that DWG,
+This is the plan for making CADCraft's own drawing model (`cadcraft-doc`) the one model that DWG,
 DXF and `.cad` all read into and write from. Everything below is measured or read from the code.
 
 ## 1. Decisions (owner, 2026-10-22)
 
-1. **CADCraft's model is the model.** DWG maps straight onto `cadcraft-model`: no second drawing model
+1. **CADCraft's model is the model.** DWG maps straight onto `cadcraft-doc`: no second drawing model
    in between, and no DXF text in between.
 2. **CADCraft gets its own DWG reader and writer** in `crates/dwg`. The low-level parts (bit
    streams, compression, checksums, the containers, the object map) are ported from WithShalom's open
@@ -168,7 +168,7 @@ These cut across every type. DWG needs all of them; DXF and `.cad` benefit too.
 
 ## 5. DWG reader and writer in CADCraft
 
-`crates/dwg` becomes CADCraft's own codec on layer 2 (it depends on `model`, `geom` and `color`).
+`crates/dwg` becomes CADCraft's own codec on layer 2 (it depends on `doc`, `geom` and `color`).
 It is ported from WithShalom's open `cad-dwg` (§1):
 
 | `cad-dwg` module | Lines | Coupled to its own model? | Here |
@@ -226,21 +226,5 @@ On the corpus only the 2018 files go through `cad-dwg` both ways. §5 removes bo
   arrowhead flips (groups 73–75), the APPID table, built-in linetype names; the named object
   dictionary is written in key order on a first save; `.cad` records 1.2. MI-201: 183 of 194
   records (2018) with the same values.
-
-## Names on the branches
-
-The model crate is `cadcraft-model` on `cad-native` and `cad-craftsman` (directory `crates/model`, Rust name
-`cadcraft_model`). The PR-line branches (`dwg-craft`, `dwg-fidelity`, `dwg-fidelity-verified`, `dwg-native`) keep
-upstream's `cadcraft-doc` (`crates/doc`, `cadcraft_doc`), because a pull request that renames upstream's core
-crate would not merge. To move a patch from one to the other, rewrite the names in the patch:
-
-```sh
-# cad-native -> PR line
-git diff A..B | sed 's#crates/model#crates/doc#g; s#cadcraft-model#cadcraft-doc#g; s#cadcraft_model#cadcraft_doc#g' | git apply
-# PR line -> cad-native
-git diff A..B | sed 's#crates/doc#crates/model#g; s#cadcraft-doc#cadcraft-model#g; s#cadcraft_doc#cadcraft_model#g' | git apply
-```
-
-| Date | Change |
-|---|---|
-| 2026-10-23 | The crate is `cadcraft-model` (was `cadcraft-doc`) on `cad-native`; this file was `docs/cad-model.md`. Authors: WithShalom. |
+- 2026-10-23: this file is `docs/cadcraft-doc.md` (was `docs/cad-model.md`). The model is upstream's
+  `cadcraft-doc` crate, extended here; it keeps upstream's name on every branch.

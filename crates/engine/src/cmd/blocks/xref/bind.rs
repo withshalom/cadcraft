@@ -9,7 +9,7 @@ use std::cell::RefCell;
 use std::collections::{BTreeSet, HashMap};
 use std::sync::Arc;
 
-use cadcraft_model::{Drawing, EntityStore, MAX_BLOCK_DEPTH, XrefStatus};
+use cadcraft_doc::{Drawing, EntityStore, MAX_BLOCK_DEPTH, XrefStatus};
 
 use super::load::{Sym, has_prefix, rename_refs};
 
@@ -62,7 +62,7 @@ fn rename_symbol(d: &mut Drawing, sym: Sym, old: &str, new: &str) {
                 $v.retain(|t| !t.name.eq_ignore_ascii_case(old));
             } else if let Some(t) = $v.iter_mut().find(|t| t.name.eq_ignore_ascii_case(old)) {
                 t.name = new.to_string();
-                cadcraft_model::KeepsHandle::forget_handle(t);
+                cadcraft_doc::KeepsHandle::forget_handle(t);
             }
         }};
     }
@@ -78,7 +78,7 @@ fn rename_symbol(d: &mut Drawing, sym: Sym, old: &str, new: &str) {
                 && !merge
             {
                 let mut b = (*b).clone();
-                cadcraft_model::KeepsHandle::forget_handle(&mut b);
+                cadcraft_doc::KeepsHandle::forget_handle(&mut b);
                 b.name = new.to_string();
                 b.anonymous = new.starts_with('*');
                 d.blocks.insert(new.to_string(), Arc::new(b));
@@ -183,19 +183,19 @@ fn xbind_in(d: &mut Drawing, sym: Sym, name: &str, depth: usize) -> Result<Strin
                 l.linetype = xbind_in(d, Sym::Linetype, &l.linetype, depth + 1)?;
             }
             l.name = new.clone();
-            l.handle = cadcraft_model::KeptHandle::default();
+            l.handle = cadcraft_doc::KeptHandle::default();
             d.layers.push(l);
         }
         Sym::Linetype => {
             let Some(mut t) = d.linetype(name).cloned() else { return Err(format!("no linetype \"{name}\"")) };
             t.name = new.clone();
-            t.handle = cadcraft_model::KeptHandle::default();
+            t.handle = cadcraft_doc::KeptHandle::default();
             d.linetypes.push(t);
         }
         Sym::Style => {
             let Some(mut t) = d.text_style(name).cloned() else { return Err(format!("no text style \"{name}\"")) };
             t.name = new.clone();
-            t.handle = cadcraft_model::KeptHandle::default();
+            t.handle = cadcraft_doc::KeptHandle::default();
             d.text_styles.push(t);
         }
         Sym::DimStyle => {
@@ -204,7 +204,7 @@ fn xbind_in(d: &mut Drawing, sym: Sym, name: &str, depth: usize) -> Result<Strin
                 t.text_style = xbind_in(d, Sym::Style, &t.text_style, depth + 1)?;
             }
             t.name = new.clone();
-            t.handle = cadcraft_model::KeptHandle::default();
+            t.handle = cadcraft_doc::KeptHandle::default();
             d.dim_styles.push(t);
         }
         Sym::Block => {
@@ -226,7 +226,7 @@ fn xbind_in(d: &mut Drawing, sym: Sym, name: &str, depth: usize) -> Result<Strin
                 map.insert((s, n.to_ascii_uppercase()), to);
             }
             let get = |s: Sym, n: &str| map.get(&(s, n.to_ascii_uppercase())).cloned();
-            let mut nb = cadcraft_model::Block::new(&new);
+            let mut nb = cadcraft_doc::Block::new(&new);
             nb.base = b.base;
             nb.description = b.description.clone();
             nb.explodable = b.explodable;

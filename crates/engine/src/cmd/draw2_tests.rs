@@ -1,5 +1,5 @@
+use cadcraft_doc::EntityKind;
 use cadcraft_geom::{Arc, Vec2};
-use cadcraft_model::EntityKind;
 use serde_json::json;
 
 use crate::{Input, Session};
@@ -294,7 +294,7 @@ fn divide_and_measure_json() {
     s.execute("block", &json!({"name": "TICK", "base": [0, 0], "handles": [tick], "keep": "delete"})).unwrap();
     let arc = h(&s.execute("arc", &json!({"center": [0, 20], "radius": 2, "start": 0, "end": 180})).unwrap());
     let r = s.execute("divide", &json!({"handle": arc, "segments": 2, "block": "TICK"})).unwrap();
-    let ins = s.doc().unwrap().entity(cadcraft_model::Handle::parse_hex(r["handles"][0].as_str().unwrap()).unwrap()).unwrap().kind.clone();
+    let ins = s.doc().unwrap().entity(cadcraft_doc::Handle::parse_hex(r["handles"][0].as_str().unwrap()).unwrap()).unwrap().kind.clone();
     assert!(matches!(ins, EntityKind::Insert(i) if near(i.insert.xy(), 0.0, 22.0) && (i.rotation - std::f64::consts::PI).abs() < 1e-6));
     assert!(s.execute("divide", &json!({"handle": l, "segments": 3, "block": "NOPE"})).is_err());
     assert!(s.execute("divide", &json!({"handle": l, "segments": 1})).is_err());

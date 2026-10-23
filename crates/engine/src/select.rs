@@ -1,7 +1,7 @@
 //! Hit testing and window/crossing selection.
 
+use cadcraft_doc::{Drawing, Entity, EntityKind, Handle, Prim, Space, entity_bounds};
 use cadcraft_geom::{Bounds2, Line, Vec2, point_in_polygon};
-use cadcraft_model::{Drawing, Entity, EntityKind, Handle, Prim, Space, entity_bounds};
 
 use crate::spatial::{self, SpatialIndex};
 use crate::{Accept, Prompt};
@@ -464,8 +464,8 @@ impl SelectMode {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use cadcraft_doc::{Common, RayLine};
     use cadcraft_geom::Vec3;
-    use cadcraft_model::{Common, RayLine};
 
     fn fence_hits(kind: EntityKind, fence: [(f64, f64); 2]) -> usize {
         let mut d = Drawing::new_metric();
@@ -497,7 +497,7 @@ mod solid_interior_tests {
         let b = Vec2::new(10.0, 0.0).to3(0.0);
         let c = Vec2::new(0.0, 10.0).to3(0.0);
         let d = if triangular { c } else { Vec2::new(10.0, 10.0).to3(0.0) };
-        let solid = cadcraft_model::Solid { corners: [a, b, c, d] };
+        let solid = cadcraft_doc::Solid { corners: [a, b, c, d] };
         Entity::new(Handle(256), if kind { EntityKind::Solid(solid) } else { EntityKind::Trace(solid) })
     }
 
@@ -542,8 +542,8 @@ mod solid_interior_tests {
 #[cfg(test)]
 mod hatch_pattern_pick_tests {
     use super::*;
+    use cadcraft_doc::{Common, Hatch, HatchLoop};
     use cadcraft_geom::PolyVertex;
-    use cadcraft_model::{Common, Hatch, HatchLoop};
 
     fn square(lo: f64, hi: f64, outer: bool) -> HatchLoop {
         let vertices = [(lo, lo), (hi, lo), (hi, hi), (lo, hi)].iter().map(|&(x, y)| PolyVertex::new(Vec2::new(x, y))).collect();

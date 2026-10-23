@@ -3,11 +3,11 @@
 //! The curve mathematics (knot insertion, joining, tangent extensions, arc length) lives in
 //! `cadcraft_geom::Spline` / `cadcraft_geom::Ellipse`; this module applies it to entities.
 
+use cadcraft_doc::{Entity, EntityKind, Handle};
 use cadcraft_geom::{
     Arc, Circle, CornerFit, Ellipse, Line, Polyline, Segment, Spline, TAU, TanCurve, Vec2, angle_in_sweep, ccw_sweep, intersect_ext, norm_angle,
     tangent_circles,
 };
-use cadcraft_model::{Entity, EntityKind, Handle};
 
 use super::{LenMode, curves, ellipse_kind, ellipse_of, other, set_kind};
 use crate::{Result, Session};
@@ -65,7 +65,7 @@ fn too_short() -> crate::EngineError {
 }
 
 /// LENGTHEN an elliptical arc along its ellipse at the end nearest `pick`.
-pub(super) fn lengthen_ellipse(e: &cadcraft_model::Ellipse, pick: Option<Vec2>, mode: LenMode) -> Result<EntityKind> {
+pub(super) fn lengthen_ellipse(e: &cadcraft_doc::Ellipse, pick: Option<Vec2>, mode: LenMode) -> Result<EntityKind> {
     let g = ellipse_of(e);
     if g.is_full() {
         return Err(other("Cannot lengthen a closed ellipse."));
@@ -320,7 +320,7 @@ pub(crate) fn join_curves(s: &mut Session, hs: &[Handle]) -> Result<Option<Handl
 /// ellipse); `None` for anything else.
 pub(crate) fn closed_kind(k: &EntityKind) -> Option<EntityKind> {
     match k {
-        EntityKind::Arc(a) => Some(EntityKind::Circle(cadcraft_model::Circle { center: a.center, radius: a.radius })),
+        EntityKind::Arc(a) => Some(EntityKind::Circle(cadcraft_doc::Circle { center: a.center, radius: a.radius })),
         EntityKind::Ellipse(e) if !ellipse_of(e).is_full() => Some(ellipse_kind(&Ellipse { start: 0.0, end: TAU, ..ellipse_of(e) })),
         _ => None,
     }

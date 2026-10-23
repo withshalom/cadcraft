@@ -1,8 +1,8 @@
 //! Wipeouts hide what is drawn before them and show their frame per WIPEOUTFRAME (issue #291).
 
 use cadcraft_color::Rgb;
+use cadcraft_doc::{Common, Drawing, EntityKind, Line, Space, Wipeout};
 use cadcraft_geom::{Vec2, Vec3};
-use cadcraft_model::{Common, Drawing, EntityKind, Line, Space, Wipeout};
 use cadcraft_render::raster::{RasterOptions, View, render};
 use cadcraft_render::{DisplayList, Kind, Options, build, build_plot};
 

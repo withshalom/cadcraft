@@ -134,8 +134,8 @@ pub(crate) fn run_isocircle(s: &mut Session, p: &Value) -> Result<Value> {
     Ok(json!({ "handle": h.hex(), "plane": plane.name() }))
 }
 
-pub(crate) fn ellipse_entity(e: &Ellipse) -> cadcraft_model::EntityKind {
-    cadcraft_model::EntityKind::Ellipse(cadcraft_model::Ellipse {
+pub(crate) fn ellipse_entity(e: &Ellipse) -> cadcraft_doc::EntityKind {
+    cadcraft_doc::EntityKind::Ellipse(cadcraft_doc::Ellipse {
         center: e.center.to3(0.0),
         major: e.major.to3(0.0),
         ratio: e.ratio,

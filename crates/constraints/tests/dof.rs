@@ -3,11 +3,11 @@
 use std::sync::Arc;
 
 use cadcraft_constraints::{DofStatus, SolveError, SolveOptions, add, all_satisfied, dof, solve};
-use cadcraft_geom::{Spline as GSpline, Vec2, Vec3};
-use cadcraft_model::{
+use cadcraft_doc::{
     Arc as DArc, Block, Circle as DCircle, Common, Constraint, ConstraintKind as K, DistAxis, Drawing, Ellipse as DEllipse, Entity, EntityKind,
     GeomRef, Handle, Insert, Line as DLine, Point as DPoint, Space, Sub,
 };
+use cadcraft_geom::{Spline as GSpline, Vec2, Vec3};
 
 fn v(x: f64, y: f64) -> Vec3 {
     Vec3::new(x, y, 0.0)

@@ -13,8 +13,8 @@
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
 
+use cadcraft_doc::Drawing;
 use cadcraft_io::Version;
-use cadcraft_model::Drawing;
 
 /// CADCraft's view of a drawing: entities by space and type, layers, blocks.
 fn cadcraft_counts(d: &Drawing) -> BTreeMap<String, usize> {

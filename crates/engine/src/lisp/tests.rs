@@ -320,7 +320,7 @@ fn command_draws_and_one_routine_is_one_undo_step() {
     // An expression at a command's prompt answers it.
     s.cmdline("CIRCLE 0,0 (* 2 dist)").unwrap();
     let r = s.doc().unwrap().model.iter().find_map(|e| match &e.kind {
-        cadcraft_model::EntityKind::Circle(c) if c.center.x == 0.0 && c.center.y == 0.0 => Some(c.radius),
+        cadcraft_doc::EntityKind::Circle(c) if c.center.x == 0.0 && c.center.y == 0.0 => Some(c.radius),
         _ => None,
     });
     assert_eq!(r, Some(15.0));
@@ -369,7 +369,7 @@ fn entity_lists_hold_angles_in_radians() {
     // entmod takes radians.
     ok(&mut s, "(setq d (entget (entlast))) (entmod (subst (cons 51 pi) (assoc 51 d) d))");
     let end = s.doc().unwrap().model.iter().find_map(|e| match &e.kind {
-        cadcraft_model::EntityKind::Arc(a) => Some(a.end),
+        cadcraft_doc::EntityKind::Arc(a) => Some(a.end),
         _ => None,
     });
     assert!(end.is_some_and(|a| (a - std::f64::consts::PI).abs() < 1e-9), "{end:?}");
@@ -377,7 +377,7 @@ fn entity_lists_hold_angles_in_radians() {
     // TEXT rotation (50) and oblique angle (51), through entmake.
     ok(&mut s, "(entmake (list '(0 . \"TEXT\") '(10 0.0 0.0 0.0) '(40 . 2.5) '(1 . \"abc\") (cons 50 (/ pi 6)) '(51 . 0.25)))");
     let text = s.doc().unwrap().model.iter().find_map(|e| match &e.kind {
-        cadcraft_model::EntityKind::Text(t) => Some((t.rotation, t.oblique)),
+        cadcraft_doc::EntityKind::Text(t) => Some((t.rotation, t.oblique)),
         _ => None,
     });
     assert!(text.is_some_and(|(r, o)| (r - std::f64::consts::FRAC_PI_6).abs() < 1e-9 && (o - 0.25).abs() < 1e-9), "{text:?}");
@@ -396,7 +396,7 @@ fn entity_lists_hold_angles_in_radians() {
         "(entmake (list '(0 . \"MTEXT\") '(10 0.0 0.0 0.0) '(40 . 2.5) '(41 . 10.0) '(1 . \"abc\") (cons 50 (/ pi 3)) '(75 . 2) '(76 . 2) '(79 . 0) '(48 . 10.0) '(49 . 1.0) '(50 . 30.0) '(50 . 20.0)))",
     );
     let mtext = s.doc().unwrap().model.iter().find_map(|e| match &e.kind {
-        cadcraft_model::EntityKind::MText(t) => Some((t.rotation, t.columns.as_ref().map(|c| c.heights.clone()))),
+        cadcraft_doc::EntityKind::MText(t) => Some((t.rotation, t.columns.as_ref().map(|c| c.heights.clone()))),
         _ => None,
     });
     assert!(
@@ -459,9 +459,7 @@ fn interactive_routine_waits_for_the_user() {
     assert_eq!(s.prompt_text(), "Where: ");
     s.input(crate::Input::Point(cadcraft_geom::Vec2::new(3.0, 4.0))).unwrap();
     assert!(!s.lisp_running());
-    assert!(
-        s.doc().unwrap().model.iter().any(|e| matches!(&e.kind, cadcraft_model::EntityKind::Circle(c) if c.center.x == 3.0 && c.center.y == 4.0))
-    );
+    assert!(s.doc().unwrap().model.iter().any(|e| matches!(&e.kind, cadcraft_doc::EntityKind::Circle(c) if c.center.x == 3.0 && c.center.y == 4.0)));
     // Typed answers and keywords.
     s.cmdline("(progn (initget 1 \"Yes No\") (setq ans (getkword \"\\nSure? [Yes/No]: \")))").unwrap();
     s.cmdline("n").unwrap();
@@ -478,7 +476,7 @@ fn interactive_routine_waits_for_the_user() {
     assert!(s.lisp_running());
     s.input(crate::Input::Point(cadcraft_geom::Vec2::new(50.0, 50.0))).unwrap();
     assert!(!s.lisp_running());
-    assert!(s.doc().unwrap().model.iter().any(|e| matches!(&e.kind, cadcraft_model::EntityKind::Circle(c) if c.center.x == 50.0 && c.radius == 2.0)));
+    assert!(s.doc().unwrap().model.iter().any(|e| matches!(&e.kind, cadcraft_doc::EntityKind::Circle(c) if c.center.x == 50.0 && c.radius == 2.0)));
 }
 
 #[test]
@@ -656,7 +654,7 @@ fn startup_files_load_from_the_support_folder() {
 
     // A drawing opened from a folder with its own acaddoc.lsp: only the support folder's runs.
     let path = drawings.join("plan.dxf").to_string_lossy().into_owned();
-    s.open_drawing(cadcraft_model::Drawing::new_metric(), "plan.dxf", Some(path));
+    s.open_drawing(cadcraft_doc::Drawing::new_metric(), "plan.dxf", Some(path));
     s.lisp_tick();
     assert_eq!(v(&s, "DOCVAR"), "1");
     assert!(s.lisp_var("EVIL").is_nil());

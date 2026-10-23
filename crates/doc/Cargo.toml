@@ -1,8 +1,7 @@
 [package]
-name = "cadcraft-model"
+name = "cadcraft-doc"
 description = "CADCraft drawing database: entities, symbol tables, blocks, layouts, copy-on-write store"
 version.workspace = true
-authors = ["WithShalom <design@withshalom.com>"]
 edition.workspace = true
 license.workspace = true
 

@@ -4,7 +4,7 @@
 //! writes it back (and the DWG bridge reads it), without the records of deleted entities.
 #![cfg(not(target_arch = "wasm32"))]
 
-use cadcraft_model::EntityKind;
+use cadcraft_doc::EntityKind;
 
 /// Stand-in modeler data, carried as opaque bytes: the binary ACIS magic, some bytes, and the
 /// end-of-data marker DWG readers delimit each body with.

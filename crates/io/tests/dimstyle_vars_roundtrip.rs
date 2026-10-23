@@ -3,9 +3,9 @@
 //! angle survive DXF: in DIMSTYLE records (group codes of the DXF Reference) and as per-dimension
 //! `ACAD` DSTYLE overrides. Linetypes are LTYPE handles; DIMJOGANG is in radians in the file.
 
+use cadcraft_doc::{Common, DimKind, DimStyle, Dimension, Drawing, EntityKind, Linetype, Space};
 use cadcraft_geom::Vec3;
 use cadcraft_io::{read_dxf, write_dxf};
-use cadcraft_model::{Common, DimKind, DimStyle, Dimension, Drawing, EntityKind, Linetype, Space};
 
 fn styled() -> DimStyle {
     DimStyle {

@@ -2,7 +2,7 @@
 //! (`property operator value`), and `qselect.info` for the Quick Select dialog.
 
 use cadcraft_color::Color;
-use cadcraft_model::{Drawing, Entity, Handle};
+use cadcraft_doc::{Drawing, Entity, Handle};
 use serde_json::{Value, json};
 
 use super::*;

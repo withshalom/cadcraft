@@ -14,8 +14,8 @@
 //! and pure functions over the drawing, so scripts and tests drive it without the UI
 //! ([`crate::Session::snap_cursor`]).
 
+use cadcraft_doc::{Drawing, Prim, Space};
 use cadcraft_geom::{Ellipse, Line, PI, Segment, TAU, Vec2, angle_in_sweep, intersect_ext, norm_angle};
-use cadcraft_model::{Drawing, Prim, Space};
 use serde::Serialize;
 
 use super::{SnapHit, mode};

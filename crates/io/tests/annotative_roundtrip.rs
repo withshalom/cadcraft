@@ -4,9 +4,9 @@
 
 use std::sync::Arc;
 
+use cadcraft_doc::{AnnoScale, Block, Common, Drawing, EntityKind, Insert, MLeaderStyle, Space, Text};
 use cadcraft_geom::Vec3;
 use cadcraft_io::{read_dxf, write_dxf};
-use cadcraft_model::{AnnoScale, Block, Common, Drawing, EntityKind, Insert, MLeaderStyle, Space, Text};
 
 fn text(value: &str) -> EntityKind {
     EntityKind::Text(Text {
@@ -33,7 +33,7 @@ fn drawing() -> Drawing {
     d.add(&Space::Model, Common::default(), text("PLAIN")).unwrap();
     let mut b = Block::new("TAG");
     b.annotative = true;
-    b.entities.push(cadcraft_model::Entity::new(cadcraft_model::Handle(0x9000), text("T")));
+    b.entities.push(cadcraft_doc::Entity::new(cadcraft_doc::Handle(0x9000), text("T")));
     d.blocks.insert("TAG".into(), Arc::new(b));
     let ins = Insert {
         block: "TAG".into(),
@@ -81,8 +81,8 @@ fn plain_drawings_write_no_annotation_record_and_keep_their_default_list() {
     let text = write_dxf(&d);
     assert!(!text.contains("CADCRAFT_ANNOTATION"));
     let r = read_dxf(text.as_bytes()).unwrap();
-    assert_eq!(r.scales, cadcraft_model::metric_scales());
-    assert_eq!(read_dxf(write_dxf(&Drawing::new_imperial()).as_bytes()).unwrap().scales, cadcraft_model::imperial_scales());
+    assert_eq!(r.scales, cadcraft_doc::metric_scales());
+    assert_eq!(read_dxf(write_dxf(&Drawing::new_imperial()).as_bytes()).unwrap().scales, cadcraft_doc::imperial_scales());
 }
 
 #[test]

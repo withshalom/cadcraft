@@ -336,7 +336,7 @@ pub fn show(app: &mut crate::CadApp, ui: &mut egui::Ui) {
     style.border = egui::Stroke::new(1.0, t.border);
     style.accent = t.accent;
     style.font = crate::theme::body();
-    let output = DockArea::new(egui::Id::new("cadcraft-modelking")).show_with_limits(
+    let output = DockArea::new(egui::Id::new("cadcraft-docking")).show_with_limits(
         ui,
         &workspace.layout,
         &style,
@@ -372,7 +372,7 @@ pub fn show(app: &mut crate::CadApp, ui: &mut egui::Ui) {
     let _ = sync(&mut workspace, app);
     let stale = workspace.layout != rendered.layout || workspace.hidden != rendered.hidden;
     if stale {
-        craft_ui::docking::cancel_drag::<Panel>(ui.ctx(), egui::Id::new("cadcraft-modelking"));
+        craft_ui::docking::cancel_drag::<Panel>(ui.ctx(), egui::Id::new("cadcraft-docking"));
     }
     publish_visibility(app, &workspace);
     app.ui.docking = workspace;

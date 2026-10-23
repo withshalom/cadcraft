@@ -1,7 +1,7 @@
 //! An explicit numeric `scale` on a non-fitted layout plot scales the geometry (issue #490).
 
+use cadcraft_doc::{Common, Drawing, EntityKind, Line, Space};
 use cadcraft_geom::Vec3;
-use cadcraft_model::{Common, Drawing, EntityKind, Line, Space};
 use serde_json::{Value, json};
 
 /// Plotted length in millimetres of the one 90-unit line in Layout1.

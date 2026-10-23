@@ -1,9 +1,9 @@
 //! TOLERANCE entities (feature control frames, DXF Reference group codes 3, 10, 1, 11) are read,
 //! drawn, written and read back; hostile frame strings never panic.
 
+use cadcraft_doc::*;
 use cadcraft_geom::Vec3;
 use cadcraft_io::{read_dxf, write_dxf};
-use cadcraft_model::*;
 
 const FRAME: &str = "{\\Fgdt;j}%%v{\\Fgdt;n}0.1{\\Fgdt;m}%%vA%%vB{\\Fgdt;l}%%vC^J{\\Fgdt;j}%%v0.05%%vA";
 

@@ -15,8 +15,8 @@
 
 use std::sync::Arc;
 
+use cadcraft_doc::{Drawing, EntityKind, Handle, Hatch, HatchLoop, entity_bounds};
 use cadcraft_geom::{Bounds2, PolyVertex, Polyline, Vec2, region, shoelace};
-use cadcraft_model::{Drawing, EntityKind, Handle, Hatch, HatchLoop, entity_bounds};
 
 use super::{closed_loop, gap_tolerance, object_polys};
 

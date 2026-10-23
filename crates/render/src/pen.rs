@@ -14,8 +14,8 @@
 //! the paper origin. Layouts apply them while building (paper units are known); a model-space
 //! plot applies them once its plot scale is known.
 
+use cadcraft_doc::{EndStyle, FillStyle, JoinStyle};
 use cadcraft_geom::Vec2;
-use cadcraft_model::{EndStyle, FillStyle, JoinStyle};
 
 use crate::{DisplayList, Kind};
 
@@ -30,7 +30,7 @@ pub struct Pen {
 
 impl Pen {
     /// Pen of a plot style.
-    pub fn of(s: &cadcraft_model::PlotStyle) -> Pen {
+    pub fn of(s: &cadcraft_doc::PlotStyle) -> Pen {
         Pen { end: s.end, join: s.join, fill: s.fill }
     }
     /// Whether [`apply`] has nothing to do for this pen.

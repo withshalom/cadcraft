@@ -16,9 +16,9 @@ use std::borrow::Cow;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::sync::Arc;
 
+use cadcraft_doc::foreign::{Foreign, ForeignExtra, ForeignKey, ForeignObject};
+use cadcraft_doc::{Drawing, Entity, EntityKind, Handle, RawTag, Unknown};
 use cadcraft_dxf::{Section, Tag};
-use cadcraft_model::foreign::{Foreign, ForeignExtra, ForeignKey, ForeignObject};
-use cadcraft_model::{Drawing, Entity, EntityKind, Handle, RawTag, Unknown};
 
 /// Named object dictionary entries CADCraft writes itself from its model (plus every key that
 /// starts with `CADCRAFT`): they are read into the model, not kept raw. A change that starts
@@ -306,7 +306,7 @@ fn put_xdata(d: &mut Drawing, mut xdata: HashMap<Handle, Vec<RawTag>>) {
     if xdata.is_empty() {
         return;
     }
-    let mut give = |store: &mut cadcraft_model::EntityStore| {
+    let mut give = |store: &mut cadcraft_doc::EntityStore| {
         let hs: Vec<Handle> = store.iter().map(|e| e.handle).filter(|h| xdata.contains_key(h)).collect();
         for h in hs {
             if let Some(xd) = xdata.remove(&h) {
@@ -410,7 +410,7 @@ pub(crate) fn read(secs: &[Section], d: &mut Drawing) {
         }
     }
     let mut f = Foreign::default();
-    // The handle of every role (docs/cadcraft-model.md, S1); the lowest when two records share one.
+    // The handle of every role (docs/cadcraft-doc.md, S1); the lowest when two records share one.
     for (h, k) in &ids {
         if let Some(hh) = handle(h)
             && f.handles.len() < MAX_OBJECTS
@@ -787,7 +787,7 @@ fn extra_for<'a>(
     }
 }
 
-/// Entities' own xdata ([`cadcraft_model::Common::xdata`]), by handle.
+/// Entities' own xdata ([`cadcraft_doc::Common::xdata`]), by handle.
 type XdataOf<'a> = HashMap<Handle, &'a [RawTag]>;
 
 /// The extras of entity `h`: what the drawing keeps for it, with the entity's own xdata.
@@ -894,7 +894,7 @@ pub(crate) fn finish(tags: &mut Vec<Tag>, d: &Drawing) {
             alive_memo.insert(p, verdict);
         }
     }
-    // Written kept objects keep their own handles (docs/cadcraft-model.md, S1); one already taken in
+    // Written kept objects keep their own handles (docs/cadcraft-doc.md, S1); one already taken in
     // the written file gets a new handle, above every written handle and the seed.
     let mut next = seed(tags).max(max_handle(tags).saturating_add(1));
     let mut alive: HashMap<String, String> = HashMap::new();
@@ -975,11 +975,11 @@ fn plan_unknown(d: &Drawing, recs: &[Rec], tags: &[Tag], roles: &HashMap<Foreign
         recs.iter().skip(i).find(|r| r.kind == "ENDBLK").map(|r| r.start)
     };
     let br = |name: &str| roles.get(&("BLOCK_RECORD".to_string(), up(name))).cloned();
-    let first_at = |s: &cadcraft_model::EntityStore| s.iter().find_map(|e| at.get(&e.handle.hex()).copied());
-    let mut layouts: Vec<&cadcraft_model::Layout> = d.layouts.iter().collect();
+    let first_at = |s: &cadcraft_doc::EntityStore| s.iter().find_map(|e| at.get(&e.handle.hex()).copied());
+    let mut layouts: Vec<&cadcraft_doc::Layout> = d.layouts.iter().collect();
     layouts.sort_by_key(|l| l.tab_order);
     // (entities, owner, paper space, end of the space, section)
-    let mut stores: Vec<(&cadcraft_model::EntityStore, Option<String>, bool, Option<usize>, &str)> = Vec::new();
+    let mut stores: Vec<(&cadcraft_doc::EntityStore, Option<String>, bool, Option<usize>, &str)> = Vec::new();
     let model_end = layouts.first().and_then(|l| first_at(&l.entities)).or(ents_end);
     stores.push((&d.model, br("*Model_Space"), false, model_end, "ENTITIES"));
     for (i, l) in layouts.iter().enumerate() {
@@ -1169,7 +1169,7 @@ fn add_appids(out: &mut Vec<Tag>, f: &Foreign) {
     if missing.is_empty() {
         return;
     }
-    // Each its handle in the file when that is free (docs/cadcraft-model.md, S1), else a new one above
+    // Each its handle in the file when that is free (docs/cadcraft-doc.md, S1), else a new one above
     // the seed, which is then moved past them.
     let mut taken: HashSet<String> = out.iter().filter(|t| matches!(t.code, 5 | 105)).map(|t| norm(&t.str())).collect();
     let mut next = seed(out).max(max_handle(out).saturating_add(1));

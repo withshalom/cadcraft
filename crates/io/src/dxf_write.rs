@@ -6,9 +6,9 @@
 use std::collections::{HashMap, HashSet};
 
 use cadcraft_color::Color;
+use cadcraft_doc::*;
 use cadcraft_dxf::{Tag, Version};
 use cadcraft_geom::{Bounds2, Vec2, Vec3};
-use cadcraft_model::*;
 
 use crate::dxf_ext::{self, DimVal, K};
 
@@ -24,10 +24,10 @@ struct W {
     reactors: HashMap<Handle, Vec<String>>,
     /// Handles already given in the file being written (entities' own, and every one handed out).
     used: HashSet<u64>,
-    /// Handles kept from the file the drawing was read from (docs/cadcraft-model.md, S1): new handles
+    /// Handles kept from the file the drawing was read from (docs/cadcraft-doc.md, S1): new handles
     /// skip them, so each goes back to the object that had it.
     reserved: HashSet<u64>,
-    /// Role → the handle it had when read ([`cadcraft_model::foreign::Foreign::handles`]).
+    /// Role → the handle it had when read ([`cadcraft_doc::foreign::Foreign::handles`]).
     roles: HashMap<(String, String), Handle>,
 }
 
@@ -344,7 +344,7 @@ fn dim_header_vars(w: &mut W, d: &Drawing) {
     let Some(style) = d.dim_styles.iter().find(|s| s.name.eq_ignore_ascii_case(&name)) else { return };
     let v = serde_json::to_value(style).unwrap_or_default();
     let none = |_: &str| None;
-    for (var, field) in cadcraft_model::DIMVARS {
+    for (var, field) in cadcraft_doc::DIMVARS {
         if *var == "DIMSCALE" {
             continue;
         }
@@ -424,7 +424,7 @@ fn header_vars(w: &mut W, d: &Drawing) {
 
 /// Header variables the writer doesn't write by name ([`HEADER_VARS`], the current dimension
 /// style's, the version, code page, extents and handle seed): every other variable read from a
-/// file, with the group code it was read with ([`cadcraft_model::Header::codes`]), in name order.
+/// file, with the group code it was read with ([`cadcraft_doc::Header::codes`]), in name order.
 /// A variable that points at another object by handle is written while that object keeps the
 /// handle it was read with.
 fn kept_header_vars(w: &mut W, d: &Drawing, start: usize) {
@@ -445,12 +445,12 @@ fn kept_header_vars(w: &mut W, d: &Drawing, start: usize) {
             }
         }
         match (code, v) {
-            (cadcraft_model::POINT_2D, HVal::Point(p)) => {
+            (cadcraft_doc::POINT_2D, HVal::Point(p)) => {
                 w.s(9, format!("${name}"));
                 w.f(10, p.x);
                 w.f(20, p.y);
             }
-            (cadcraft_model::POINT_3D, HVal::Point(p)) => {
+            (cadcraft_doc::POINT_3D, HVal::Point(p)) => {
                 w.s(9, format!("${name}"));
                 w.p(10, *p);
             }
@@ -1251,7 +1251,7 @@ fn entity(w: &mut W, d: &Drawing, e: &Entity, owner: &str, paper: bool, cx: &Ctx
                 w.i(77, 0);
                 // The lines read from the file, else the library's pattern of that name.
                 let lines = if h.pattern_lines.is_empty() {
-                    cadcraft_model::library::pattern_for(d, &h.pattern).map(|p| p.lines).unwrap_or_default()
+                    cadcraft_doc::library::pattern_for(d, &h.pattern).map(|p| p.lines).unwrap_or_default()
                 } else {
                     h.pattern_lines.clone()
                 };
@@ -2147,11 +2147,10 @@ fn tags_for(d: &Drawing, version: Version, target: Version) -> Vec<Tag> {
     }
     // The annotation scale list: the ACAD_SCALELIST dictionary of SCALE objects.
     let scale_dict = w.keep(Handle(0), ("NOD", "ACAD_SCALELIST"));
-    let scales: Vec<(&cadcraft_model::AnnoScale, String)> =
-        d.scales.iter().filter(|s| s.is_valid()).map(|s| (s, w.keep(s.handle, ("", "")))).collect();
+    let scales: Vec<(&cadcraft_doc::AnnoScale, String)> = d.scales.iter().filter(|s| s.is_valid()).map(|s| (s, w.keep(s.handle, ("", "")))).collect();
     // Plot style names used by layers and objects (Normal always), each a placeholder object.
     let pstyle_dict = w.keep(Handle(0), ("NOD", "ACAD_PLOTSTYLENAME"));
-    let mut pstyle_names: Vec<String> = vec![cadcraft_model::NORMAL_STYLE.to_string()];
+    let mut pstyle_names: Vec<String> = vec![cadcraft_doc::NORMAL_STYLE.to_string()];
     let named = d.layers.iter().map(|l| l.plot_style.as_str()).chain(every.iter().map(|e| e.common.plot_style.as_str()));
     for n in named {
         let n = n.trim();
@@ -2303,7 +2302,7 @@ fn tags_for(d: &Drawing, version: Version, target: Version) -> Vec<Tag> {
             w.i(290, 0);
         }
         w.i(370, i64::from(l.lineweight.to_dxf()));
-        let normal = w.pstyles.get(&cadcraft_model::NORMAL_STYLE.to_ascii_uppercase()).cloned();
+        let normal = w.pstyles.get(&cadcraft_doc::NORMAL_STYLE.to_ascii_uppercase()).cloned();
         if let Some(h) = w.pstyles.get(&l.plot_style.trim().to_ascii_uppercase()).cloned().or(normal) {
             w.s(390, h);
         }
@@ -2542,7 +2541,7 @@ fn tags_for(d: &Drawing, version: Version, target: Version) -> Vec<Tag> {
     w.s(2, "BLOCKS");
     let block = |w: &mut W,
                  name: &str,
-                 kept: (cadcraft_model::KeptHandle, cadcraft_model::KeptHandle),
+                 kept: (cadcraft_doc::KeptHandle, cadcraft_doc::KeptHandle),
                  desc: &str,
                  brh: &str,
                  base: Vec3,
@@ -2581,7 +2580,7 @@ fn tags_for(d: &Drawing, version: Version, target: Version) -> Vec<Tag> {
         w.s(8, "0");
         w.s(100, "AcDbBlockEnd");
     };
-    let none = (cadcraft_model::KeptHandle::default(), cadcraft_model::KeptHandle::default());
+    let none = (cadcraft_doc::KeptHandle::default(), cadcraft_doc::KeptHandle::default());
     block(&mut w, "*Model_Space", none, "", &ms_br, Vec3::ZERO, 0, &mut std::iter::empty(), false);
     for (i, (n, h, l)) in ps_brs.iter().enumerate() {
         let kept = (l.begin_handle, l.end_handle);
@@ -3117,7 +3116,7 @@ fn mleader_style_obj(w: &mut W, s: &MLeaderStyle, h: &str, dict: &str, cx: &Ctx,
 
 /// The ACAD_SCALELIST dictionary and its SCALE objects (DXF Reference, OBJECTS section): name
 /// (300), paper units (140), drawing units (141), unit scale flag (290).
-fn scale_list(w: &mut W, scales: &[(&cadcraft_model::AnnoScale, String)], dict: &str, root: &str) {
+fn scale_list(w: &mut W, scales: &[(&cadcraft_doc::AnnoScale, String)], dict: &str, root: &str) {
     w.s(0, "DICTIONARY");
     w.s(5, dict);
     w.group("ACAD_REACTORS", 330, &[root]);
@@ -3154,7 +3153,7 @@ fn scale_list(w: &mut W, scales: &[(&cadcraft_model::AnnoScale, String)], dict: 
         w.s(300, dxf_ext::xdata_str(&s.name));
         w.f(140, s.paper_units);
         w.f(141, s.drawing_units);
-        w.i(290, i64::from(s.unit_scale.unwrap_or_else(|| cadcraft_model::same_factor(s.factor(), 1.0))));
+        w.i(290, i64::from(s.unit_scale.unwrap_or_else(|| cadcraft_doc::same_factor(s.factor(), 1.0))));
     }
 }
 
@@ -3169,7 +3168,7 @@ fn cadcraft_fonts_name() -> &'static str {
 pub fn entity_groups(d: &Drawing, e: &Entity) -> (String, Vec<Tag>) {
     let mut w = W::scratch(d.handseed.max(0x100).saturating_add(0x1000));
     let cx = Ctx { target: Version::R2018, ..Ctx::default() };
-    let paper = d.space_of(e.handle).is_some_and(|s| !matches!(s, cadcraft_model::Space::Model));
+    let paper = d.space_of(e.handle).is_some_and(|s| !matches!(s, cadcraft_doc::Space::Model));
     entity(&mut w, d, e, "0", paper, &cx);
     let mut tags = w.t.into_iter();
     let kind = tags.next().filter(|t| t.code == 0).map(|t| t.value.as_str()).unwrap_or_default();

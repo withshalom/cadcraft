@@ -3,8 +3,8 @@
 //! variables out; the snap grid's origin and rotation live in the `*ACTIVE` VPORT record.
 #![cfg(not(target_arch = "wasm32"))]
 
+use cadcraft_doc::{Drawing, HVal};
 use cadcraft_geom::Vec3;
-use cadcraft_model::{Drawing, HVal};
 
 fn drawing() -> Drawing {
     let mut d = Drawing::new_metric();

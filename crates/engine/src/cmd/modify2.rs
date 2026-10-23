@@ -2,10 +2,10 @@
 //! FLATTEN, plus the fillet/trim/extend extensions used by modify.rs (arcs, polylines,
 //! ellipses and splines).
 
+use cadcraft_doc::{Common, Entity, EntityKind, Handle, LwPolyline, MAX_BLOCK_DEPTH, Space};
 use cadcraft_geom::{
     Arc, Ellipse, Line, Mat3, PolyVertex, Polyline, Segment, Spline, TAU, Vec2, ccw_sweep, intersect_ext, line_circle, line_line_infinite, norm_angle,
 };
-use cadcraft_model::{Common, Entity, EntityKind, Handle, LwPolyline, MAX_BLOCK_DEPTH, Space};
 use serde_json::{Value, json};
 
 use super::curves::{self, Chain, MAX_GEN, TanObj};
@@ -794,7 +794,7 @@ pub(crate) fn lengthen_kind(k: &EntityKind, pick: Option<Vec2>, mode: LenMode) -
                 return Err(other("The new arc would be zero length or a full circle."));
             }
             let na = if at_end { Arc::new(g.center, g.radius, g.start, g.start + ns) } else { Arc::new(g.center, g.radius, g.end - ns, g.end) };
-            Ok(EntityKind::Arc(cadcraft_model::Arc { radius: na.radius, start: na.start, end: na.end, ..ar.clone() }))
+            Ok(EntityKind::Arc(cadcraft_doc::Arc { radius: na.radius, start: na.start, end: na.end, ..ar.clone() }))
         }
         EntityKind::LwPolyline(p) if !p.closed && p.vertices.len() >= 2 => {
             let total = Polyline { vertices: p.vertices.clone(), closed: false }.len();
@@ -1264,10 +1264,10 @@ impl Interactive for BlendM {
 
 pub(crate) fn reverse_kind(k: &EntityKind) -> Option<EntityKind> {
     Some(match k {
-        EntityKind::Line(l) => EntityKind::Line(cadcraft_model::Line { a: l.b, b: l.a }),
+        EntityKind::Line(l) => EntityKind::Line(cadcraft_doc::Line { a: l.b, b: l.a }),
         EntityKind::LwPolyline(p) => EntityKind::LwPolyline(LwPolyline { vertices: curves::reverse_vertices(&p.vertices, p.closed), ..p.clone() }),
         EntityKind::Polyline3d(p) => {
-            EntityKind::Polyline3d(cadcraft_model::Polyline3d { points: p.points.iter().rev().copied().collect(), closed: p.closed })
+            EntityKind::Polyline3d(cadcraft_doc::Polyline3d { points: p.points.iter().rev().copied().collect(), closed: p.closed })
         }
         EntityKind::Spline(sp) => EntityKind::Spline(curves::reverse_spline(sp)),
         _ => return None,
@@ -1398,7 +1398,7 @@ fn run_flatten(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 /// Model↔paper transform through a viewport: paper = center + (model − viewCenter) / scale.
-fn viewport_of(s: &Session, layout: &str, vp: Option<Handle>) -> Option<cadcraft_model::Viewport> {
+fn viewport_of(s: &Session, layout: &str, vp: Option<Handle>) -> Option<cadcraft_doc::Viewport> {
     let d = s.doc().ok()?;
     if let Some(h) = vp
         && let Some(e) = d.entity(h)
@@ -1543,7 +1543,7 @@ impl Interactive for SelOp {
 // =====================================================================================
 
 /// The leaf objects of a block reference in world coordinates (nested references expanded).
-fn nested_leaves(d: &cadcraft_model::Drawing, ins: &cadcraft_model::Insert, m: &Mat3, depth: usize, out: &mut Vec<(Common, EntityKind)>) {
+fn nested_leaves(d: &cadcraft_doc::Drawing, ins: &cadcraft_doc::Insert, m: &Mat3, depth: usize, out: &mut Vec<(Common, EntityKind)>) {
     if depth >= MAX_BLOCK_DEPTH || out.len() >= MAX_GEN {
         return;
     }
@@ -1872,12 +1872,12 @@ pub(crate) fn fillet_polyline(s: &mut Session, h: Handle, r: f64) -> Result<usiz
 // TRIM / EXTEND for ellipses and splines
 // =====================================================================================
 
-fn ellipse_of(e: &cadcraft_model::Ellipse) -> Ellipse {
+fn ellipse_of(e: &cadcraft_doc::Ellipse) -> Ellipse {
     Ellipse { center: e.center.xy(), major: e.major.xy(), ratio: e.ratio, start: e.start, end: e.end }
 }
 
 fn ellipse_kind(e: &Ellipse) -> EntityKind {
-    EntityKind::Ellipse(cadcraft_model::Ellipse { center: v3(e.center), major: v3(e.major), ratio: e.ratio, start: e.start, end: e.end })
+    EntityKind::Ellipse(cadcraft_doc::Ellipse { center: v3(e.center), major: v3(e.major), ratio: e.ratio, start: e.start, end: e.end })
 }
 
 /// Intersections of a sampled curve `eval(t)` (parameters `ts`) with the cutting segments,

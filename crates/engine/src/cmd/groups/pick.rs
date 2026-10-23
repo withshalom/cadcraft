@@ -4,7 +4,7 @@
 
 use std::collections::{HashMap, HashSet};
 
-use cadcraft_model::Handle;
+use cadcraft_doc::Handle;
 use serde_json::{Value, json};
 
 use super::super::*;

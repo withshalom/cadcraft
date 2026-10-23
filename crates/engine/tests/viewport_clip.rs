@@ -1,9 +1,9 @@
 //! Clipped layout viewports and MVIEW's options (#453): MVIEW Polygonal / Object / ON / OFF /
 //! Lock / Restore / 2 / 3 / 4, VPCLIP, and model space drawn through a clip outline.
 
+use cadcraft_doc::{EntityKind, Handle, Space, Viewport};
 use cadcraft_engine::Session;
 use cadcraft_geom::Vec2;
-use cadcraft_model::{EntityKind, Handle, Space, Viewport};
 use serde_json::{Value, json};
 
 fn layout_viewports(s: &Session) -> Vec<(Handle, Viewport)> {

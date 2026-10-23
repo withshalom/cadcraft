@@ -1,7 +1,7 @@
 //! Wide polylines with a linetype: each dash is a filled piece of the band, gaps are empty.
 
+use cadcraft_doc::{Linetype, LwPolyline};
 use cadcraft_geom::{Polyline, Vec2};
-use cadcraft_model::{Linetype, LwPolyline};
 
 use crate::linetype;
 

@@ -1,11 +1,11 @@
 //! Header variables CADCraft doesn't know by name are written back with the group codes they were
-//! read with, through DXF and through `.cad` (docs/cadcraft-model.md, S2). The fixture is synthetic,
+//! read with, through DXF and through `.cad` (docs/cadcraft-doc.md, S2). The fixture is synthetic,
 //! from the public DXF Reference's HEADER section.
 
+use cadcraft_doc::{HVal, POINT_2D, POINT_3D};
 use cadcraft_dxf::{parse, sections};
 use cadcraft_geom::Vec3;
 use cadcraft_io::{cad_file, read_dxf, write_dxf};
-use cadcraft_model::{HVal, POINT_2D, POINT_3D};
 
 const SRC: &str = "0\nSECTION\n2\nHEADER\n9\n$ACADVER\n1\nAC1032\n\
 9\n$SURFTAB1\n70\n12\n\

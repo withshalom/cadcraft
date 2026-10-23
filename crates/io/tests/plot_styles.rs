@@ -3,9 +3,9 @@
 //! page setup's table and flag survive a DXF round trip.
 
 use cadcraft_color::Color;
+use cadcraft_doc::{Common, Drawing, EntityKind, Line, Space};
 use cadcraft_geom::Vec3;
 use cadcraft_io::{read_dxf, svg, write_dxf};
-use cadcraft_model::{Common, Drawing, EntityKind, Line, Space};
 use serde_json::json;
 
 fn layout_with_red_line() -> Drawing {
@@ -63,7 +63,7 @@ fn page_setup_table_and_display_flag_round_trip() {
 
 #[test]
 fn named_plot_styles_round_trip_through_the_plot_style_dictionary() {
-    use cadcraft_model::{Layer, PlotStyle, PlotStyleTable};
+    use cadcraft_doc::{Layer, PlotStyle, PlotStyleTable};
     let mut d = layout_with_red_line();
     d.layers.push(Layer { plot_style: "Black".into(), ..Layer::new("Walls") });
     let line = |y: f64| EntityKind::Line(Line { a: Vec3::new(0.0, y, 0.0), b: Vec3::new(1.0, y, 0.0) });
@@ -88,7 +88,7 @@ fn named_plot_styles_round_trip_through_the_plot_style_dictionary() {
 
 #[test]
 fn pdf_applies_a_named_table_from_the_drawing() {
-    use cadcraft_model::{PlotStyle, PlotStyleTable};
+    use cadcraft_doc::{PlotStyle, PlotStyleTable};
     let mut d = layout_with_red_line();
     let blue = PlotStyleTable::named(
         "blue.stb",

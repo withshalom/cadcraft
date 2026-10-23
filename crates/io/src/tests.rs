@@ -1,6 +1,6 @@
 use cadcraft_color::Color;
+use cadcraft_doc::*;
 use cadcraft_geom::{PolyVertex, Vec2, Vec3};
-use cadcraft_model::*;
 
 use crate::*;
 
@@ -1675,7 +1675,7 @@ fn dwg_roundtrip_keeps_extension_data() {
 #[test]
 fn mleader_is_written_as_multileader() {
     let mut d = Drawing::new_metric();
-    let text = cadcraft_model::MText {
+    let text = cadcraft_doc::MText {
         defined_height: Default::default(),
         insert: Vec3::new(12.0, 5.0, 0.0),
         height: 2.5,
@@ -1688,7 +1688,7 @@ fn mleader_is_written_as_multileader() {
         line_spacing_exact: false,
         columns: None,
     };
-    let m = cadcraft_model::MLeader {
+    let m = cadcraft_doc::MLeader {
         leaders: vec![vec![Vec3::new(0.0, 0.0, 0.0)]],
         landing: Vec3::new(10.0, 5.0, 0.0),
         dogleg: 2.0,

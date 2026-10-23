@@ -1,9 +1,9 @@
 //! The source boundary objects of an associative HATCH (group 97 count, 330 handles per loop,
 //! DXF Reference) survive a DXF save and read (#451).
 
+use cadcraft_doc::*;
 use cadcraft_geom::{PolyVertex, Vec2};
 use cadcraft_io::{read_dxf, write_dxf};
-use cadcraft_model::*;
 
 fn square(x0: f64, s: f64) -> Vec<PolyVertex> {
     [(x0, x0), (x0 + s, x0), (x0 + s, x0 + s), (x0, x0 + s)].into_iter().map(|(x, y)| PolyVertex::new(Vec2::new(x, y))).collect()

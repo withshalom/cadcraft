@@ -1,8 +1,8 @@
 //! Shared curve geometry for the M1/M2 draw and modify commands: arc constructions, tangent
 //! circles (TTR/TTT), length parametrisation of curves, spline splitting and picking helpers.
 
+use cadcraft_doc::{Entity, EntityKind, Handle, Prim};
 use cadcraft_geom::{Arc, Circle, EPS, Line, PolyVertex, Polyline, Segment, Spline, TAU, Vec2, circle_circle, line_circle, line_line_infinite};
-use cadcraft_model::{Entity, EntityKind, Handle, Prim};
 
 use crate::{EngineError, Result, Session};
 

@@ -210,7 +210,7 @@ impl Drawing {
     }
     /// Make sure future handles don't collide with `h` (after loading a file).
     /// Every handle the drawing keeps for its tables, blocks, layouts, styles and kept objects
-    /// (docs/cadcraft-model.md, S1): written back to the same objects.
+    /// (docs/cadcraft-doc.md, S1): written back to the same objects.
     pub fn kept_handles(&self) -> std::collections::HashSet<u64> {
         let mut out: std::collections::HashSet<u64> = self.foreign.handles.values().map(|h| h.0).collect();
         out.extend(self.foreign.objects.iter().map(|o| o.handle.0));

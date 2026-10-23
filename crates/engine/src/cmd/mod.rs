@@ -50,8 +50,8 @@ pub mod helpers;
 pub mod machines;
 pub mod options;
 
+use cadcraft_doc::Handle;
 use cadcraft_geom::Vec2;
-use cadcraft_model::Handle;
 use serde::Serialize;
 use serde_json::Value;
 

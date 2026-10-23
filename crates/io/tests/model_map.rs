@@ -1,5 +1,5 @@
 //! How much of an AutoCAD drawing CADCraft's model holds: the measurements behind
-//! `docs/cadcraft-model.md`.
+//! `docs/cadcraft-doc.md`.
 //!
 //! Runs only when `MI201_CORPUS` names a folder of AutoCAD-saved DXF and DWG files, for example
 //! the MI-201 corpus (`corpus/mosaiciron-mi201` in https://github.com/withshalom/CAD). The
@@ -23,9 +23,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
 
+use cadcraft_doc::{Drawing, EntityKind};
 use cadcraft_dxf::{Kind, Tag, kind_of, records, sections};
 use cadcraft_io::{cad_file, read_dxf};
-use cadcraft_model::{Drawing, EntityKind};
 
 /// The drawing saved as DXF the way CADCraft saves it: in its own version.
 fn save_dxf(d: &Drawing) -> String {
@@ -127,7 +127,7 @@ fn holding(d: &Drawing) -> BTreeMap<String, &'static str> {
     for o in &d.foreign.objects {
         m.insert(o.kind.clone(), "kept raw");
     }
-    let mut note = |e: &cadcraft_model::Entity| {
+    let mut note = |e: &cadcraft_doc::Entity| {
         if let EntityKind::Unknown(u) = &e.kind {
             m.insert(u.dxf_type.clone(), "kept raw");
         }

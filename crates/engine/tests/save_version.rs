@@ -1,9 +1,9 @@
 //! SAVEAS at a chosen version and as binary DXF (#421): the options reach the host's writer, the
 //! drawing keeps them for later saves, and bad values are errors.
 
+use cadcraft_doc::{Drawing, HVal};
 use cadcraft_engine::Session;
 use cadcraft_engine::cmd::file::{IoHooks, SaveAs, base64_decode, base64_encode, set_io, set_write_as};
-use cadcraft_model::{Drawing, HVal};
 use serde_json::json;
 
 /// The plain writer (no options).

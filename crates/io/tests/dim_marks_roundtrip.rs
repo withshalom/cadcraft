@@ -2,9 +2,9 @@
 //! DXF Reference), jogs, breaks and inspection frames as CADCraft xdata. Damaged xdata is
 //! skipped.
 
+use cadcraft_doc::{Common, DimBreak, DimKind, DimMarks, Dimension, Drawing, EntityKind, Inspection, JoggedRadius, Space};
 use cadcraft_geom::Vec3;
 use cadcraft_io::{read_dxf, write_dxf};
-use cadcraft_model::{Common, DimBreak, DimKind, DimMarks, Dimension, Drawing, EntityKind, Inspection, JoggedRadius, Space};
 
 fn dim(kind: DimKind, marks: DimMarks) -> EntityKind {
     EntityKind::Dimension(Dimension {

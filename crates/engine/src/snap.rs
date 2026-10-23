@@ -7,8 +7,8 @@ mod viewport;
 
 pub use viewport::ViewportPoint;
 
+use cadcraft_doc::{Drawing, EntityKind, Insert, MAX_BLOCK_DEPTH, Prim, Space};
 use cadcraft_geom::{Bounds2, Circle, EPS, Ellipse, Mat3, PI, Segment, Vec2, intersect_ext};
-use cadcraft_model::{Drawing, EntityKind, Insert, MAX_BLOCK_DEPTH, Prim, Space};
 use serde::Serialize;
 
 /// OSMODE bits.
@@ -628,7 +628,7 @@ impl Sink<'_> {
     /// A dimension snaps to what it draws, as in AutoCAD (into its block): the objects of its
     /// block when the drawing has one (read from a file), else the lines generated from it
     /// (Endpoint on their ends); Node on its definition points.
-    fn dimension(&mut self, d: &Drawing, dm: &cadcraft_model::Dimension, budget: &mut usize, frozen: &[String]) {
+    fn dimension(&mut self, d: &Drawing, dm: &cadcraft_doc::Dimension, budget: &mut usize, frozen: &[String]) {
         match dm.block.as_ref().and_then(|n| d.block(n)) {
             Some(blk) => {
                 // The block holds world geometry: a reference at its own base point places it as is.
@@ -673,8 +673,8 @@ impl Sink<'_> {
 }
 
 /// The definition points of a dimension that its kind uses.
-fn dim_def_points(dm: &cadcraft_model::Dimension) -> Vec<Vec2> {
-    use cadcraft_model::DimKind;
+fn dim_def_points(dm: &cadcraft_doc::Dimension) -> Vec<Vec2> {
+    use cadcraft_doc::DimKind;
     let pts = match dm.kind {
         DimKind::Linear { .. } | DimKind::Aligned | DimKind::ArcLength => vec![dm.defpt, dm.p13, dm.p14],
         DimKind::Radius | DimKind::Diameter => vec![dm.defpt, dm.p15],
@@ -1016,16 +1016,15 @@ pub fn grid_frame(d: &Drawing) -> (Vec2, f64) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use cadcraft_doc::{Common, Line};
     use cadcraft_geom::Vec3;
-    use cadcraft_model::{Common, Line};
 
     fn drawing() -> Drawing {
         let mut d = Drawing::new_imperial();
         let l = |a: (f64, f64), b: (f64, f64)| EntityKind::Line(Line { a: Vec3::new(a.0, a.1, 0.0), b: Vec3::new(b.0, b.1, 0.0) });
         d.add(&Space::Model, Common::default(), l((0.0, 0.0), (10.0, 0.0))).unwrap();
         d.add(&Space::Model, Common::default(), l((5.0, -5.0), (5.0, 5.0))).unwrap();
-        d.add(&Space::Model, Common::default(), EntityKind::Circle(cadcraft_model::Circle { center: Vec3::new(20.0, 0.0, 0.0), radius: 2.0 }))
-            .unwrap();
+        d.add(&Space::Model, Common::default(), EntityKind::Circle(cadcraft_doc::Circle { center: Vec3::new(20.0, 0.0, 0.0), radius: 2.0 })).unwrap();
         d
     }
 

@@ -1,7 +1,7 @@
 //! Quick Select (QSELECT dialog → the engine `qselect` command) and the Quick Properties
 //! palette shown near the cursor while objects are selected and QPMODE is on.
 
-use cadcraft_model::{EntityKind, Handle};
+use cadcraft_doc::{EntityKind, Handle};
 use egui::{Pos2, RichText, vec2};
 use serde_json::{Value, json};
 
@@ -283,7 +283,7 @@ pub fn quick_properties(app: &mut CadApp, ctx: &egui::Context) {
     } else {
         format!("{} ({})", crate::tl!("All"), ents.len())
     };
-    let same = |f: &dyn Fn(&cadcraft_model::Entity) -> String| -> String {
+    let same = |f: &dyn Fn(&cadcraft_doc::Entity) -> String| -> String {
         let v0 = ents.first().map(|e| f(e)).unwrap_or_default();
         if ents.iter().all(|e| f(e) == v0) { v0 } else { "*VARIES*".into() }
     };

@@ -171,7 +171,7 @@ DWG's objects.
 
 | Date | Change | Summary |
 |---|---|---|
-| 2026-10-23 | minor | Branch `cad-native`: a second native format (`.blc`) is no longer opened or saved; CADCraft's `.cad` is the one native format, and the model it is built on is `cadcraft-model` (docs/cadcraft-model.md) |
+| 2026-10-23 | minor | Branch `cad-native`: a second native format (`.blc`) is no longer opened or saved; CADCraft's `.cad` is the one native format, and the model it is built on is `cadcraft-doc` (docs/cadcraft-doc.md) |
 | 2026-10-22 | minor | Branch `cad-native`: CADCraft's native `.cad` (records 1.0, docs/cad-format.md) opens and saves the drawing exactly; the `.cdl` lock beside an open `.cad` drawing, read-only when someone else has it open |
 | 2026-10-22 | minor | Branch `dwg-fidelity` (then `dwg-native`): a native file opens and saves through WithShalom's open `cad-native` crate; a real-file DWG round-trip test on the MI-201 corpus |
 | 2026-10-22 | minor | Branch `dwg-fidelity`: the `cad-*` crates 0.17.0 |

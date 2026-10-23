@@ -1,6 +1,6 @@
+use cadcraft_doc::{Common, EntityKind, Space, Viewport};
 use cadcraft_engine::Session;
 use cadcraft_geom::Vec2;
-use cadcraft_model::{Common, EntityKind, Space, Viewport};
 use cadcraft_ui_egui::{CadApp, Services};
 use egui::vec2;
 use egui_kittest::Harness;

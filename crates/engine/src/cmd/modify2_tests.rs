@@ -1,5 +1,5 @@
+use cadcraft_doc::{EntityKind, Handle, Space};
 use cadcraft_geom::{Arc, Polyline, Vec2};
-use cadcraft_model::{EntityKind, Handle, Space};
 use serde_json::{Value, json};
 
 use crate::Session;
@@ -24,7 +24,7 @@ fn pline(s: &mut Session, pts: Value, closed: bool) -> String {
     h(&s.execute("pline", &json!({"vertices": pts, "closed": closed})).unwrap())
 }
 
-fn poly(k: &EntityKind) -> cadcraft_model::LwPolyline {
+fn poly(k: &EntityKind) -> cadcraft_doc::LwPolyline {
     match k {
         EntityKind::LwPolyline(p) => p.clone(),
         k => panic!("not a polyline: {k:?}"),
@@ -392,7 +392,7 @@ fn chspace_json_and_command_line() {
     let mut s = Session::new();
     let l = h(&s.execute("line", &json!({"points": [[0, 0], [10, 0]]})).unwrap());
     // A viewport on Layout1 showing model (0,0) at paper (5,5) at scale 1:2.
-    let vp = cadcraft_model::Viewport {
+    let vp = cadcraft_doc::Viewport {
         center: cadcraft_geom::Vec3::new(5.0, 5.0, 0.0),
         width: 8.0,
         height: 6.0,

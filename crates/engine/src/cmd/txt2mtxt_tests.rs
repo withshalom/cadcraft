@@ -1,4 +1,4 @@
-use cadcraft_model::{EntityKind, MText};
+use cadcraft_doc::{EntityKind, MText};
 use serde_json::json;
 
 use crate::Session;
@@ -16,8 +16,8 @@ fn three_lines(s: &mut Session) -> Vec<String> {
     vec![b, a, c]
 }
 
-fn handles(hs: &[String]) -> Vec<cadcraft_model::Handle> {
-    hs.iter().map(|h| cadcraft_model::Handle::parse_hex(h).unwrap()).collect()
+fn handles(hs: &[String]) -> Vec<cadcraft_doc::Handle> {
+    hs.iter().map(|h| cadcraft_doc::Handle::parse_hex(h).unwrap()).collect()
 }
 
 fn mtexts(s: &Session) -> Vec<(String, MText)> {

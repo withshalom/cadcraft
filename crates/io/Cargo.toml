@@ -11,7 +11,7 @@ workspace = true
 [dependencies]
 cadcraft-geom = { workspace = true }
 cadcraft-color = { workspace = true }
-cadcraft-model = { workspace = true }
+cadcraft-doc = { workspace = true }
 cadcraft-dxf = { workspace = true }
 cadcraft-dwg = { workspace = true }
 cad-native = { workspace = true }

@@ -8,7 +8,7 @@
 
 use std::collections::HashSet;
 
-use cadcraft_model::{Constraint, Drawing, Handle};
+use cadcraft_doc::{Constraint, Drawing, Handle};
 use serde::Serialize;
 
 use crate::model::Model;
@@ -212,8 +212,8 @@ pub fn dof(d: &Drawing, handles: &[Handle]) -> Result<DofReport, SolveError> {
 mod budget_tests {
     use super::*;
     use crate::residual::{Built, Form};
+    use cadcraft_doc::{Common, ConstraintKind, EntityKind, GeomRef, Space};
     use cadcraft_geom::{Spline, Vec2};
-    use cadcraft_model::{Common, ConstraintKind, EntityKind, GeomRef, Space};
 
     /// An expensive fit-spline endpoint residual produces unknown freedom before numerical differentiation.
     #[test]

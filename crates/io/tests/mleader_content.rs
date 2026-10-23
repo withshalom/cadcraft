@@ -1,8 +1,8 @@
 //! A multileader's spline leader and block content (#408) survive save and reopen: they are
 //! written as a native MULTILEADER (#459).
 
+use cadcraft_doc::{Block, Common, Drawing, Entity, EntityKind, Handle, Insert, Line, MLeader, Space};
 use cadcraft_geom::Vec3;
-use cadcraft_model::{Block, Common, Drawing, Entity, EntityKind, Handle, Insert, Line, MLeader, Space};
 
 #[test]
 fn spline_leader_and_block_content_are_written() {

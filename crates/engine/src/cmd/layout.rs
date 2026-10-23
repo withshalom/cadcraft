@@ -4,8 +4,8 @@
 //! Plotting goes through the host's [`super::file::IoHooks::plot`] hook so the engine stays
 //! I/O-agnostic.
 
+use cadcraft_doc::{Drawing, Entity, EntityKind, EntityStore, Handle, Layout, PageSetup, Space, Viewport};
 use cadcraft_geom::{Bounds2, Vec2};
-use cadcraft_model::{Drawing, Entity, EntityKind, EntityStore, Handle, Layout, PageSetup, Space, Viewport};
 use serde_json::{Value, json};
 
 use super::file::{base64_encode, io};
@@ -663,7 +663,7 @@ fn run_pagesetup(s: &mut Session, p: &Value) -> Result<Value> {
         return Ok(json!({
             "layouts": d.layouts.iter().map(|l| json!({"name": l.name, "page": serde_json::to_value(&l.page).unwrap_or(Value::Null)})).collect::<Vec<_>>(),
             "papers": cadcraft_render::PAPER_SIZES.iter().map(|p| p.name).collect::<Vec<_>>(),
-            "plotStyleTables": cadcraft_model::BUILTIN_PLOT_STYLE_TABLES,
+            "plotStyleTables": cadcraft_doc::BUILTIN_PLOT_STYLE_TABLES,
             "devices": super::plotters::device_names(),
         }));
     };
@@ -748,7 +748,7 @@ const MAX_PLOT_SHEETS: usize = 256;
 
 /// The sheets of a multi-sheet plot, as canonical names: the `layouts` list (`"Model"` or layout
 /// names, any case) or `"all"` (Model if it has objects, then every layout in tab order).
-fn plot_sheets(cmd: &str, d: &cadcraft_model::Drawing, v: &Value) -> Result<Vec<String>> {
+fn plot_sheets(cmd: &str, d: &cadcraft_doc::Drawing, v: &Value) -> Result<Vec<String>> {
     let names: Vec<String> = match v {
         Value::String(a) if a.eq_ignore_ascii_case("all") => {
             let mut layouts: Vec<_> = d.layouts.iter().collect();

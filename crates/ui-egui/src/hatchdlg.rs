@@ -3,8 +3,8 @@
 //! picks go through HATCHPICK, and OK runs one HATCH, GRADIENT or HATCHEDIT call.
 
 use cadcraft_color::Color;
+use cadcraft_doc::{Drawing, EntityKind, Handle, Space};
 use cadcraft_engine::{HatchPicks, PickMode};
-use cadcraft_model::{Drawing, EntityKind, Handle, Space};
 use serde_json::{Value, json};
 
 use egui::vec2;
@@ -602,9 +602,9 @@ fn options_ui(ui: &mut egui::Ui, st: &mut HatchDlgState, action: &mut Action) {
 #[cfg(test)]
 mod tests {
     use cadcraft_color::Color;
+    use cadcraft_doc::Handle;
     use cadcraft_engine::geom::Vec2;
     use cadcraft_engine::{HatchPicks, PickMode, Session};
-    use cadcraft_model::Handle;
     use serde_json::json;
 
     use super::*;
@@ -764,7 +764,7 @@ mod tests {
         st.handles.push(c);
         let (cmd, p) = ok_call(&st).unwrap();
         s.execute(cmd, &p).unwrap();
-        let n = s.doc().unwrap().model.iter().filter(|e| matches!(e.kind, cadcraft_model::EntityKind::Hatch(_))).count();
+        let n = s.doc().unwrap().model.iter().filter(|e| matches!(e.kind, cadcraft_doc::EntityKind::Hatch(_))).count();
         assert_eq!(n, 1);
     }
 
@@ -888,7 +888,7 @@ mod tests {
         }
         assert!(ok(&mut app));
         assert_eq!(app.hatch_dlg, None);
-        assert!(app.session.doc().unwrap().model.iter().any(|e| matches!(e.kind, cadcraft_model::EntityKind::Hatch(_))));
+        assert!(app.session.doc().unwrap().model.iter().any(|e| matches!(e.kind, cadcraft_doc::EntityKind::Hatch(_))));
     }
 
     #[test]
@@ -967,7 +967,7 @@ mod tests {
         }
         assert!(ok(&mut app));
         let d = app.session.doc().unwrap();
-        assert!(matches!(&d.entity(h).unwrap().kind, cadcraft_model::EntityKind::Hatch(x) if x.pattern == "BRICK"));
+        assert!(matches!(&d.entity(h).unwrap().kind, cadcraft_doc::EntityKind::Hatch(x) if x.pattern == "BRICK"));
         // -HATCHEDIT: the command line (the window, not `ok`, closes the dialog).
         app.ui.dialog = None;
         app.cmdline("-hatchedit");
@@ -1018,7 +1018,7 @@ mod tests {
         let (cmd, p) = ok_call(&st).unwrap();
         s.execute(cmd, &p).unwrap();
         match &s.doc().unwrap().entity(h).unwrap().kind {
-            cadcraft_model::EntityKind::Hatch(x) => assert!(x.gradient.is_none() && x.pattern == "ANSI31"),
+            cadcraft_doc::EntityKind::Hatch(x) => assert!(x.gradient.is_none() && x.pattern == "ANSI31"),
             k => panic!("{k:?}"),
         }
     }

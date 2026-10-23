@@ -20,7 +20,7 @@ where the file differs from the model and why (§9). The lock file is §10.
 
 ## 1. CADCraft's drawing model
 
-The model is the `cadcraft-model` crate. Every type in it except the drawing itself, the entity
+The model is the `cadcraft-doc` crate. Every type in it except the drawing itself, the entity
 store and the kept foreign data derives serde's `Serialize` and `Deserialize`, with defaults on
 almost every field; CADCraft already uses that form for its command parameters, the MCP and
 control channel, and its own extension data inside DXF files. The format is built on it (§9.1).

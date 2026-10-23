@@ -6,8 +6,8 @@
 //! Every edit runs an engine command (`parameters {name, expr}` / `{delete}`); this module only
 //! draws and collects input.
 
+use cadcraft_doc::{ConstraintKind, DistAxis, Drawing, EntityKind, GeomRef, Handle, Sub};
 use cadcraft_geom::Vec2;
-use cadcraft_model::{ConstraintKind, DistAxis, Drawing, EntityKind, GeomRef, Handle, Sub};
 use egui::{Color32, Pos2, Rect, Sense, Shape, Stroke, pos2, vec2};
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -103,7 +103,7 @@ fn ent_kind(d: &Drawing, h: Handle) -> Option<&EntityKind> {
     d.entity(h).map(|e| &e.kind)
 }
 
-fn poly_vertex(p: &cadcraft_model::LwPolyline, i: u32) -> Option<Vec2> {
+fn poly_vertex(p: &cadcraft_doc::LwPolyline, i: u32) -> Option<Vec2> {
     p.vertices.get(usize::try_from(i).ok()?).map(|v| v.p)
 }
 
