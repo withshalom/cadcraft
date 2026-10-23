@@ -26,9 +26,12 @@ use self::node::{Node, from_node, to_node};
 use crate::{IoError, Result};
 
 /// The version of CADCraft's records this code writes (docs/cad-format.md §3.1).
-pub const FORMAT: &str = "1.0";
+pub const FORMAT: &str = "1.1";
+/// In the `Header` section, after a variable's value: the DXF group code it was read with
+/// (records 1.1).
+const HEADER_CODE: u16 = 2001;
 const MAJOR: u32 = 1;
-const MINOR: u32 = 0;
+const MINOR: u32 = 1;
 /// Target size of one `Objects.N` page; a record is never split across pages.
 const PAGE_TARGET: usize = 64 * 1024;
 /// Previews larger than this are left out, so a preview never outweighs the drawing (a hatched
@@ -223,6 +226,9 @@ pub fn write(d: &Drawing, preview: Option<String>) -> Result<Vec<u8>> {
     for (name, v) in &d.header.vars {
         header.str(9, &format!("${name}"));
         codec::put_positional(&mut header, &to_node(v).map_err(err)?, &mut out.dict).map_err(err)?;
+        if let Some(code) = d.header.code(name) {
+            header.i32(HEADER_CODE, code);
+        }
     }
     header.str(9, HANDSEED);
     header.handle(5, TagHandle(d.handseed));
@@ -494,6 +500,7 @@ pub fn read(bytes: &[u8]) -> Result<Drawing> {
     let mut handseed = 0x100u64;
     if let Some(data) = section(SEC_HEADER, &mut notes) {
         let mut vars = BTreeMap::new();
+        let mut codes = BTreeMap::new();
         match codec::read_tags(&data) {
             Ok(tags) => {
                 let mut i = 0usize;
@@ -510,7 +517,15 @@ pub fn read(bytes: &[u8]) -> Result<Drawing> {
                     match codec::value(&tags, &mut i, &names, 1) {
                         Ok(Some(n)) => match from_node::<HVal>(n) {
                             Ok(v) => {
-                                vars.insert(name.trim_start_matches('$').to_string(), v);
+                                let key = name.trim_start_matches('$').to_string();
+                                // Records 1.1: the DXF group code it was read with.
+                                if let Some(t) = tags.get(i).filter(|t| t.code == HEADER_CODE)
+                                    && let Value::I32(c) = t.value
+                                {
+                                    codes.insert(key.clone(), c);
+                                    i += 1;
+                                }
+                                vars.insert(key, v);
                             }
                             Err(e) => notes.push(format!("Header variable {name} left out: {e}")),
                         },
@@ -524,7 +539,7 @@ pub fn read(bytes: &[u8]) -> Result<Drawing> {
             }
             Err(e) => notes.push(format!("The file's header variables could not be read: {e}")),
         }
-        parts.d.header = Header { vars };
+        parts.d.header = Header { vars, codes };
     }
 
     // Start from empty tables: the file has every record the drawing had.

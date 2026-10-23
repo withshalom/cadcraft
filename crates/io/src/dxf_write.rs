@@ -3,7 +3,7 @@
 //! `$ACADVER`, from 2004 in the newer DIMSTYLE groups, and from 2007 in UTF-8 text (the caller
 //! picks the text encoding) and MULTILEADER entities (older files get LEADER + MTEXT).
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use cadcraft_color::Color;
 use cadcraft_doc::*;
@@ -379,6 +379,62 @@ fn header_vars(w: &mut W, d: &Drawing) {
         }
     }
     dim_header_vars(w, d);
+}
+
+/// Header variables the writer doesn't write by name ([`HEADER_VARS`], the current dimension
+/// style's, the version, code page, extents and handle seed): every other variable read from a
+/// file, with the group code it was read with ([`cadcraft_doc::Header::codes`]), in name order.
+/// Variables that point at other objects by handle are left out: their objects get new handles.
+fn kept_header_vars(w: &mut W, d: &Drawing, start: usize) {
+    let written: HashSet<String> =
+        w.t.get(start..).unwrap_or(&[]).iter().filter(|t| t.code == 9).map(|t| t.str().trim_start_matches('$').to_ascii_uppercase()).collect();
+    // Converted on reading (or written elsewhere), so their codes no longer fit the value.
+    const SKIP: &[&str] = &["ACADVER", "DWGCODEPAGE", "HANDSEED", "EXTMIN", "EXTMAX", "ANGBASE", "DIMDSEP", "DIMJOGANG"];
+    for (name, v) in &d.header.vars {
+        if written.contains(name) || SKIP.contains(&name.as_str()) {
+            continue;
+        }
+        let Some(code) = d.header.code(name) else { continue };
+        if matches!(code, 5 | 105 | 320..=369 | 390..=399 | 480 | 481) {
+            continue;
+        }
+        match (code, v) {
+            (cadcraft_doc::POINT_2D, HVal::Point(p)) => {
+                w.s(9, format!("${name}"));
+                w.f(10, p.x);
+                w.f(20, p.y);
+            }
+            (cadcraft_doc::POINT_3D, HVal::Point(p)) => {
+                w.s(9, format!("${name}"));
+                w.p(10, *p);
+            }
+            (_, HVal::Point(_)) => {}
+            (c, v) => match cadcraft_dxf::kind_of(c) {
+                cadcraft_dxf::Kind::Real => {
+                    if let Some(f) = v.as_f64().filter(|f| f.is_finite()) {
+                        w.s(9, format!("${name}"));
+                        w.f(c, f);
+                    }
+                }
+                cadcraft_dxf::Kind::Int16 | cadcraft_dxf::Kind::Int32 | cadcraft_dxf::Kind::Int64 | cadcraft_dxf::Kind::Bool => {
+                    if let Some(i) = v.as_i64() {
+                        w.s(9, format!("${name}"));
+                        w.i(c, i);
+                    }
+                }
+                cadcraft_dxf::Kind::Str | cadcraft_dxf::Kind::Hex => {
+                    let t = match v {
+                        HVal::Str(t) => t.clone(),
+                        HVal::Int(i) => i.to_string(),
+                        HVal::Real(r) => cadcraft_dxf::format_real(*r),
+                        HVal::Point(_) => continue,
+                    };
+                    w.s(9, format!("${name}"));
+                    w.s(c, t);
+                }
+            },
+        }
+    }
 }
 
 /// An entity's group 440 (DXF Reference): ByBlock is `0x01000000`, a fixed transparency its alpha
@@ -1946,6 +2002,7 @@ fn tags_for(d: &Drawing, version: Version, target: Version) -> Vec<Tag> {
     // ---------------- HEADER ----------------
     w.s(0, "SECTION");
     w.s(2, "HEADER");
+    let header_start = w.t.len();
     w.s(9, "$ACADVER");
     w.s(1, version.code());
     w.s(9, "$DWGCODEPAGE");
@@ -1958,6 +2015,7 @@ fn tags_for(d: &Drawing, version: Version, target: Version) -> Vec<Tag> {
         w.p(10, ext.max.to3(0.0));
     }
     header_vars(&mut w, d);
+    kept_header_vars(&mut w, d, header_start);
     let seed_pos = w.t.len();
     w.s(9, "$HANDSEED");
     w.s(5, "0");

@@ -1339,6 +1339,12 @@ fn header(tags: &[Tag], d: &mut Drawing) {
                 }
                 continue;
             }
+            let code = match vals.as_slice() {
+                [x, _, _] if x.code == 10 => cadcraft_doc::POINT_3D,
+                [x, _] if x.code == 10 => cadcraft_doc::POINT_2D,
+                [v] => v.code,
+                _ => 0,
+            };
             let hv = match vals.as_slice() {
                 [x, y, z] if x.code == 10 => HVal::Point(Vec3::new(x.f64(), y.f64(), z.f64())),
                 [x, y] if x.code == 10 => HVal::Point(Vec3::new(x.f64(), y.f64(), 0.0)),
@@ -1364,6 +1370,9 @@ fn header(tags: &[Tag], d: &mut Drawing) {
                 hv => hv,
             };
             d.header.set(&name, hv);
+            if code != 0 {
+                d.header.set_code(&name, code);
+            }
         } else {
             i += 1;
         }

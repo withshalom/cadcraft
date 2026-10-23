@@ -1,4 +1,4 @@
-# CADCraft's native format (`.cad`) — records 1.0
+# CADCraft's native format (`.cad`) — records 1.1
 
 > **Status:** draft, first version (branch `cad-native`) · **Lock file:** `.cdl` · **Code:**
 > `crates/io/src/cad_file/` (format), `crates/engine/src/cmd/file/lock.rs` (lock)
@@ -29,7 +29,7 @@ control channel, and its own extension data inside DXF files. The format is buil
 
 | Part | Type | What it is |
 |---|---|---|
-| `header` | `Header` (`vars: BTreeMap<String, HVal>`) | Header variables by name without `$`: integers, reals, strings, 3D points |
+| `header` | `Header` (`vars: BTreeMap<String, HVal>`, `codes`) | Header variables by name without `$`: integers, reals, strings, 3D points; with the DXF group code each was read with |
 | `layers`, `linetypes`, `text_styles`, `dim_styles`, `mleader_styles`, `table_styles`, `mline_styles` | `Vec<…>` in table order | Symbol tables and styles. Names are case-insensitive; the order is the order the UI lists |
 | `blocks` | `BTreeMap<String, Arc<Block>>` | Block definitions: base point, flags, units, xref path, associative array parameters, and an entity store |
 | `model` | `EntityStore` | Model space |
@@ -118,7 +118,7 @@ names are skipped with their value.
 
 | Name | Value |
 |---|---|
-| `$CADCRAFT_FORMAT` | `1` STR, the records version: `"1.0"` |
+| `$CADCRAFT_FORMAT` | `1` STR, the records version: `"1.1"` |
 | `$CAD_WRITER` | `1` STR, e.g. `"CADCraft 0.10.0"` |
 | `$CAD_OBJECTS` | `160` I64, records in the `Objects` sections (a check value) |
 | `$CAD_PAGES` | `160` I64, number of `Objects.N` sections |
@@ -128,6 +128,10 @@ names are skipped with their value.
 A tag stream: for each header variable a `9` STR tag with its name (`$LTSCALE`), then its value
 as a positional value (§5): integers in the smallest integer type, reals F64, strings STR,
 points P3. The variables are written in name order, exactly as the drawing holds them.
+
+From records 1.1, a variable read from a DXF or DWG file is followed by a `2001` I32 tag: the
+DXF group code it was read with (−2 for a 2D point, −3 for a 3D point). Writers use it to write
+back variables CADCraft doesn't know by name. Readers of 1.0 skip the tag.
 
 The drawing's next free handle follows as `9 "$CADCRAFT_HANDSEED"` and a `5` HANDLE tag. (A
 `$HANDSEED` variable the drawing carries from a DXF file is an ordinary variable here.)
@@ -331,3 +335,4 @@ open, on which machine, in which program, since when, and a heartbeat.
 | Date | Change |
 |---|---|
 | 2026-10-22 | Records 1.0: the model map, the format, notes, and the `.cdl` lock |
+| 2026-10-23 | Records 1.1: header variables keep their DXF group codes (`2001` tag) |
