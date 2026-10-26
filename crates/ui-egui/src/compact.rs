@@ -24,14 +24,15 @@ const DRAWER_MAX_WIDTH: f32 = 340.0;
 /// Layers' share of the right drawer's height; Properties takes the rest.
 const LAYERS_SHARE: f32 = 0.45;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 enum Drawer {
+    #[default]
     Left,
     Right,
 }
 
 /// A press that began on a handle and is still down.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default)]
 struct Press {
     side: Drawer,
     origin: Pos2,
@@ -39,7 +40,7 @@ struct Press {
 }
 
 /// The drawer on screen. It ignores the dimmed drawing until the press that opened it is released.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default)]
 struct Open {
     side: Drawer,
     armed: bool,
