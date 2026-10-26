@@ -21,6 +21,8 @@ env:
 
 jobs:
   build:
+    # Only in the main fork; the cadcraft-dev fork serves mobile.cadcraft.dev from its own branch.
+    if: github.repository == 'withshalom/cadcraft'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -62,6 +64,7 @@ jobs:
           path: dist/web
 
   deploy:
+    if: github.repository == 'withshalom/cadcraft'
     needs: build
     runs-on: ubuntu-latest
     environment:
