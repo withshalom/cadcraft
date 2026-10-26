@@ -18,6 +18,7 @@ pub mod chrome;
 pub mod clipboard;
 pub mod closing;
 pub mod cmdline;
+pub mod compact;
 pub mod context_menu;
 pub mod control;
 pub mod credits;
@@ -827,11 +828,15 @@ impl CadApp {
             chrome::file_tabs(self, ui);
         }
         let has_doc = !self.session.docs.is_empty() && !self.ui.start_tab;
-        if has_doc && !self.ui.show_toolsets {
+        // Phone-width windows collapse the side docks into drawers (compact.rs).
+        let compact = compact::is_compact(ui.max_rect());
+        if has_doc && !self.ui.show_toolsets && !compact {
             palettes::toolsets_strip(self, ui);
         }
         egui::CentralPanel::default().frame(egui::Frame::NONE.fill(t.canvas)).show(ui, |ui| {
-            if has_doc {
+            if has_doc && compact {
+                compact::show(self, ui);
+            } else if has_doc {
                 docking::show(self, ui);
             } else {
                 chrome::start_page(self, ui);
