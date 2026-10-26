@@ -617,14 +617,20 @@ pub fn menu_bar(app: &mut CadApp, ui: &mut egui::Ui) {
                     let titles: Vec<egui::Response> = tree.iter().map(|(name, _)| ui.add(egui::Button::new(crate::i18n::menu(name)))).collect();
                     switch_on_hover(ui.ctx(), &titles);
                     for ((_, entries), title) in tree.iter().zip(&titles) {
-                        egui::Popup::menu(title).show(|ui| {
+                        let mut popup = egui::Popup::menu(title);
+                        if compact {
+                            // Always straight under its title: egui would otherwise move a tall
+                            // menu beside the title when it only just fits below.
+                            popup = popup.align(egui::RectAlign::BOTTOM_START).align_alternatives(&[]);
+                        }
+                        popup.show(|ui| {
                             let mut list = |ui: &mut egui::Ui| {
                                 for e in entries {
                                     entry_ui(ui, e, &mut clicked);
                                 }
                             };
                             if compact {
-                                let room = (ui.ctx().content_rect().bottom() - title.rect.bottom() - 8.0).max(120.0);
+                                let room = (ui.ctx().content_rect().bottom() - title.rect.bottom() - 32.0).max(120.0);
                                 egui::ScrollArea::vertical().max_height(room).show(ui, |ui| list(ui));
                             } else {
                                 list(ui);
