@@ -1,6 +1,6 @@
-# Builds the browser version from the `mobile` branch and publishes it to the separate
-# `withshalom/cadcraft-mobile` repo's GitHub Pages site, served at mobile.cadcraft.dev.
-# (One Pages site per repo and one custom domain per site, so this needs its own repo.)
+# Builds the browser version from the `mobile` branch and publishes it to a Cloudflare Pages
+# project (direct upload), served at mobile.cadcraft.dev. The repo and branch stay as they are:
+# GitHub Pages allows one custom domain per repo (cadcraft.dev is taken by the `web` branch).
 name: mobile-deploy
 
 on:
@@ -16,8 +16,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  MOBILE_DOMAIN: mobile.cadcraft.dev
-  TARGET_REPO: withshalom/cadcraft-mobile
+  CF_PROJECT: cadcraft-mobile
 
 jobs:
   build-and-publish:
@@ -58,23 +57,30 @@ jobs:
             exit 1
           fi
 
-      - name: Check the deploy token is set
+      - name: Check the Cloudflare secrets are set
         env:
-          TOKEN: ${{ secrets.MOBILE_DEPLOY_TOKEN }}
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          if [ -z "$TOKEN" ]; then
-            echo "Secret MOBILE_DEPLOY_TOKEN is missing. Add a token with write access to $TARGET_REPO." >&2
+          if [ -z "$CF_TOKEN" ] || [ -z "$CF_ACCOUNT" ]; then
+            echo "::error title=Missing secrets::Add CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID as repo secrets."
             exit 1
           fi
 
-      - name: Publish to the cadcraft-mobile Pages branch
-        uses: peaceiris/actions-gh-pages@v4
+      - name: Add Cloudflare Pages header rules
+        run: cp packaging/web/_headers dist/web/_headers
+
+      - name: Create the Cloudflare Pages project if it does not exist
+        uses: cloudflare/wrangler-action@v3
+        continue-on-error: true
         with:
-          personal_token: ${{ secrets.MOBILE_DEPLOY_TOKEN }}
-          external_repository: ${{ env.TARGET_REPO }}
-          publish_branch: gh-pages
-          publish_dir: dist/web
-          cname: ${{ env.MOBILE_DOMAIN }}
-          force_orphan: true
-          user_name: github-actions[bot]
-          user_email: 41898282+github-actions[bot]@users.noreply.github.com
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages project create ${{ env.CF_PROJECT }} --production-branch=mobile
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist/web --project-name=${{ env.CF_PROJECT }} --branch=mobile --commit-dirty=true
