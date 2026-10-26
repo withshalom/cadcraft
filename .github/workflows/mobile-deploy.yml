@@ -1,0 +1,72 @@
+# Builds the browser version from the `mobile` branch and publishes it to the separate
+# `withshalom/cadcraft-mobile` repo's GitHub Pages site, served at mobile.cadcraft.dev.
+# (One Pages site per repo and one custom domain per site, so this needs its own repo.)
+name: mobile-deploy
+
+on:
+  push:
+    branches: [mobile]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mobile-deploy
+  cancel-in-progress: true
+
+env:
+  MOBILE_DOMAIN: mobile.cadcraft.dev
+  TARGET_REPO: withshalom/cadcraft-mobile
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust (stable) with the wasm target
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Cache cargo and target
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install Trunk
+        uses: taiki-e/install-action@v2
+        with:
+          tool: trunk
+
+      - name: Build (release)
+        working-directory: apps/cadcraft-web
+        run: trunk build --release
+
+      - name: Check the site uses relative URLs
+        run: |
+          test -f dist/web/index.html
+          if grep -Eq '(src|href)="/[^/]' dist/web/index.html; then
+            echo "index.html has root-absolute URLs" >&2
+            exit 1
+          fi
+
+      - name: Check the deploy token is set
+        env:
+          TOKEN: ${{ secrets.MOBILE_DEPLOY_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "Secret MOBILE_DEPLOY_TOKEN is missing. Add a token with write access to $TARGET_REPO." >&2
+            exit 1
+          fi
+
+      - name: Publish to the cadcraft-mobile Pages branch
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          personal_token: ${{ secrets.MOBILE_DEPLOY_TOKEN }}
+          external_repository: ${{ env.TARGET_REPO }}
+          publish_branch: gh-pages
+          publish_dir: dist/web
+          cname: ${{ env.MOBILE_DOMAIN }}
+          force_orphan: true
+          user_name: github-actions[bot]
+          user_email: 41898282+github-actions[bot]@users.noreply.github.com
