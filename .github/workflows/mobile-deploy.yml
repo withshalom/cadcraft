@@ -1,6 +1,9 @@
 # Builds the browser version from the `mobile` branch and publishes it to GitHub Pages at
-# mobile.cadcraft.dev. Runs only in the withshalom/cadcraft-dev fork, whose Pages site owns that
-# domain (one custom domain per repo; withshalom/cadcraft keeps cadcraft.dev for the `web` branch).
+# mobile.cadcraft.dev. Runs only in withshalom/cadcraft-mobile, whose Pages site owns that domain
+# (one custom domain per repo; withshalom/cadcraft keeps cadcraft.dev for the `web` branch).
+# It also screenshots the build in a headless browser at a phone and a desktop size and pushes
+# the pictures and the browser console to this repo's `previews` branch, for checking a change
+# without a phone in hand.
 name: mobile-deploy
 
 on:
@@ -9,7 +12,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -22,7 +25,7 @@ env:
 
 jobs:
   build:
-    if: github.repository == 'withshalom/cadcraft-dev'
+    if: github.repository == 'withshalom/cadcraft-mobile'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -60,6 +63,34 @@ jobs:
             exit 1
           fi
 
+      - name: Screenshot the build at a phone and a desktop size
+        continue-on-error: true
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/shots" && cd "$RUNNER_TEMP/shots"
+          cp "$GITHUB_WORKSPACE/.github/scripts/shots.mjs" .
+          npm init -y >/dev/null 2>&1
+          npm install playwright@1.49.1 >/dev/null 2>&1
+          npx playwright install --with-deps chromium >/dev/null 2>&1
+          node shots.mjs "$GITHUB_WORKSPACE/dist/web" "$RUNNER_TEMP/shots/out"
+
+      - name: Publish the screenshots to the previews branch
+        continue-on-error: true
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd "$RUNNER_TEMP/shots/out"
+          msg=$(head -c 3500 logs.txt | sed 's/%/%25/g;s/\r/%0D/g' | sed ':a;N;$!ba;s/\n/%0A/g')
+          echo "::notice title=Browser console::${msg}"
+          git init -q
+          git checkout -q -b previews
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Screenshots for ${GITHUB_SHA}"
+          git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" previews
+
       - name: Add Pages files
         run: |
           touch dist/web/.nojekyll
@@ -72,7 +103,7 @@ jobs:
           path: dist/web
 
   deploy:
-    if: github.repository == 'withshalom/cadcraft-dev'
+    if: github.repository == 'withshalom/cadcraft-mobile'
     needs: build
     runs-on: ubuntu-latest
     environment:
