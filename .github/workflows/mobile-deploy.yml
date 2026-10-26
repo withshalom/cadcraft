@@ -40,7 +40,15 @@ jobs:
 
       - name: Build (release)
         working-directory: apps/cadcraft-web
-        run: trunk build --release
+        shell: bash
+        run: |
+          set -o pipefail
+          if ! trunk build --release 2>&1 | tee "$RUNNER_TEMP/build.log"; then
+            # The step log needs a sign-in to read; echo the first compiler errors as an annotation.
+            msg=$(grep -E -A14 -m4 '^(error|warning: unused)' "$RUNNER_TEMP/build.log" | head -c 3500 | sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g')
+            echo "::error title=Build failed::${msg}"
+            exit 1
+          fi
 
       - name: Check the site uses relative URLs
         run: |
