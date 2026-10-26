@@ -1,12 +1,12 @@
 //! Compact layout for phone-width windows. The side docks collapse into a handle strip at each
-//! window edge, so the drawing keeps the screen, and come up as slide-over drawers on a long
-//! press of a handle: Tool Sets on the left, Layers above Properties on the right. A tap on the
-//! dimmed drawing, or Escape, puts the drawer away again.
+//! window edge, so the drawing keeps the screen, and come up as slide-over drawers when a handle
+//! is tapped, swiped inward or held: Tool Sets on the left, Layers above Properties on the right.
+//! A tap on the dimmed drawing, or Escape, puts the drawer away again.
 
 use std::time::Duration;
 
 use craft_ui::docking::DockContent;
-use egui::{Color32, Context, Id, Order, Pos2, Rect, Sense, Stroke, Ui, UiBuilder, pos2, vec2};
+use egui::{Color32, Context, Id, Order, Pos2, Rect, Sense, Stroke, Ui, UiBuilder, Vec2, pos2, vec2};
 
 use crate::docking::{Panel, Panels};
 
@@ -16,8 +16,10 @@ pub const COMPACT_WIDTH: f32 = 720.0;
 const HANDLE_WIDTH: f32 = 26.0;
 /// How long a press on a handle must hold, in seconds, before its drawer opens.
 const LONG_PRESS_SECS: f64 = 0.45;
-/// How far a held press may drift, in points, and still count as held.
+/// How far a held press may drift, in points, and still count as a tap or a hold.
 const PRESS_SLOP: f32 = 14.0;
+/// How far, in points, a press on a handle must travel inward to open the drawer as a swipe.
+const SWIPE_DISTANCE: f32 = 40.0;
 /// A drawer's share of the window width, and its widest size in points.
 const DRAWER_SHARE: f32 = 0.86;
 const DRAWER_MAX_WIDTH: f32 = 340.0;
@@ -69,13 +71,22 @@ fn clear_press(ctx: &Context) {
     ctx.data_mut(|d| d.remove_temp::<Press>(press_id()));
 }
 
-/// Track a press that begins on a handle. Returns the drawer to open once the press has held long
-/// enough without drifting, and how far along the hold is (0 to 1) for the handle to show.
-fn long_press(ctx: &Context, left: Rect, right: Rect) -> (Option<Drawer>, f32) {
-    let (pressed, down, pos, now) = ctx.input(|i| (i.pointer.primary_pressed(), i.pointer.primary_down(), i.pointer.latest_pos(), i.time));
+/// Track a press that begins on a handle. A tap, a swipe inward or a long hold opens that handle's
+/// drawer. Also returns how far along the hold is (0 to 1), for the handle to show.
+fn handle_gesture(ctx: &Context, left: Rect, right: Rect) -> (Option<Drawer>, f32) {
+    let (pressed, down, released, pos, origin, now) = ctx.input(|i| {
+        (
+            i.pointer.primary_pressed(),
+            i.pointer.primary_down(),
+            i.pointer.primary_released(),
+            i.pointer.latest_pos(),
+            i.pointer.press_origin(),
+            i.time,
+        )
+    });
     let mut held = ctx.data(|d| d.get_temp::<Press>(press_id()));
     if pressed {
-        held = pos.and_then(|p| {
+        held = pos.or(origin).and_then(|p| {
             if left.contains(p) {
                 Some(Press { side: Drawer::Left, origin: p, since: now })
             } else if right.contains(p) {
@@ -85,13 +96,27 @@ fn long_press(ctx: &Context, left: Rect, right: Rect) -> (Option<Drawer>, f32) {
             }
         });
     }
-    let Some(press) = held.filter(|_| down) else {
-        clear_press(ctx);
+    let Some(press) = held else {
         return (None, 0.0);
     };
-    if pos.is_some_and(|p| (p - press.origin).length() > PRESS_SLOP) {
+    let drift = pos.map_or(Vec2::ZERO, |p| p - press.origin);
+    let inward = match press.side {
+        Drawer::Left => drift.x,
+        Drawer::Right => -drift.x,
+    };
+    if inward >= SWIPE_DISTANCE {
+        clear_press(ctx);
+        return (Some(press.side), 1.0);
+    }
+    // Drifting away along the edge, or outward, is neither a tap nor a hold.
+    if drift.length() > PRESS_SLOP && inward < drift.length() * 0.7 {
         clear_press(ctx);
         return (None, 0.0);
+    }
+    if !down {
+        clear_press(ctx);
+        // Letting go without drifting away is a tap.
+        return (released.then_some(press.side), 0.0);
     }
     let progress = ((now - press.since) / LONG_PRESS_SECS).clamp(0.0, 1.0) as f32;
     if progress >= 1.0 {
@@ -116,7 +141,7 @@ pub fn show(app: &mut crate::CadApp, ui: &mut Ui) {
         clear_press(&ctx);
         (None, 0.0)
     } else {
-        long_press(&ctx, left, right)
+        handle_gesture(&ctx, left, right)
     };
     let pressing = ctx.data(|d| d.get_temp::<Press>(press_id()));
     for (strip, side) in [(left, Drawer::Left), (right, Drawer::Right)] {
@@ -247,12 +272,12 @@ mod tests {
         let at = left.center();
         let mut seen = (None, 0.0);
         frame(&ctx, vec![egui::Event::PointerMoved(at)], 0.0, &mut |_| {});
-        frame(&ctx, vec![button(at, true)], 0.1, &mut |c| seen = long_press(c, left, right));
+        frame(&ctx, vec![button(at, true)], 0.1, &mut |c| seen = handle_gesture(c, left, right));
         assert_eq!(seen.0, None);
-        frame(&ctx, Vec::new(), 0.3, &mut |c| seen = long_press(c, left, right));
+        frame(&ctx, Vec::new(), 0.3, &mut |c| seen = handle_gesture(c, left, right));
         assert_eq!(seen.0, None);
         assert!(seen.1 > 0.0 && seen.1 < 1.0);
-        frame(&ctx, Vec::new(), 0.7, &mut |c| seen = long_press(c, left, right));
+        frame(&ctx, Vec::new(), 0.7, &mut |c| seen = handle_gesture(c, left, right));
         assert_eq!(seen.0, Some(Drawer::Left));
     }
 
@@ -263,8 +288,8 @@ mod tests {
         let at = right.center();
         let mut seen = (None, 0.0);
         frame(&ctx, vec![egui::Event::PointerMoved(at)], 0.0, &mut |_| {});
-        frame(&ctx, vec![button(at, true)], 0.1, &mut |c| seen = long_press(c, left, right));
-        frame(&ctx, Vec::new(), 0.7, &mut |c| seen = long_press(c, left, right));
+        frame(&ctx, vec![button(at, true)], 0.1, &mut |c| seen = handle_gesture(c, left, right));
+        frame(&ctx, Vec::new(), 0.7, &mut |c| seen = handle_gesture(c, left, right));
         assert_eq!(seen.0, Some(Drawer::Right));
     }
 
@@ -275,27 +300,58 @@ mod tests {
         let at = pos2(200.0, 400.0);
         let mut seen = (None, 0.0);
         frame(&ctx, vec![egui::Event::PointerMoved(at)], 0.0, &mut |_| {});
-        frame(&ctx, vec![button(at, true)], 0.1, &mut |c| seen = long_press(c, left, right));
-        frame(&ctx, Vec::new(), 1.5, &mut |c| seen = long_press(c, left, right));
+        frame(&ctx, vec![button(at, true)], 0.1, &mut |c| seen = handle_gesture(c, left, right));
+        frame(&ctx, Vec::new(), 1.5, &mut |c| seen = handle_gesture(c, left, right));
         assert_eq!(seen.0, None);
     }
 
     #[test]
-    fn a_press_that_lets_go_early_or_drifts_does_not_open() {
+    fn a_tap_on_a_handle_opens_that_drawer() {
+        let ctx = Context::default();
+        let (left, right) = strips();
+        let at = right.center();
+        let mut seen = (None, 0.0);
+        frame(&ctx, vec![egui::Event::PointerMoved(at)], 0.0, &mut |_| {});
+        frame(&ctx, vec![button(at, true)], 0.1, &mut |c| seen = handle_gesture(c, left, right));
+        assert_eq!(seen.0, None);
+        frame(&ctx, vec![button(at, false)], 0.2, &mut |c| seen = handle_gesture(c, left, right));
+        assert_eq!(seen.0, Some(Drawer::Right));
+    }
+
+    #[test]
+    fn a_press_and_release_in_one_frame_is_a_tap() {
         let ctx = Context::default();
         let (left, right) = strips();
         let at = left.center();
         let mut seen = (None, 0.0);
         frame(&ctx, vec![egui::Event::PointerMoved(at)], 0.0, &mut |_| {});
-        frame(&ctx, vec![button(at, true)], 0.1, &mut |c| seen = long_press(c, left, right));
-        frame(&ctx, vec![button(at, false)], 0.2, &mut |c| seen = long_press(c, left, right));
-        frame(&ctx, Vec::new(), 1.0, &mut |c| seen = long_press(c, left, right));
-        assert_eq!(seen.0, None);
+        frame(&ctx, vec![button(at, true), button(at, false)], 0.1, &mut |c| seen = handle_gesture(c, left, right));
+        assert_eq!(seen.0, Some(Drawer::Left));
+    }
 
-        let moved = at + vec2(0.0, PRESS_SLOP + 20.0);
-        frame(&ctx, vec![button(at, true)], 2.0, &mut |c| seen = long_press(c, left, right));
-        frame(&ctx, vec![egui::Event::PointerMoved(moved)], 2.1, &mut |c| seen = long_press(c, left, right));
-        frame(&ctx, Vec::new(), 3.0, &mut |c| seen = long_press(c, left, right));
+    #[test]
+    fn a_swipe_inward_from_a_handle_opens_its_drawer() {
+        let ctx = Context::default();
+        let (left, right) = strips();
+        let at = left.center();
+        let mut seen = (None, 0.0);
+        frame(&ctx, vec![egui::Event::PointerMoved(at)], 0.0, &mut |_| {});
+        frame(&ctx, vec![button(at, true)], 0.1, &mut |c| seen = handle_gesture(c, left, right));
+        frame(&ctx, vec![egui::Event::PointerMoved(at + vec2(SWIPE_DISTANCE + 4.0, 0.0))], 0.15, &mut |c| seen = handle_gesture(c, left, right));
+        assert_eq!(seen.0, Some(Drawer::Left));
+    }
+
+    #[test]
+    fn dragging_along_the_edge_or_outward_does_not_open() {
+        let ctx = Context::default();
+        let (left, right) = strips();
+        let at = left.center();
+        let mut seen = (None, 0.0);
+        frame(&ctx, vec![egui::Event::PointerMoved(at)], 0.0, &mut |_| {});
+        frame(&ctx, vec![button(at, true)], 0.1, &mut |c| seen = handle_gesture(c, left, right));
+        frame(&ctx, vec![egui::Event::PointerMoved(at + vec2(0.0, PRESS_SLOP + 20.0))], 0.15, &mut |c| seen = handle_gesture(c, left, right));
+        frame(&ctx, vec![button(at + vec2(0.0, PRESS_SLOP + 20.0), false)], 0.2, &mut |c| seen = handle_gesture(c, left, right));
+        frame(&ctx, Vec::new(), 1.0, &mut |c| seen = handle_gesture(c, left, right));
         assert_eq!(seen.0, None);
     }
 }
