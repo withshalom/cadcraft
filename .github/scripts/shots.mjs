@@ -37,6 +37,14 @@ const browser = await chromium.launch({
 
 async function visit(name, contextOptions, steps) {
   const context = await browser.newContext(contextOptions);
+  // Headless Chromium with an emulated pixel ratio reports devicePixelContentBoxSize in CSS pixels,
+  // which leaves the canvas at 1x and makes the UI look 3x too big. iOS Safari has no such
+  // property (egui falls back to contentBoxSize x devicePixelRatio), so remove it to match a phone.
+  if (name === 'phone') {
+    await context.addInitScript(() => {
+      delete ResizeObserverEntry.prototype.devicePixelContentBoxSize;
+    });
+  }
   const page = await context.newPage();
   page.on('console', (m) => log(`[${name}] console.${m.type()}: ${m.text()}`));
   page.on('pageerror', (e) => log(`[${name}] PAGEERROR: ${e.message}`));
