@@ -714,6 +714,25 @@ fn visuals(theme: Theme) -> Visuals {
     v
 }
 
+/// Control density for a desktop window (`false`) or a touch-sized one (`true`): the height of a
+/// row or button, the padding inside a button, and the gap between widgets.
+pub fn density(touch: bool) -> (f32, egui::Vec2, egui::Vec2) {
+    if touch { (38.0, egui::vec2(12.0, 8.0), egui::vec2(8.0, 8.0)) } else { (20.0, egui::vec2(6.0, 3.0), egui::vec2(6.0, 4.0)) }
+}
+
+/// Switch egui's widgets to `touch` density when they are not already at it.
+pub fn set_density(ctx: &egui::Context, touch: bool) {
+    let (row, padding, spacing) = density(touch);
+    if (ctx.style().spacing.interact_size.y - row).abs() < f32::EPSILON {
+        return;
+    }
+    ctx.all_styles_mut(|s| {
+        s.spacing.item_spacing = spacing;
+        s.spacing.button_padding = padding;
+        s.spacing.interact_size.y = row;
+    });
+}
+
 /// Install the styles of both themes and show `theme` (egui's own widgets, popups and menus
 /// follow it; our own painting follows [`Tokens::get`]). `follow_system` is true for the
 /// [`ThemePref::System`] choice, whose `theme` was resolved from the OS report.
@@ -724,10 +743,11 @@ pub fn apply(ctx: &egui::Context, theme: Theme, follow_system: bool) {
     // A System choice keeps egui's own System preference: a concrete Light/Dark would pin the native
     // window appearance (winit then stops reporting OS changes) and the app would never follow again.
     ctx.set_theme(if follow_system { egui::ThemePreference::System } else { egui::ThemePreference::from(theme) });
+    let (row, padding, spacing) = density(false);
     ctx.all_styles_mut(|s| {
-        s.spacing.item_spacing = egui::vec2(6.0, 4.0);
-        s.spacing.button_padding = egui::vec2(6.0, 3.0);
-        s.spacing.interact_size.y = 20.0;
+        s.spacing.item_spacing = spacing;
+        s.spacing.button_padding = padding;
+        s.spacing.interact_size.y = row;
         s.text_styles.insert(egui::TextStyle::Body, body());
         s.text_styles.insert(egui::TextStyle::Button, body());
         s.text_styles.insert(egui::TextStyle::Small, small());

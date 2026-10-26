@@ -13,7 +13,7 @@ use crate::docking::{Panel, Panels};
 /// Windows narrower than this, in points, use the compact layout.
 pub const COMPACT_WIDTH: f32 = 720.0;
 /// Width of the handle strip at each window edge.
-const HANDLE_WIDTH: f32 = 26.0;
+const HANDLE_WIDTH: f32 = 32.0;
 /// How long a press on a handle must hold, in seconds, before its drawer opens.
 const LONG_PRESS_SECS: f64 = 0.45;
 /// How far a held press may drift, in points, and still count as a tap or a hold.
