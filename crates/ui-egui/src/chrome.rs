@@ -532,9 +532,15 @@ pub fn start_page(app: &mut CadApp, ui: &mut egui::Ui) {
     let t = Tokens::get();
     let r = ui.max_rect();
     let p = ui.painter().clone();
-    let left = Rect::from_min_size(r.min, vec2(300.0, r.height()));
+    // On a phone-width window there is no room for the second column: the buttons take the whole
+    // width and the recent files (if any) go underneath them.
+    let narrow = r.width() < 420.0;
+    let left = Rect::from_min_size(r.min, vec2(if narrow { r.width() } else { 300.0 }, r.height()));
     p.rect_filled(left, 0.0, t.chrome_dark);
-    p.rect_filled(Rect::from_min_max(pos2(left.right(), r.top()), r.max), 0.0, t.chrome);
+    if !narrow {
+        p.rect_filled(Rect::from_min_max(pos2(left.right(), r.top()), r.max), 0.0, t.chrome);
+    }
+    let button_width = (left.width() - 68.0).clamp(120.0, 220.0);
     p.text(pos2(left.left() + 34.0, left.top() + 70.0), egui::Align2::LEFT_CENTER, crate::tl!("CADCraft"), egui::FontId::proportional(28.0), t.text);
     p.text(
         pos2(left.left() + 34.0, left.top() + 98.0),
@@ -546,7 +552,7 @@ pub fn start_page(app: &mut CadApp, ui: &mut egui::Ui) {
     let mut y = left.top() + 140.0;
     let mut action = None;
     for (label, cmd) in [("Open...", "open"), ("New", "new"), ("New (metric)", "new.metric"), ("Open sample drawing", "sample")] {
-        let br = Rect::from_min_size(pos2(left.left() + 34.0, y), vec2(220.0, 34.0));
+        let br = Rect::from_min_size(pos2(left.left() + 34.0, y), vec2(button_width, 34.0));
         let resp = ui.interact(br, ui.scope_id().with(("start", cmd)), Sense::click());
         p.rect_stroke(br, 2.0, Stroke::new(1.0, if resp.hovered() { t.text } else { t.text_dim }), egui::StrokeKind::Inside);
         p.text(pos2(br.left() + 16.0, br.center().y), egui::Align2::LEFT_CENTER, crate::i18n::t(label), crate::theme::body(), t.text);
@@ -555,8 +561,14 @@ pub fn start_page(app: &mut CadApp, ui: &mut egui::Ui) {
         }
         y += 44.0;
     }
-    let main = Rect::from_min_max(pos2(left.right() + 36.0, r.top() + 40.0), r.max);
-    p.text(main.min, egui::Align2::LEFT_TOP, crate::tl!("Recent"), egui::FontId::proportional(22.0), t.text);
+    let main = if narrow {
+        Rect::from_min_max(pos2(left.left() + 34.0, y + 12.0), r.max)
+    } else {
+        Rect::from_min_max(pos2(left.right() + 36.0, r.top() + 40.0), r.max)
+    };
+    if !narrow || !app.ui.recent_files.is_empty() {
+        p.text(main.min, egui::Align2::LEFT_TOP, crate::tl!("Recent"), egui::FontId::proportional(22.0), t.text);
+    }
     let mut recent = None;
     let mut y = main.top() + 44.0;
     for (i, path) in app.ui.recent_files.iter().enumerate() {
@@ -576,7 +588,7 @@ pub fn start_page(app: &mut CadApp, ui: &mut egui::Ui) {
     }
     if let Some(path) = recent {
         app.open_path(&path);
-    } else if app.ui.recent_files.is_empty() {
+    } else if app.ui.recent_files.is_empty() && !narrow {
         p.text(
             pos2(main.center().x, main.center().y),
             egui::Align2::CENTER_CENTER,

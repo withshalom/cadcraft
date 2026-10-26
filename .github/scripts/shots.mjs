@@ -105,7 +105,8 @@ await visit('phone', { ...devices['iPhone 14 Pro'] }, async (page, name) => {
   // The File menu, then close it.
   await page.touchscreen.tap(24, 82);
   await shot('6-file-menu');
-  await page.touchscreen.tap(width / 2, height / 2);
+  // Outside the menu (which now reaches x=223), so this does not click one of its items.
+  await page.touchscreen.tap(310, 420);
   await shot('7-menu-closed');
   // The command line: a tap should hand focus to the hidden text input (what brings up the keyboard).
   await page.touchscreen.tap(width / 2, height - 75);
