@@ -63,13 +63,32 @@ async function visit(name, contextOptions, steps) {
 
 await visit('phone', { ...devices['iPhone 14 Pro'] }, async (page, name) => {
   const { width, height } = page.viewportSize();
-  // Tap the left handle, then close the drawer, then tap the right handle.
+  const shot = async (label) => {
+    await page.waitForTimeout(2500);
+    await page.screenshot({ path: `${out}/${name}-${label}.png` });
+  };
+  const focused = async (label) => {
+    const tag = await page.evaluate(() => (document.activeElement ? document.activeElement.tagName : 'none'));
+    log(`[${name}] after ${label}: focused element = ${tag}`);
+  };
+  // The left handle, then the dimmed drawing to close it, then the right handle.
   await page.touchscreen.tap(16, height / 2);
-  await page.waitForTimeout(2500);
-  await page.screenshot({ path: `${out}/${name}-2-left-drawer.png` });
-  await page.touchscreen.tap(width - 10, height / 2);
-  await page.waitForTimeout(2500);
-  await page.screenshot({ path: `${out}/${name}-3-after-tap-right.png` });
+  await shot('2-left-drawer');
+  await page.touchscreen.tap(width - 8, height / 2);
+  await shot('3-left-closed');
+  await page.touchscreen.tap(width - 14, height / 2);
+  await shot('4-right-drawer');
+  await page.touchscreen.tap(8, height / 2);
+  await shot('5-right-closed');
+  // The File menu, then close it.
+  await page.touchscreen.tap(24, 82);
+  await shot('6-file-menu');
+  await page.touchscreen.tap(width / 2, height / 2);
+  await shot('7-menu-closed');
+  // The command line: a tap should hand focus to the hidden text input (what brings up the keyboard).
+  await page.touchscreen.tap(width / 2, height - 75);
+  await shot('8-command-tapped');
+  await focused('tapping the command line');
 });
 
 await visit('desktop', { viewport: { width: 1280, height: 800 } }, async () => {});

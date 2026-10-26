@@ -106,7 +106,10 @@ pub fn apply_zoom(ctx: &Context) {
     let saved = ctx.data(|d| d.get_temp::<f32>(zoom_id()));
     match zoom_step(window_width(ctx), saved) {
         ZoomStep::Enter => {
-            ctx.data_mut(|d| d.insert_temp(zoom_id(), ctx.zoom_factor()));
+            // Read the zoom first: egui's context lock is not re-entrant, so asking the context
+            // for anything from inside `data_mut` panics ("Parking not supported") on the web.
+            let before = ctx.zoom_factor();
+            ctx.data_mut(|d| d.insert_temp(zoom_id(), before));
             ctx.set_zoom_factor(COMPACT_ZOOM);
             ctx.request_repaint();
         }
