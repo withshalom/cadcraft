@@ -723,7 +723,7 @@ pub fn density(touch: bool) -> (f32, egui::Vec2, egui::Vec2) {
 /// Switch egui's widgets to `touch` density when they are not already at it.
 pub fn set_density(ctx: &egui::Context, touch: bool) {
     let (row, padding, spacing) = density(touch);
-    if (ctx.style().spacing.interact_size.y - row).abs() < f32::EPSILON {
+    if (ctx.style_of(ctx.theme()).spacing.interact_size.y - row).abs() < f32::EPSILON {
         return;
     }
     ctx.all_styles_mut(|s| {
