@@ -604,21 +604,43 @@ pub fn menu_bar(app: &mut CadApp, ui: &mut egui::Ui) {
     let t = crate::theme::Tokens::get();
     let tree = tree(app);
     let mut clicked = None;
-    egui::Panel::top("cc_menubar").exact_size(22.0).frame(egui::Frame::NONE.fill(t.chrome_dark).inner_margin(egui::Margin::symmetric(6, 0))).show(
+    // Phone-width windows (compact.rs): a taller bar that scrolls sideways, and menus that scroll
+    // inside the room below their title instead of being pushed up over the bar.
+    let compact = crate::compact::window_is_compact(ui.ctx());
+    let bar_h = if compact { 30.0 } else { 22.0 };
+    egui::Panel::top("cc_menubar").exact_size(bar_h).frame(egui::Frame::NONE.fill(t.chrome_dark).inner_margin(egui::Margin::symmetric(6, 0))).show(
         ui,
         |ui| {
-            egui::MenuBar::new().ui(ui, |ui| {
-                // Titles first, so a hovered title can take over before any menu is drawn.
-                let titles: Vec<egui::Response> = tree.iter().map(|(name, _)| ui.add(egui::Button::new(crate::i18n::menu(name)))).collect();
-                switch_on_hover(ui.ctx(), &titles);
-                for ((_, entries), title) in tree.iter().zip(&titles) {
-                    egui::Popup::menu(title).show(|ui| {
-                        for e in entries {
-                            entry_ui(ui, e, &mut clicked);
-                        }
-                    });
-                }
-            });
+            let mut bar = |ui: &mut egui::Ui| {
+                egui::MenuBar::new().ui(ui, |ui| {
+                    // Titles first, so a hovered title can take over before any menu is drawn.
+                    let titles: Vec<egui::Response> = tree.iter().map(|(name, _)| ui.add(egui::Button::new(crate::i18n::menu(name)))).collect();
+                    switch_on_hover(ui.ctx(), &titles);
+                    for ((_, entries), title) in tree.iter().zip(&titles) {
+                        egui::Popup::menu(title).show(|ui| {
+                            let mut list = |ui: &mut egui::Ui| {
+                                for e in entries {
+                                    entry_ui(ui, e, &mut clicked);
+                                }
+                            };
+                            if compact {
+                                let room = (ui.ctx().content_rect().bottom() - title.rect.bottom() - 8.0).max(120.0);
+                                egui::ScrollArea::vertical().max_height(room).show(ui, |ui| list(ui));
+                            } else {
+                                list(ui);
+                            }
+                        });
+                    }
+                });
+            };
+            if compact {
+                egui::ScrollArea::horizontal()
+                    .id_salt("menubar_scroll")
+                    .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::AlwaysHidden)
+                    .show(ui, |ui| bar(ui));
+            } else {
+                bar(ui);
+            }
         },
     );
     if let Some(id) = clicked {

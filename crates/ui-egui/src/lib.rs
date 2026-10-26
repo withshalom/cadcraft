@@ -817,7 +817,9 @@ impl CadApp {
         let t0 = now_ms();
         control::begin_frame(ui.ctx());
         let t = theme::Tokens::get();
-        theme::set_density(ui.ctx(), compact::is_compact(ui.max_rect()));
+        compact::apply_zoom(ui.ctx());
+        let compact = compact::window_is_compact(ui.ctx());
+        theme::set_density(ui.ctx(), compact);
         chrome::title_and_toolbar(self, ui);
         if self.ui.in_window_menu {
             menus::menu_bar(self, ui);
@@ -830,7 +832,6 @@ impl CadApp {
         }
         let has_doc = !self.session.docs.is_empty() && !self.ui.start_tab;
         // Phone-width windows collapse the side docks into drawers (compact.rs).
-        let compact = compact::is_compact(ui.max_rect());
         if has_doc && !self.ui.show_toolsets && !compact {
             palettes::toolsets_strip(self, ui);
         }

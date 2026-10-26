@@ -43,6 +43,9 @@ pub struct CmdLine {
     ime_generation: u64,
     /// Whether the command line published an IME context last frame.
     ime_on: bool,
+    /// A tap on the command line brought up the phone's on-screen keyboard (compact layout); a
+    /// press anywhere else puts it away.
+    pub touch_typing: bool,
 }
 
 /// The most history lines the command line shows above its bar.
@@ -294,7 +297,7 @@ pub fn keyboard(app: &mut CadApp, ctx: &egui::Context) {
     app.cmd.watch_selection(&selection);
     let mac = ctx.os() == egui::os::OperatingSystem::Mac;
     let text_prompt = app.session.current_prompt().is_some_and(|p| p.accept.text && !p.accept.point && !p.accept.number);
-    if text_prompt {
+    if text_prompt || app.cmd.touch_typing {
         enable_ime(app, ctx);
     } else {
         // No prompt is collecting text: a composition left over from one cannot belong here.
@@ -457,10 +460,25 @@ fn visible_lines(app: &CadApp, canvas: Rect, bar: Rect) -> usize {
 pub fn show(app: &mut CadApp, ui: &mut egui::Ui, canvas: Rect) {
     let t = Tokens::get();
     let w = (canvas.width() * 0.48).clamp(360.0, 760.0).min((canvas.width() - 8.0).max(0.0));
-    let h = 24.0;
+    // Phone-width windows (compact.rs): a taller bar, and a tap on it brings up the keyboard.
+    let compact = crate::compact::window_is_compact(ui.ctx());
+    let h = if compact { 34.0 } else { 24.0 };
     let bar = Rect::from_min_size(pos2(canvas.center().x - w / 2.0, canvas.bottom() - h - 10.0), vec2(w, h));
     let p = ui.painter_at(canvas);
-    history(app, ui, canvas, bar);
+    let tapped = history(app, ui, canvas, bar);
+    if compact {
+        if tapped {
+            // Published in this same pass, which the browser runs inside the tap itself: iOS only
+            // shows its keyboard for a focus that happens in a user gesture.
+            app.cmd.touch_typing = true;
+            enable_ime(app, ui.ctx());
+        } else if app.cmd.touch_typing {
+            let all = zones(app, canvas, bar).all;
+            if ui.input(|i| i.pointer.primary_pressed() && i.pointer.interact_pos().is_some_and(|at| !all.contains(at))) {
+                app.cmd.touch_typing = false;
+            }
+        }
+    }
     // History lines above the bar (the expanded window replaces them).
     let n = if app.cmd.expanded { 0 } else { visible_lines(app, canvas, bar) };
     let lines: Vec<String> = app.session.log.iter().rev().take(n).rev().cloned().collect();
@@ -655,7 +673,7 @@ fn zones(app: &CadApp, canvas: Rect, bar: Rect) -> Zones {
 /// off the drawing (the keywords and AutoComplete rows sit on top of it). Clicking the history
 /// lines or the chevron opens/closes the history window (`ui.toggle.history`, also F2); dragging
 /// the top edge sets how many lines show (`ui.cmdline.lines`).
-fn history(app: &mut CadApp, ui: &mut egui::Ui, canvas: Rect, bar: Rect) {
+fn history(app: &mut CadApp, ui: &mut egui::Ui, canvas: Rect, bar: Rect) -> bool {
     let z = zones(app, canvas, bar);
     let resp = ui.interact(z.all, ui.scope_id().with("cmdline"), Sense::click_and_drag());
     let at = resp.hover_pos().or(resp.interact_pointer_pos());
@@ -685,10 +703,12 @@ fn history(app: &mut CadApp, ui: &mut egui::Ui, canvas: Rect, bar: Rect) {
     if resp.clicked() && resp.interact_pointer_pos().is_some_and(on_toggle) {
         let _ = app.run("ui.toggle.history", serde_json::json!({}));
     }
+    let tapped = resp.clicked() && resp.interact_pointer_pos().is_some_and(|p| bar.contains(p) && !on_toggle(p));
     crate::shortcut_menus::attach(app, &resp, crate::shortcut_menus::command_line_entries);
     if let Some(r) = zones(app, canvas, bar).window {
         history_window(app, ui, r);
     }
+    tapped
 }
 
 /// The expanded history: the whole command log, scrollable, newest at the bottom.

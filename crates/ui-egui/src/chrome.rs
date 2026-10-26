@@ -66,11 +66,11 @@ pub fn title_and_toolbar(app: &mut CadApp, ui: &mut egui::Ui) {
     let t = Tokens::get();
     let title_h = if app.integrated_titlebar { MAC_TITLE_BAR } else { 0.0 };
     // Phone-width windows get finger-sized toolbar buttons (compact.rs).
-    let touch = crate::compact::is_compact(ui.max_rect());
+    let touch = crate::compact::window_is_compact(ui.ctx());
     let tb_h = if !app.ui.show_toolbar {
         0.0
     } else if touch {
-        52.0
+        42.0
     } else {
         34.0
     };
@@ -92,7 +92,7 @@ pub fn title_and_toolbar(app: &mut CadApp, ui: &mut egui::Ui) {
         if tb_h > 0.0 {
             let row = Rect::from_min_size(pos2(r.left(), r.top() + title_h), vec2(r.width(), tb_h));
             let mut x = r.left() + if app.integrated_titlebar { 120.0 } else { 12.0 };
-            let size = if touch { 40.0 } else { 26.0 };
+            let size = if touch { 32.0 } else { 26.0 };
             let mut clicked = None;
             let mac = ui.ctx().os().is_mac();
             let widths: Vec<_> = TOOLBAR.iter().map(|group| group.len() as f32 * (size + 6.0) - 6.0).collect();
@@ -126,7 +126,7 @@ pub fn title_and_toolbar(app: &mut CadApp, ui: &mut egui::Ui) {
                     if resp.hovered() {
                         ui.painter().rect_filled(br, 3.0, t.control_hover.gamma_multiply(0.6));
                     }
-                    icons::paint(ui.painter(), br.shrink(if touch { 7.0 } else { 4.0 }), *icon, false);
+                    icons::paint(ui.painter(), br.shrink(if touch { 5.0 } else { 4.0 }), *icon, false);
                     let tip = match shortcut {
                         Some(sc) => format!("{} ({})", crate::i18n::t(label), crate::menus::shortcut_label(sc, mac)),
                         None => crate::i18n::t(label).to_string(),
@@ -177,13 +177,17 @@ pub fn title_and_toolbar(app: &mut CadApp, ui: &mut egui::Ui) {
 /// File tabs: switcher, "+", Start, open drawings.
 pub fn file_tabs(app: &mut CadApp, ui: &mut egui::Ui) {
     let t = Tokens::get();
-    egui::Panel::top("cc_file_tabs").exact_size(26.0).frame(egui::Frame::NONE.fill(t.chrome_dark)).show(ui, |ui| {
+    // Phone-width windows get taller tabs, narrower so that more than one shows (compact.rs).
+    let touch = crate::compact::window_is_compact(ui.ctx());
+    let (bar_h, start_w, tab_w) = if touch { (32.0, 70.0, 120.0) } else { (26.0, 110.0, 170.0) };
+    egui::Panel::top("cc_file_tabs").exact_size(bar_h).frame(egui::Frame::NONE.fill(t.chrome_dark)).show(ui, |ui| {
         let r = ui.max_rect();
+        let pad = (r.height() - 18.0) / 2.0;
         let mut x = r.left() + 4.0;
-        let ib = Rect::from_min_size(pos2(x, r.top() + 4.0), vec2(18.0, 18.0));
+        let ib = Rect::from_min_size(pos2(x, r.top() + pad), vec2(18.0, 18.0));
         icons::paint(ui.painter(), ib.shrink(1.0), Icon::Switcher, false);
         x += 24.0;
-        let plus = Rect::from_min_size(pos2(x, r.top() + 4.0), vec2(18.0, 18.0));
+        let plus = Rect::from_min_size(pos2(x, r.top() + pad), vec2(18.0, 18.0));
         let presp = ui.interact(plus, ui.scope_id().with("tab+"), Sense::click());
         icons::paint(ui.painter(), plus.shrink(2.0), Icon::Plus, false);
         icons::describe_control(ui, &presp, "New Drawing", None, false);
@@ -239,7 +243,7 @@ pub fn file_tabs(app: &mut CadApp, ui: &mut egui::Ui) {
                 (resp.clicked(), close, resp)
             };
         let (c, _, _) =
-            tab(ui, crate::tl!("Start"), false, app.ui.start_tab || app.session.docs.is_empty(), false, 110.0, ui.scope_id().with("tab_start"));
+            tab(ui, crate::tl!("Start"), false, app.ui.start_tab || app.session.docs.is_empty(), false, start_w, ui.scope_id().with("tab_start"));
         if c {
             app.ui.start_tab = true;
         }
@@ -248,7 +252,7 @@ pub fn file_tabs(app: &mut CadApp, ui: &mut egui::Ui) {
         let titles: Vec<(usize, String, bool, bool)> =
             app.session.docs.iter().enumerate().map(|(i, d)| (i, d.title.clone(), d.is_dirty(), i == app.session.active)).collect();
         for (i, title, dirty, active) in titles {
-            let (c, x, resp) = tab(ui, &title, dirty, active && !app.ui.start_tab, true, 170.0, ui.scope_id().with(("tab", i)));
+            let (c, x, resp) = tab(ui, &title, dirty, active && !app.ui.start_tab, true, tab_w, ui.scope_id().with(("tab", i)));
             crate::shortcut_menus::attach(app, &resp, |app| crate::shortcut_menus::drawing_tab_entries(app, i));
             if c {
                 switch_to = Some(i);

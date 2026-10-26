@@ -717,7 +717,7 @@ fn visuals(theme: Theme) -> Visuals {
 /// Control density for a desktop window (`false`) or a touch-sized one (`true`): the height of a
 /// row or button, the padding inside a button, and the gap between widgets.
 pub fn density(touch: bool) -> (f32, egui::Vec2, egui::Vec2) {
-    if touch { (38.0, egui::vec2(12.0, 8.0), egui::vec2(8.0, 8.0)) } else { (20.0, egui::vec2(6.0, 3.0), egui::vec2(6.0, 4.0)) }
+    if touch { (30.0, egui::vec2(8.0, 5.0), egui::vec2(7.0, 5.0)) } else { (20.0, egui::vec2(6.0, 3.0), egui::vec2(6.0, 4.0)) }
 }
 
 /// Switch egui's widgets to `touch` density when they are not already at it.

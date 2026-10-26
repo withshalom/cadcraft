@@ -10,10 +10,13 @@ use egui::{Color32, Context, Id, Order, Pos2, Rect, Sense, Stroke, Ui, UiBuilder
 
 use crate::docking::{Panel, Panels};
 
-/// Windows narrower than this, in points, use the compact layout.
+/// Windows narrower than this, in CSS pixels, use the compact layout.
 pub const COMPACT_WIDTH: f32 = 720.0;
+/// How much the whole interface is scaled up in the compact layout, so that its hand-drawn
+/// controls (tabs, menus, Tool Sets icons, the command line) are finger-sized.
+pub const COMPACT_ZOOM: f32 = 1.4;
 /// Width of the handle strip at each window edge.
-const HANDLE_WIDTH: f32 = 32.0;
+const HANDLE_WIDTH: f32 = 26.0;
 /// How long a press on a handle must hold, in seconds, before its drawer opens.
 const LONG_PRESS_SECS: f64 = 0.45;
 /// How far a held press may drift, in points, and still count as a tap or a hold.
@@ -56,9 +59,64 @@ fn drawer_id() -> Id {
     Id::new("cadcraft-compact-drawer")
 }
 
-/// Whether a window (or panel) this wide uses the compact layout.
-pub fn is_compact(rect: Rect) -> bool {
-    rect.width() < COMPACT_WIDTH
+/// Whether a window this wide, in CSS pixels, uses the compact layout.
+pub fn is_compact(width: f32) -> bool {
+    width < COMPACT_WIDTH
+}
+
+/// The window's width in CSS pixels, whatever zoom is applied to the interface.
+pub fn window_width(ctx: &Context) -> f32 {
+    ctx.content_rect().width() * ctx.zoom_factor()
+}
+
+/// Whether the window is narrow enough for the compact layout. A window with no size yet is not.
+pub fn window_is_compact(ctx: &Context) -> bool {
+    let width = window_width(ctx);
+    width > 50.0 && is_compact(width)
+}
+
+fn zoom_id() -> Id {
+    Id::new("cadcraft-compact-zoom")
+}
+
+/// What to do with the interface zoom this frame.
+#[derive(Debug, PartialEq)]
+enum ZoomStep {
+    /// The window just became compact: remember the zoom and scale up.
+    Enter,
+    /// The window just stopped being compact: put this zoom back.
+    Leave(f32),
+    Keep,
+}
+
+/// The zoom change for a window `width` CSS pixels wide, given the zoom saved on entering the
+/// compact layout (`None` while it is not in use).
+fn zoom_step(width: f32, saved: Option<f32>) -> ZoomStep {
+    match (width > 50.0 && is_compact(width), saved) {
+        (true, None) => ZoomStep::Enter,
+        // A window with no size yet must not undo the zoom.
+        (false, Some(before)) if width > 50.0 => ZoomStep::Leave(before),
+        _ => ZoomStep::Keep,
+    }
+}
+
+/// Scale the interface up while the window is compact, and put the zoom back (including one the
+/// person set themselves) when it is not. Only changes the zoom when the layout switches.
+pub fn apply_zoom(ctx: &Context) {
+    let saved = ctx.data(|d| d.get_temp::<f32>(zoom_id()));
+    match zoom_step(window_width(ctx), saved) {
+        ZoomStep::Enter => {
+            ctx.data_mut(|d| d.insert_temp(zoom_id(), ctx.zoom_factor()));
+            ctx.set_zoom_factor(COMPACT_ZOOM);
+            ctx.request_repaint();
+        }
+        ZoomStep::Leave(before) => {
+            ctx.data_mut(|d| d.remove_temp::<f32>(zoom_id()));
+            ctx.set_zoom_factor(before);
+            ctx.request_repaint();
+        }
+        ZoomStep::Keep => {}
+    }
 }
 
 /// The left and right handle strips of `rect`.
@@ -248,11 +306,23 @@ mod tests {
 
     #[test]
     fn windows_under_the_threshold_are_compact() {
-        let wide = |w: f32| Rect::from_min_size(Pos2::ZERO, vec2(w, 800.0));
-        assert!(is_compact(wide(390.0)));
-        assert!(is_compact(wide(COMPACT_WIDTH - 1.0)));
-        assert!(!is_compact(wide(COMPACT_WIDTH)));
-        assert!(!is_compact(wide(1400.0)));
+        assert!(is_compact(390.0));
+        assert!(is_compact(COMPACT_WIDTH - 1.0));
+        assert!(!is_compact(COMPACT_WIDTH));
+        assert!(!is_compact(1400.0));
+    }
+
+    #[test]
+    fn the_compact_zoom_comes_on_and_goes_off_with_the_window_width() {
+        assert_eq!(zoom_step(1200.0, None), ZoomStep::Keep);
+        assert_eq!(zoom_step(400.0, None), ZoomStep::Enter);
+        // Still compact at the zoomed size: nothing to do.
+        assert_eq!(zoom_step(400.0, Some(1.0)), ZoomStep::Keep);
+        // Widening past the threshold puts back the zoom saved on the way in, even a custom one.
+        assert_eq!(zoom_step(1200.0, Some(1.25)), ZoomStep::Leave(1.25));
+        // A window with no size yet changes nothing, either way.
+        assert_eq!(zoom_step(0.0, None), ZoomStep::Keep);
+        assert_eq!(zoom_step(0.0, Some(1.0)), ZoomStep::Keep);
     }
 
     #[test]
