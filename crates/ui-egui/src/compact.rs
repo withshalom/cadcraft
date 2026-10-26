@@ -103,6 +103,7 @@ fn zoom_step(width: f32, saved: Option<f32>) -> ZoomStep {
 /// Scale the interface up while the window is compact, and put the zoom back (including one the
 /// person set themselves) when it is not. Only changes the zoom when the layout switches.
 pub fn apply_zoom(ctx: &Context) {
+    trace(ctx);
     let saved = ctx.data(|d| d.get_temp::<f32>(zoom_id()));
     match zoom_step(window_width(ctx), saved) {
         ZoomStep::Enter => {
@@ -119,6 +120,26 @@ pub fn apply_zoom(ctx: &Context) {
             ctx.request_repaint();
         }
         ZoomStep::Keep => {}
+    }
+}
+
+/// Log the window size, zoom and pixel ratio whenever one changes (diagnostics for phone sizing).
+fn trace(ctx: &Context) {
+    let rect = ctx.content_rect();
+    let text = format!(
+        "content {:.1}x{:.1} zoom {} ppp {} native {:?} css-width {:.1}",
+        rect.width(),
+        rect.height(),
+        ctx.zoom_factor(),
+        ctx.pixels_per_point(),
+        ctx.native_pixels_per_point(),
+        window_width(ctx)
+    );
+    let id = Id::new("cadcraft-compact-trace");
+    let last = ctx.data(|d| d.get_temp::<String>(id));
+    if last.as_deref() != Some(text.as_str()) {
+        log::info!("compact: {text}");
+        ctx.data_mut(|d| d.insert_temp(id, text));
     }
 }
 

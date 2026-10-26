@@ -50,6 +50,20 @@ async function visit(name, contextOptions, steps) {
       return el ? `still present (display=${getComputedStyle(el).display})` : 'gone';
     });
     log(`[${name}] loading text: ${loading}; viewport ${page.viewportSize()?.width}x${page.viewportSize()?.height}`);
+    const metrics = await page.evaluate(() => {
+      const c = document.getElementById('cadcraft_canvas');
+      const r = c.getBoundingClientRect();
+      const v = window.visualViewport;
+      return JSON.stringify({
+        inner: [window.innerWidth, window.innerHeight],
+        dpr: window.devicePixelRatio,
+        visual: v ? [v.width, v.height, v.scale, v.offsetLeft, v.offsetTop] : null,
+        canvasPx: [c.width, c.height],
+        canvasRect: [r.left, r.top, r.width, r.height],
+        scroll: [document.documentElement.scrollWidth, document.documentElement.scrollHeight, window.scrollX, window.scrollY],
+      });
+    });
+    log(`[${name}] page metrics: ${metrics}`);
     await page.screenshot({ path: `${out}/${name}-1-start.png` });
     await steps(page, name);
   } catch (error) {
