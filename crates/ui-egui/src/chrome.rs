@@ -302,9 +302,118 @@ fn visible_tabs(widths: &[f32], active: Option<usize>, room: f32) -> std::ops::R
     start..active + 1
 }
 
+/// The drafting toggles of the status bar: icon, whether it is on, its command and its tooltip.
+fn status_toggles(app: &mut CadApp) -> Vec<(Icon, bool, &'static str, &'static str)> {
+    let s = app.session.settings.clone();
+    let anno_all = app.session.doc().is_ok_and(|d| d.anno_all_visible());
+    use cadcraft_engine::snap::mode;
+    vec![
+        (Icon::Grid, s.gridmode, "grid", "Grid (F7)"),
+        (Icon::Snap, s.snapmode, "snap", "Snap Mode (F9)"),
+        (Icon::Ortho, s.orthomode, "ortho", "Ortho Mode (F8)"),
+        (Icon::Polar, s.polarmode, "polar", "Polar Tracking (F10)"),
+        (Icon::Isodraft, s.isodraft, "isodraft", "Isometric Drafting"),
+        (Icon::OTrack, s.otrack, "otrack", "Object Snap Tracking (F11)"),
+        (Icon::Osnap, s.osmode & mode::OFF == 0 && s.osmode != 0, "osnap", "Object Snap (F3)"),
+        (Icon::Lineweight, s.lwdisplay, "lwdisplay", "Show/Hide Lineweight"),
+        (Icon::Transparency, s.transparency_display, "transparencydisplay", "Show/Hide Transparency"),
+        (Icon::DynInput, s.dynmode, "dynmode", "Dynamic Input (F12)"),
+        (Icon::QuickProps, s.qpmode, "qpmode", "Quick Properties"),
+        (Icon::Annotation, anno_all, "annovisible.toggle", "Annotation Visibility"),
+        (Icon::Workspace, false, "ui.noop", "Workspace Switching"),
+        (Icon::Gear, false, "ui.dialog.dsettings", "Drafting Settings"),
+    ]
+}
+
+/// The status bar of a phone-width window. The fourteen drafting toggles do not fit side by side
+/// there (they ran over each other), so they sit in a strip that scrolls sideways, finger-sized,
+/// after one button for the layout list. Coordinates and layout tabs are left out.
+fn status_bar_compact(app: &mut CadApp, ui: &mut egui::Ui) {
+    const BUTTON: f32 = 32.0;
+    const GAP: f32 = 4.0;
+    let t = Tokens::get();
+    let toggles = status_toggles(app);
+    egui::Panel::bottom("cc_status").exact_size(40.0).frame(egui::Frame::NONE.fill(t.chrome)).show(ui, |ui| {
+        let r = ui.max_rect();
+        let mut tabs: Vec<String> = vec!["Model".into()];
+        let cur = app.session.state().map(|s| match &s.space {
+            cadcraft_doc::Space::Model => "Model".to_string(),
+            cadcraft_doc::Space::Paper(n) => n.clone(),
+        });
+        if let Ok(st) = app.session.state() {
+            let mut ls: Vec<_> = st.doc.layouts.iter().collect();
+            ls.sort_by_key(|l| l.tab_order);
+            tabs.extend(ls.iter().map(|l| l.name.clone()));
+        }
+        let active_tab = tabs.iter().position(|n| cur.as_deref().is_ok_and(|c| c == n));
+        let mut switch = None;
+        // The layout list: Model, then each layout.
+        let list_rect = Rect::from_min_size(pos2(r.left() + 6.0, r.center().y - BUTTON / 2.0), vec2(BUTTON, BUTTON));
+        let list_resp = ui.interact(list_rect, ui.scope_id().with("sb_layout_list"), Sense::click());
+        if list_resp.hovered() {
+            ui.painter().rect_filled(list_rect, 3.0, t.control_hover.gamma_multiply(0.5));
+        }
+        icons::paint(ui.painter(), list_rect.shrink(6.0), Icon::Menu, false);
+        icons::describe_control(ui, &list_resp, "Layout list", None, false);
+        egui::Popup::from_toggle_button_response(&list_resp).width(200.0).close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside).show(|ui| {
+            egui::ScrollArea::vertical().max_height(360.0).show(ui, |ui| {
+                for (i, name) in tabs.iter().enumerate() {
+                    let shown = if i == 0 { crate::tl!("Model").to_string() } else { name.clone() };
+                    if ui.add(egui::Button::selectable(active_tab == Some(i), shown).truncate()).clicked() {
+                        switch = Some(name.clone());
+                        ui.close();
+                    }
+                }
+            });
+        });
+        if let Some(n) = switch {
+            let _ = app.run("layout.set", json!({ "name": n }));
+        }
+        // The toggles, in a strip that scrolls sideways.
+        let strip = Rect::from_min_max(pos2(list_rect.right() + 6.0, r.top()), r.max);
+        let count = toggles.len();
+        let mut toggle_cmd = None;
+        ui.scope_builder(egui::UiBuilder::new().max_rect(strip), |ui| {
+            egui::ScrollArea::horizontal()
+                .id_salt("status_scroll")
+                .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::AlwaysHidden)
+                .show(ui, |ui| {
+                    let (rect, _) = ui.allocate_exact_size(vec2(GAP + count as f32 * (BUTTON + GAP), strip.height()), Sense::hover());
+                    let p = ui.painter().clone();
+                    for (i, (icon, on, cmd, tip)) in toggles.into_iter().enumerate() {
+                        let br = Rect::from_min_size(pos2(rect.left() + GAP + i as f32 * (BUTTON + GAP), rect.center().y - BUTTON / 2.0), vec2(BUTTON, BUTTON));
+                        let resp = ui.interact(br, ui.scope_id().with(("tg", tip)), Sense::click());
+                        if on {
+                            p.rect_filled(br, 3.0, t.toggle_on.gamma_multiply(0.35));
+                        } else if resp.hovered() {
+                            p.rect_filled(br, 3.0, t.control_hover.gamma_multiply(0.5));
+                        }
+                        icons::paint(&p, br.shrink(5.0), icon, false);
+                        if on {
+                            p.hline(br.x_range().shrink(6.0), br.bottom() - 2.0, Stroke::new(1.5, t.toggle_on));
+                        }
+                        icons::describe_control(ui, &resp, tip, Some(on), false);
+                        if resp.clicked() {
+                            toggle_cmd = Some(cmd);
+                        }
+                    }
+                });
+        });
+        // Like the wide bar: the toggles don't cancel the active command, the dialog buttons start theirs.
+        match toggle_cmd {
+            Some(c) if c.starts_with("ui.") => app.start(c),
+            Some(c) => crate::menus::run_transparent(app, c),
+            None => {}
+        }
+    });
+}
+
 /// Status bar: layout tabs follow the left-hand layout actions, independent of palette docking.
 /// Coordinates and drafting toggles remain on the right.
 pub fn status_bar(app: &mut CadApp, ui: &mut egui::Ui) {
+    if crate::compact::window_is_compact(ui.ctx()) {
+        return status_bar_compact(app, ui);
+    }
     let t = Tokens::get();
     egui::Panel::bottom("cc_status").exact_size(26.0).frame(egui::Frame::NONE.fill(t.chrome)).show(ui, |ui| {
         let r = ui.max_rect();
@@ -335,25 +444,7 @@ pub fn status_bar(app: &mut CadApp, ui: &mut egui::Ui) {
         }
         x += 8.0;
         // Right side: toggles, right-aligned.
-        let s = app.session.settings.clone();
-        let anno_all = app.session.doc().is_ok_and(|d| d.anno_all_visible());
-        use cadcraft_engine::snap::mode;
-        let toggles: Vec<(Icon, bool, &str, &str)> = vec![
-            (Icon::Grid, s.gridmode, "grid", "Grid (F7)"),
-            (Icon::Snap, s.snapmode, "snap", "Snap Mode (F9)"),
-            (Icon::Ortho, s.orthomode, "ortho", "Ortho Mode (F8)"),
-            (Icon::Polar, s.polarmode, "polar", "Polar Tracking (F10)"),
-            (Icon::Isodraft, s.isodraft, "isodraft", "Isometric Drafting"),
-            (Icon::OTrack, s.otrack, "otrack", "Object Snap Tracking (F11)"),
-            (Icon::Osnap, s.osmode & mode::OFF == 0 && s.osmode != 0, "osnap", "Object Snap (F3)"),
-            (Icon::Lineweight, s.lwdisplay, "lwdisplay", "Show/Hide Lineweight"),
-            (Icon::Transparency, s.transparency_display, "transparencydisplay", "Show/Hide Transparency"),
-            (Icon::DynInput, s.dynmode, "dynmode", "Dynamic Input (F12)"),
-            (Icon::QuickProps, s.qpmode, "qpmode", "Quick Properties"),
-            (Icon::Annotation, anno_all, "annovisible.toggle", "Annotation Visibility"),
-            (Icon::Workspace, false, "ui.noop", "Workspace Switching"),
-            (Icon::Gear, false, "ui.dialog.dsettings", "Drafting Settings"),
-        ];
+        let toggles = status_toggles(app);
         let size = 20.0;
         let mut rx = r.right() - 8.0 - toggles.len() as f32 * (size + 4.0);
         // Coordinates.

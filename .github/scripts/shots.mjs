@@ -112,6 +112,9 @@ await visit('phone', { ...devices['iPhone 14 Pro'] }, async (page, name) => {
   await page.touchscreen.tap(width / 2, height - 75);
   await shot('8-command-tapped');
   await focused('tapping the command line');
+  // The Start tab (the page shown when no drawing is open).
+  await page.touchscreen.tap(110, 123);
+  await shot('9-start-tab');
 });
 
 await visit('desktop', { viewport: { width: 1280, height: 800 } }, async () => {});
