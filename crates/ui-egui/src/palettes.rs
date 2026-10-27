@@ -378,9 +378,12 @@ pub(crate) fn layers_section(app: &mut CadApp, ui: &mut egui::Ui) {
     section_header(ui, "Layers");
     // Layer tools row.
     let mut cmd = None;
-    ui.horizontal(|ui| {
+    // Nine 26-point buttons are 266 points wide: more than a phone's drawer, which they pushed off
+    // the screen. There the row wraps instead.
+    let wrap = crate::compact::window_is_compact(ui.ctx());
+    let mut tools = |ui: &mut egui::Ui| {
         ui.add_space(8.0);
-        ui.spacing_mut().item_spacing = vec2(3.0, 0.0);
+        ui.spacing_mut().item_spacing = vec2(3.0, if wrap { 3.0 } else { 0.0 });
         for (icon, c, tip) in [
             (Icon::LayerProps, "ui.dialog.layers", "Layer Properties"),
             (Icon::MakeCurrent, "laymcur", "Make Object's Layer Current"),
@@ -396,7 +399,12 @@ pub(crate) fn layers_section(app: &mut CadApp, ui: &mut egui::Ui) {
                 cmd = Some(c);
             }
         }
-    });
+    };
+    if wrap {
+        ui.horizontal_wrapped(|ui| tools(ui));
+    } else {
+        ui.horizontal(|ui| tools(ui));
+    }
     if let Some(c) = cmd {
         if c.starts_with("ui.") {
             app.start(c);

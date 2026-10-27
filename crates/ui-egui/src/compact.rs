@@ -251,33 +251,31 @@ fn drawer(app: &mut crate::CadApp, ctx: &Context, rect: Rect, open: Open) {
     }
 
     egui::Area::new(Id::new("cadcraft-compact-drawer-panel")).order(Order::Tooltip).fixed_pos(panel.min).show(ctx, |ui| {
-        egui::Frame::NONE.fill(t.panel).stroke(Stroke::new(1.0, t.border)).show(ui, |ui| {
-            ui.set_min_size(panel.size());
-            ui.set_max_size(panel.size());
-            let full = Rect::from_min_size(ui.next_widget_position(), panel.size());
-            match open.side {
-                Drawer::Left => {
-                    ui.scope_builder(UiBuilder::new().max_rect(full), |ui| {
-                        ui.set_clip_rect(full);
-                        Panels { app: &mut *app }.body(ui, &Panel::ToolSets);
-                    });
-                }
-                Drawer::Right => {
-                    let split_y = full.min.y + full.height() * LAYERS_SHARE;
-                    let top = Rect::from_min_max(full.min, pos2(full.max.x, split_y));
-                    let bottom = Rect::from_min_max(pos2(full.min.x, split_y), full.max);
-                    ui.scope_builder(UiBuilder::new().max_rect(top), |ui| {
-                        ui.set_clip_rect(top);
-                        Panels { app: &mut *app }.body(ui, &Panel::Layers);
-                    });
-                    ui.scope_builder(UiBuilder::new().max_rect(bottom), |ui| {
-                        ui.set_clip_rect(bottom);
-                        Panels { app: &mut *app }.body(ui, &Panel::Properties);
-                    });
-                    ui.painter().line_segment([top.left_bottom(), top.right_bottom()], Stroke::new(1.0, t.border));
-                }
+        // The drawer is exactly its rectangle, drawn by hand: a content row wider than the drawer
+        // is clipped instead of growing the drawer (which pushed it off the screen's edge and
+        // left no dimmed strip to tap in order to close it).
+        let (full, _) = ui.allocate_exact_size(panel.size(), Sense::hover());
+        ui.painter().rect_filled(full, 0.0, t.panel);
+        ui.painter().rect_stroke(full, 0.0, Stroke::new(1.0, t.border), egui::StrokeKind::Inside);
+        match open.side {
+            Drawer::Left => {
+                let mut body = ui.new_child(UiBuilder::new().max_rect(full));
+                body.set_clip_rect(full);
+                Panels { app: &mut *app }.body(&mut body, &Panel::ToolSets);
             }
-        });
+            Drawer::Right => {
+                let split_y = full.min.y + full.height() * LAYERS_SHARE;
+                let top = Rect::from_min_max(full.min, pos2(full.max.x, split_y));
+                let bottom = Rect::from_min_max(pos2(full.min.x, split_y), full.max);
+                let mut layers = ui.new_child(UiBuilder::new().max_rect(top));
+                layers.set_clip_rect(top);
+                Panels { app: &mut *app }.body(&mut layers, &Panel::Layers);
+                let mut properties = ui.new_child(UiBuilder::new().max_rect(bottom));
+                properties.set_clip_rect(bottom);
+                Panels { app: &mut *app }.body(&mut properties, &Panel::Properties);
+                ui.painter().line_segment([top.left_bottom(), top.right_bottom()], Stroke::new(1.0, t.border));
+            }
+        }
     });
 
     if close {
