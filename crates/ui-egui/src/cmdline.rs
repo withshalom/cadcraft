@@ -467,17 +467,7 @@ pub fn show(app: &mut CadApp, ui: &mut egui::Ui, canvas: Rect) {
     let p = ui.painter_at(canvas);
     let tapped = history(app, ui, canvas, bar);
     if compact {
-        if tapped {
-            // Published in this same pass, which the browser runs inside the tap itself: iOS only
-            // shows its keyboard for a focus that happens in a user gesture.
-            app.cmd.touch_typing = true;
-            enable_ime(app, ui.ctx());
-        } else if app.cmd.touch_typing {
-            let all = zones(app, canvas, bar).all;
-            if ui.input(|i| i.pointer.primary_pressed() && i.pointer.interact_pos().is_some_and(|at| !all.contains(at))) {
-                app.cmd.touch_typing = false;
-            }
-        }
+        touch_keyboard(app, ui, canvas, bar, tapped);
     }
     // History lines above the bar (the expanded window replaces them).
     let n = if app.cmd.expanded { 0 } else { visible_lines(app, canvas, bar) };
@@ -709,6 +699,22 @@ fn history(app: &mut CadApp, ui: &mut egui::Ui, canvas: Rect, bar: Rect) -> bool
         history_window(app, ui, r);
     }
     tapped
+}
+
+/// The phone's on-screen keyboard (compact layout): a tap on the bar (`tapped`) brings it up, a
+/// press anywhere outside the command line puts it away.
+fn touch_keyboard(app: &mut CadApp, ui: &egui::Ui, canvas: Rect, bar: Rect, tapped: bool) {
+    if tapped {
+        // Published in this same pass, which the browser runs inside the tap itself: iOS only
+        // shows its keyboard for a focus that happens in a user gesture.
+        app.cmd.touch_typing = true;
+        enable_ime(app, ui.ctx());
+    } else if app.cmd.touch_typing {
+        let all = zones(app, canvas, bar).all;
+        if ui.input(|i| i.pointer.primary_pressed() && i.pointer.interact_pos().is_some_and(|at| !all.contains(at))) {
+            app.cmd.touch_typing = false;
+        }
+    }
 }
 
 /// The expanded history: the whole command log, scrollable, newest at the bottom.

@@ -52,11 +52,11 @@ struct Open {
 }
 
 fn press_id() -> Id {
-    Id::new("cadcraft-compact-press")
+    Id::unique("cadcraft-compact-press")
 }
 
 fn drawer_id() -> Id {
-    Id::new("cadcraft-compact-drawer")
+    Id::unique("cadcraft-compact-drawer")
 }
 
 /// Whether a window this wide, in CSS pixels, uses the compact layout.
@@ -76,7 +76,7 @@ pub fn window_is_compact(ctx: &Context) -> bool {
 }
 
 fn zoom_id() -> Id {
-    Id::new("cadcraft-compact-zoom")
+    Id::unique("cadcraft-compact-zoom")
 }
 
 /// What to do with the interface zoom this frame.
@@ -240,7 +240,7 @@ fn drawer(app: &mut crate::CadApp, ctx: &Context, rect: Rect, open: Open) {
         Drawer::Right => Rect::from_min_size(pos2(rect.max.x - width, rect.min.y), vec2(width, rect.height())),
     };
 
-    let scrim = egui::Area::new(Id::new("cadcraft-compact-scrim")).order(Order::Foreground).fixed_pos(rect.min).show(ctx, |ui| {
+    let scrim = egui::Area::new(Id::unique("cadcraft-compact-scrim")).order(Order::Foreground).fixed_pos(rect.min).show(ctx, |ui| {
         let response = ui.allocate_rect(rect, Sense::click());
         ui.painter().rect_filled(rect, 0.0, Color32::from_black_alpha(120));
         response
@@ -250,7 +250,7 @@ fn drawer(app: &mut crate::CadApp, ctx: &Context, rect: Rect, open: Open) {
         close = true;
     }
 
-    egui::Area::new(Id::new("cadcraft-compact-drawer-panel")).order(Order::Tooltip).fixed_pos(panel.min).show(ctx, |ui| {
+    egui::Area::new(Id::unique("cadcraft-compact-drawer-panel")).order(Order::Tooltip).fixed_pos(panel.min).show(ctx, |ui| {
         // The drawer is exactly its rectangle, drawn by hand: a content row wider than the drawer
         // is clipped instead of growing the drawer (which pushed it off the screen's edge and
         // left no dimmed strip to tap in order to close it).
