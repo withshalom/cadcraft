@@ -10,9 +10,12 @@
 
 pub mod bits;
 pub mod checksum;
+pub mod classes;
 pub mod container;
 pub mod lz77;
+pub mod object;
 pub mod objmap;
+pub mod types;
 
 #[cfg(test)]
 mod tests;

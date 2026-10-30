@@ -115,6 +115,8 @@ pub struct Note(pub String);
 pub struct Container<'a> {
     file: &'a [u8],
     pub version: Version,
+    /// The maintenance release version (file byte 0x0B).
+    pub maintenance: u8,
     pub header: HeaderData,
     pub pages: Vec<PageEntry>,
     pub sections: Vec<SectionInfo>,
@@ -127,6 +129,7 @@ impl<'a> Container<'a> {
     pub fn read(file: &'a [u8], limits: Limits) -> Result<Container<'a>> {
         let magic = file.get(0..6).ok_or(DecodeError::Truncated("the version string"))?;
         let version = Version::from_magic(magic).ok_or_else(|| DecodeError::Unsupported(String::from_utf8_lossy(magic).into_owned()))?;
+        let maintenance = file.get(0x0B).copied().ok_or(DecodeError::Truncated("the maintenance version"))?;
         let header = header_data(file)?;
         let mut notes = Vec::new();
         if !header.crc_ok {
@@ -140,7 +143,7 @@ impl<'a> Container<'a> {
             .ok_or_else(|| invalid("section map", format!("page {} is not in the page map", header.section_map_id)))?;
         let section_map = system_page(file, section_map_page.address, SECTION_MAP_TYPE, limits, &mut notes)?;
         let sections = section_infos(&section_map, limits)?;
-        Ok(Container { file, version, header, pages, sections, notes, limits })
+        Ok(Container { file, version, maintenance, header, pages, sections, notes, limits })
     }
 
     /// The description of the section called `name`.

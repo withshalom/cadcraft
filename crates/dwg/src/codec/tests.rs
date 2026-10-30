@@ -101,6 +101,14 @@ fn hostile_input_never_panics() {
         let mut file = b"AC1032".to_vec();
         file.extend(&junk);
         let _ = Container::read(&file, Limits::DEFAULT);
+        for v in [Version::R2004, Version::R2010, Version::R2018] {
+            let _ = super::object::Envelope::read(&junk, 0, v);
+            let _ = super::object::Envelope::read(&junk, junk.len() / 2, v);
+            let _ = super::object::string_stream(&junk, junk.len() * 8);
+            let mut classes = vec![0x8D, 0xA1, 0xC4, 0xB8, 0xC4, 0xA9, 0xF8, 0xC5, 0xC0, 0xDC, 0xF4, 0x5F, 0xE7, 0xCF, 0xB6, 0x8A];
+            classes.extend(&junk);
+            let _ = super::classes::read(&classes, v, (seed % 9) as u8);
+        }
     }
     // Truncations of a valid-looking prefix.
     for n in 0..0x100 {
@@ -148,6 +156,50 @@ fn corpus_containers_read_whole() {
             map.entries.len(),
             map.bad_crcs,
             c.notes
+        );
+    }
+}
+
+/// Opens every object of every 2004-family corpus file: each record's handle must be the one the
+/// object map gives, and its CRC must match.
+#[test]
+fn corpus_objects_open_with_their_handles() {
+    use super::object::Envelope;
+    use super::{classes, types};
+    let Some(dir) = corpus() else { return };
+    let mut files: Vec<_> =
+        std::fs::read_dir(&dir).unwrap().filter_map(|e| e.ok().map(|e| e.path())).filter(|p| p.extension().is_some_and(|x| x == "dwg")).collect();
+    files.sort();
+    for path in files {
+        let bytes = std::fs::read(&path).unwrap();
+        if bytes.get(0..6).and_then(Version::from_magic).is_none() {
+            continue;
+        }
+        let name = path.file_name().unwrap().to_string_lossy().into_owned();
+        let c = Container::read(&bytes, Limits::DEFAULT).unwrap();
+        let classes =
+            classes::read(&c.section("AcDb:Classes").unwrap().unwrap(), c.version, c.maintenance).unwrap_or_else(|e| panic!("{name} classes: {e}"));
+        let map = objmap::read(&c.section("AcDb:Handles").unwrap().unwrap(), Limits::DEFAULT).unwrap();
+        let objects = c.section("AcDb:AcDbObjects").unwrap().unwrap();
+        let mut tally = std::collections::BTreeMap::<String, usize>::new();
+        let (mut bad_crc, mut strings) = (0, 0);
+        for e in &map.entries {
+            let env = Envelope::read(&objects, e.offset as usize, c.version).unwrap_or_else(|err| panic!("{name} handle {:#x}: {err}", e.handle));
+            assert_eq!(env.handle, e.handle, "{name}: record at {} has handle {:#x}", e.offset, env.handle);
+            bad_crc += usize::from(!env.crc_ok);
+            strings += usize::from(env.streams.strings.is_some());
+            *tally.entry(types::name(env.type_code, &classes)).or_default() += 1;
+        }
+        assert_eq!(bad_crc, 0, "{name}: objects with a bad CRC");
+        assert_eq!(classes.list.len() as i32, i32::from(classes.max_number) - 499, "{name}: every class up to the declared maximum");
+        assert!(!tally.keys().any(|k| k.starts_with("class ")), "{name}: unnamed types {tally:?}");
+        println!(
+            "{name}: {} classes, {} objects ({} with a string stream), {} types: {:?}",
+            classes.list.len(),
+            map.entries.len(),
+            strings,
+            tally.len(),
+            tally
         );
     }
 }
