@@ -317,16 +317,16 @@ pub fn tr<'a>(language: &str, source: &'a str) -> &'a str {
     if NAMES_UPSTREAM.contains(&source) { shown } else { brand(shown) }
 }
 
-/// The product's name in the interface. DWGCraft keeps upstream CADCraft's English source strings
+/// The product's name in the interface. DraftCraft keeps upstream CADCraft's English source strings
 /// and translation catalogs as they are, so they keep merging cleanly, and swaps the name as text
 /// is looked up ([`brand`]).
-pub const PRODUCT_NAME: &str = "DWGCraft";
+pub const PRODUCT_NAME: &str = "DraftCraft";
 
 /// Upstream's name, as the source strings and catalogs say it.
 const UPSTREAM_NAME: &str = "CADCraft";
 
-/// DWGCraft's source repository (upstream CADCraft's is `https://github.com/storytold/cadcraft`).
-pub const REPOSITORY: &str = "https://github.com/withshalom/dwgcraft";
+/// DraftCraft's source repository (upstream CADCraft's is `https://github.com/storytold/cadcraft`).
+pub const REPOSITORY: &str = "https://github.com/withshalom/draftcraft";
 
 /// The About box's credit line. It names upstream on purpose, so [`tr`] shows it as written.
 pub const CREDITS: &str = "Built on CADCraft by the ArtCraft team.";

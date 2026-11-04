@@ -103,11 +103,11 @@ mod tests {
     use crate::UPDATE_APP as APP;
 
     #[test]
-    fn updates_come_from_dwgcrafts_own_releases() {
-        assert_eq!(APP.repo, "withshalom/dwgcraft");
+    fn updates_come_from_draftcrafts_own_releases() {
+        assert_eq!(APP.repo, "withshalom/draftcraft");
         assert_eq!(crate::i18n::REPOSITORY, APP.repo_url());
-        assert_eq!(APP.name, "DWGCraft");
-        // The release files' stem (packaging/env.sh: APP_SLUG=dwgcraft).
+        assert_eq!(APP.name, "DraftCraft");
+        // The release files' stem (packaging/env.sh: APP_SLUG=draftcraft).
         let env = include_str!("../../../packaging/env.sh");
         let slug = env.lines().find_map(|l| l.trim().strip_prefix("export APP_SLUG=")).and_then(|v| v.split_whitespace().next());
         assert_eq!(slug, Some(APP.id));

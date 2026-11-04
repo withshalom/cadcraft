@@ -236,9 +236,9 @@ fn window_options(restoring: bool) -> eframe::NativeOptions {
     }
 }
 
-/// The window's app id (Wayland) and class (X11): DWGCraft's, as its desktop entry names it
-/// (`packaging/linux/dev.cadcraft.dwg.desktop`, StartupWMClass).
-const APP_ID: &str = "dev.cadcraft.dwg";
+/// The window's app id (Wayland) and class (X11): DraftCraft's, as its desktop entry names it
+/// (`packaging/linux/dev.cadcraft.draft.desktop`, StartupWMClass).
+const APP_ID: &str = "dev.cadcraft.draft";
 
 /// The key eframe saves the main window state under in its storage.
 const WINDOW_KEY: &str = "window";
@@ -272,7 +272,7 @@ fn main() -> eframe::Result {
     #[cfg(not(target_arch = "wasm32"))]
     if let Some(done) = craft_update::self_update::finish(&cadcraft_ui_egui::UPDATE_APP, &std::env::args_os().skip(1).collect::<Vec<_>>()) {
         if let Err(e) = done {
-            eprintln!("DWGCraft update helper failed: {e}");
+            eprintln!("DraftCraft update helper failed: {e}");
             std::process::exit(1);
         }
         return Ok(());

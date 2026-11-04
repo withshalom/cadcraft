@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
-# Repackage a DWGCraft Linux tarball as a single-file Flatpak bundle:
+# Repackage a DraftCraft Linux tarball as a single-file Flatpak bundle:
 #
-#   $DIST/dwgcraft-<version>-linux-<arch>.flatpak
+#   $DIST/draftcraft-<version>-linux-<arch>.flatpak
 #
 # Usage: packaging/linux/flatpak-bundle.sh [--no-test] [TARBALL]
 #
-# TARBALL defaults to $DIST/dwgcraft-<version>-linux-<arch>.tar.gz from package.sh. The bundle
+# TARBALL defaults to $DIST/draftcraft-<version>-linux-<arch>.tar.gz from package.sh. The bundle
 # is built for the host architecture (x86_64 or aarch64), which must match the tarball's.
 # Needs flatpak, flatpak-builder and the SVG pixbuf loader (librsvg2-common) for the host's
 # `appstreamcli compose`; the freedesktop runtime and SDK named in the manifest are
 # installed per-user from Flathub. Unless --no-test, the bundle is then installed per-user and
-# `dwgcraft-cli --version` is run inside the sandbox as a smoke test.
-# Manifest: packaging/linux/flatpak/dev.cadcraft.dwg.bundle.yml.
+# `draftcraft-cli --version` is run inside the sandbox as a smoke test.
+# Manifest: packaging/linux/flatpak/dev.cadcraft.draft.bundle.yml.
 set -euo pipefail
 # shellcheck source=../env.sh
 . "$(dirname "${BASH_SOURCE[0]}")/../env.sh"

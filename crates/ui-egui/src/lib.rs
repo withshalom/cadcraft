@@ -8,15 +8,15 @@
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 #![forbid(unsafe_code)]
 
-/// DWGCraft as craft-update knows it: its own releases (withshalom/dwgcraft), whose files are named
-/// `dwgcraft-<version>-…` (`packaging/env.sh`'s `APP_SLUG`), with its 128 px icon and accent colour.
-/// Not the suite's CADCraft entry, which would offer CADCraft's releases in place of DWGCraft's.
+/// DraftCraft as craft-update knows it: its own releases (withshalom/draftcraft), whose files are named
+/// `draftcraft-<version>-…` (`packaging/env.sh`'s `APP_SLUG`), with its 128 px icon and accent colour.
+/// Not the suite's CADCraft entry, which would offer CADCraft's releases in place of DraftCraft's.
 #[cfg(not(target_arch = "wasm32"))]
 pub const UPDATE_APP: craft_update::app::App = craft_update::app::App {
-    icon_png: Some(include_bytes!("../../../assets/app-icon/hicolor/128x128/apps/dev.cadcraft.dwg.png")),
+    icon_png: Some(include_bytes!("../../../assets/app-icon/hicolor/128x128/apps/dev.cadcraft.draft.png")),
     accent: Some([0x3e, 0xa6, 0xe8]),
     developer: "WithShalom Studios",
-    ..craft_update::app::App::new("dwgcraft", crate::i18n::PRODUCT_NAME, "DWG drafting", "withshalom/dwgcraft")
+    ..craft_update::app::App::new("draftcraft", crate::i18n::PRODUCT_NAME, "Computer-aided drafting", "withshalom/draftcraft")
 };
 
 pub mod aliasdlg;

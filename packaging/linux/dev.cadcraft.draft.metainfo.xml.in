@@ -2,29 +2,29 @@
 <!-- AppStream metadata (software centres, Flathub). Template: package.sh and the Flatpak
      manifest substitute @VERSION@ and @DATE@ from Cargo.toml and the build date. -->
 <component type="desktop-application">
-  <id>dev.cadcraft.dwg</id>
+  <id>dev.cadcraft.draft</id>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>MIT OR Apache-2.0</project_license>
-  <name>DWGCraft</name>
+  <name>DraftCraft</name>
   <summary>Draft, dimension and plot 2D drawings that keep your DWG files whole</summary>
   <developer id="com.withshalom">
     <name>WithShalom Studios</name>
   </developer>
   <description>
     <p>
-      DWGCraft is an open-source computer-aided design and drafting application with a familiar
+      DraftCraft is an open-source computer-aided design and drafting application with a familiar
       command line, object snaps, layers, dimensions, hatches and blocks. It opens and saves DXF
       and DWG drawings, exports SVG and PNG, and can be driven by AI agents over MCP. It is
       WithShalom Studios' build of CADCraft by the ArtCraft team.
     </p>
   </description>
-  <launchable type="desktop-id">dev.cadcraft.dwg.desktop</launchable>
-  <icon type="stock">dev.cadcraft.dwg</icon>
+  <launchable type="desktop-id">dev.cadcraft.draft.desktop</launchable>
+  <icon type="stock">dev.cadcraft.draft</icon>
   <!-- Only url types known to appstream 0.15 (Ubuntu 22.04, where CI validates): no vcs-browser. -->
-  <url type="homepage">https://dwg.cadcraft.dev</url>
-  <url type="bugtracker">https://github.com/withshalom/dwgcraft/issues</url>
-  <url type="help">https://github.com/withshalom/dwgcraft</url>
-  <url type="contact">https://github.com/withshalom/dwgcraft</url>
+  <url type="homepage">https://draft.cadcraft.dev</url>
+  <url type="bugtracker">https://github.com/withshalom/draftcraft/issues</url>
+  <url type="help">https://github.com/withshalom/draftcraft</url>
+  <url type="contact">https://github.com/withshalom/draftcraft</url>
   <categories>
     <category>Graphics</category>
     <category>Engineering</category>
@@ -38,7 +38,7 @@
   <screenshots>
     <screenshot type="default">
       <caption>A mechanical part drawing with dimensions, hatching and layers</caption>
-      <image>https://raw.githubusercontent.com/withshalom/dwgcraft/dwg-web/docs/images/ui-bracket.png</image>
+      <image>https://raw.githubusercontent.com/withshalom/draftcraft/dwg-web/docs/images/ui-bracket.png</image>
     </screenshot>
   </screenshots>
   <branding>
@@ -54,7 +54,7 @@
     <control>tablet</control>
   </supports>
   <provides>
-    <binary>dwgcraft</binary>
+    <binary>draftcraft</binary>
   </provides>
   <content_rating type="oars-1.1"/>
   <releases>

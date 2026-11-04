@@ -603,19 +603,19 @@ fn production_font_chain_covers_latin_and_shortcut_symbols() {
     });
 }
 
-/// The interface says DWGCraft wherever upstream's strings say CADCraft, in every language, but
+/// The interface says DraftCraft wherever upstream's strings say CADCraft, in every language, but
 /// leaves names inside file and command names alone, and the credit line names upstream as written.
 #[test]
-fn the_interface_says_dwgcraft() {
-    assert_eq!(brand("About CADCraft"), "About DWGCraft");
-    assert_eq!(brand("Save your work and restart CADCraft."), "Save your work and restart DWGCraft.");
-    assert_eq!(brand("CADCraft keeps these preferences"), "DWGCraft keeps these preferences");
-    assert_eq!(brand("Kilépés a CADCraftból"), "Kilépés a DWGCraftból", "a language's ending stays");
-    assert_eq!(brand("关于CADCraft"), "关于DWGCraft");
+fn the_interface_says_draftcraft() {
+    assert_eq!(brand("About CADCraft"), "About DraftCraft");
+    assert_eq!(brand("Save your work and restart CADCraft."), "Save your work and restart DraftCraft.");
+    assert_eq!(brand("CADCraft keeps these preferences"), "DraftCraft keeps these preferences");
+    assert_eq!(brand("Kilépés a CADCraftból"), "Kilépés a DraftCraftból", "a language's ending stays");
+    assert_eq!(brand("关于CADCraft"), "关于DraftCraft");
     for kept in ["cadcraft-cli", "CADCraft.svg", "ai.storyteller.CADCraft", "CADCraft_Stroke", "no name here"] {
         assert_eq!(brand(kept), kept);
     }
-    assert_eq!(brand_owned("Quit CADCraft".to_string()), "Quit DWGCraft");
+    assert_eq!(brand_owned("Quit CADCraft".to_string()), "Quit DraftCraft");
     assert_eq!(tr("en", CREDITS), CREDITS, "the credit line names upstream on purpose");
     for lang in LANGUAGES.iter().map(|l| l.code) {
         for source in ["About CADCraft", "Quit CADCraft", "CADCraft"] {
