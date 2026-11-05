@@ -19,7 +19,7 @@
   <a href="https://github.com/withshalom/draftcraft/releases/latest/download/draftcraft-windows-x64.msi"><img alt="Download for Windows" src="https://img.shields.io/badge/Windows-Download-0078D6?style=for-the-badge&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0id2hpdGUiPjxwYXRoIGQ9Ik0zIDNoOC41djguNUgzek0xMi41IDNIMjF2OC41aC04LjV6TTMgMTIuNWg4LjVWMjFIM3pNMTIuNSAxMi41SDIxVjIxaC04LjV6Ii8%2BPC9zdmc%2B&logoColor=white"></a>
   <a href="https://github.com/withshalom/draftcraft/releases/latest/download/draftcraft-macos-universal.dmg"><img alt="Download for macOS" src="https://img.shields.io/badge/macOS-Download-333333?style=for-the-badge&logo=apple&logoColor=white"></a>
   <a href="https://github.com/withshalom/draftcraft/releases/latest/download/draftcraft-linux-x86_64.AppImage"><img alt="Download for Linux (AppImage)" src="https://img.shields.io/badge/Linux-AppImage-E95420?style=for-the-badge&logo=linux&logoColor=white"></a>
-  <a href="https://draft.cadcraft.dev/"><img alt="Use it in your browser" src="https://img.shields.io/badge/Web-Use_in_browser-0e3463?style=for-the-badge&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIj48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIxMCIvPjxwYXRoIGQ9Ik0yIDEyaDIwTTEyIDJhMTUgMTUgMCAwIDEgMCAyME0xMiAyYTE1IDE1IDAgMCAwIDAgMjAiLz48L3N2Zz4%3D&logoColor=white"></a>
+  <a href="https://draftcraft.dev/"><img alt="Use it in your browser" src="https://img.shields.io/badge/Web-Use_in_browser-0e3463?style=for-the-badge&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIj48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIxMCIvPjxwYXRoIGQ9Ik0yIDEyaDIwTTEyIDJhMTUgMTUgMCAwIDEgMCAyME0xMiAyYTE1IDE1IDAgMCAwIDAgMjAiLz48L3N2Zz4%3D&logoColor=white"></a>
 </p>
 
 <p align="center">
@@ -31,7 +31,7 @@
 </p>
 
 <p align="center">
-  <a href="https://draft.cadcraft.dev/"><b>Try DraftCraft in your browser</b></a> ·
+  <a href="https://draftcraft.dev/"><b>Try DraftCraft in your browser</b></a> ·
   <a href="#screenshots">Screenshots</a> ·
   <a href="#downloads">Downloads</a> ·
   <a href="#why-draftcraft">Why DraftCraft</a> ·
@@ -285,7 +285,7 @@ One click downloads the installer from the [latest release](https://github.com/w
 | Debian, Ubuntu, Mint, Pop!_OS | [.deb x86_64](https://github.com/withshalom/draftcraft/releases/latest/download/draftcraft-linux-x86_64.deb) · [.deb ARM64](https://github.com/withshalom/draftcraft/releases/latest/download/draftcraft-linux-aarch64.deb) |
 | Fedora, openSUSE, RHEL | [.rpm x86_64](https://github.com/withshalom/draftcraft/releases/latest/download/draftcraft-linux-x86_64.rpm) · [.rpm ARM64](https://github.com/withshalom/draftcraft/releases/latest/download/draftcraft-linux-aarch64.rpm) |
 | Flatpak | [x86_64](https://github.com/withshalom/draftcraft/releases/latest/download/draftcraft-linux-x86_64.flatpak) · [ARM64](https://github.com/withshalom/draftcraft/releases/latest/download/draftcraft-linux-aarch64.flatpak) |
-| Browser | Nothing to install: [draft.cadcraft.dev](https://draft.cadcraft.dev/) |
+| Browser | Nothing to install: [draftcraft.dev](https://draftcraft.dev/) |
 
 The [release page](https://github.com/withshalom/draftcraft/releases/latest) also has the Windows portable
 zips, the Arch Linux packages, `.tar.gz` builds (including RISC-V), the macOS command-line tool, the web build

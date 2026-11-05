@@ -13,8 +13,8 @@
 
     <Icon Id="CadcraftIcon.ico" SourceFile="$(var.IconPath)" />
     <Property Id="ARPPRODUCTICON" Value="CadcraftIcon.ico" />
-    <Property Id="ARPURLINFOABOUT" Value="https://draft.cadcraft.dev" />
-    <Property Id="ARPURLUPDATEINFO" Value="https://draft.cadcraft.dev" />
+    <Property Id="ARPURLINFOABOUT" Value="https://draftcraft.dev" />
+    <Property Id="ARPURLUPDATEINFO" Value="https://draftcraft.dev" />
     <Property Id="ARPHELPLINK" Value="https://github.com/withshalom/draftcraft" />
 
     <StandardDirectory Id="ProgramFiles6432Folder">

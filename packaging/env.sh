@@ -48,7 +48,7 @@ export APP_TITLE=DraftCraft               # what people see
 export APP_ID=dev.cadcraft.draft          # reverse-DNS id: desktop file, icons, macOS bundle, Flatpak
 export APP_VENDOR="WithShalom Studios"  # author and publisher
 export APP_MAINTAINER="${APP_MAINTAINER:-WithShalom Studios <design@withshalom.com>}"
-export APP_HOMEPAGE=https://draft.cadcraft.dev
+export APP_HOMEPAGE=https://draftcraft.dev
 export APP_REPO=withshalom/draftcraft
 export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$ROOT/target}"
 

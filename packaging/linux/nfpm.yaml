@@ -15,7 +15,7 @@ section: graphics
 priority: optional
 maintainer: ${APP_MAINTAINER}
 vendor: WithShalom Studios
-homepage: https://draft.cadcraft.dev
+homepage: https://draftcraft.dev
 license: MIT OR Apache-2.0
 description: |-
   DraftCraft: open-source computer-aided design and drafting that keeps DWG files
